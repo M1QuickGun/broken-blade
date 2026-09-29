@@ -22,9 +22,9 @@ Hold up while attacking to slash upward. Hold down while in the air to slash dow
 land a down-slash on an enemy or spikes to bounce off them (pogo).
 
 **Dash:** a quick burst in the direction you're moving, once on the ground and once per jump.
-**Shockline:** fires straight ahead like a harpoon. If it hits a grapple ring or an enemy it
-yanks you to it, flinging you off rings or striking enemies. It retracts if it misses. Jump
-to line up with higher rings, and press jump mid-pull to cancel.
+**Shockline:** fires straight ahead like a harpoon and drags you to whatever it hits, or to
+the end of the line if it hits nothing. Enemies get struck. On a grapple ring you hang for as
+long as you hold right click: let go to drop, or jump to leap off. Jump mid-pull to cancel.
 
 ## Project layout
 - `scripts/game.gd`: global state (blade pieces, max health) and input bindings.

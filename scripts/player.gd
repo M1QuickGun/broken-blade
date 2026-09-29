@@ -38,23 +38,26 @@ const DASH_TIME := 0.18
 const DASH_COOLDOWN := 0.45
 const TRAIL_LIFE := 0.2
 
-## Lightning shockline: fires straight ahead like a harpoon. If it strikes an
-## anchor or enemy it latches on and yanks Storm to it; if it hits a wall or
-## runs out of range it retracts.
+## Lightning shockline: fires straight ahead like a harpoon and drags Storm to
+## whatever it hits, or to the end of the line. Rings hold him while the button
+## is held; enemies get struck.
 const SHOCK_RANGE := 160.0
-const SHOCK_FIRE_SPEED := 1000.0
-## How close to the line an anchor or enemy must be to get caught.
-const SHOCK_CATCH_RADIUS := 12.0
-const SHOCK_RETRACT_SPEED := 1400.0
-const SHOCK_PULL_SPEED := 480.0
+const SHOCK_FIRE_SPEED := 1300.0
+## How close to the line a ring or enemy must be to get caught.
+const SHOCK_CATCH_RADIUS := 14.0
+## Aim assist: a ring or enemy within this angle (radians) of straight ahead
+## gets the line fired directly at it.
+const SHOCK_ASSIST_ANGLE := 0.6
+const SHOCK_PULL_SPEED := 600.0
 const SHOCK_MAX_PULL_TIME := 0.6
 const SHOCK_COOLDOWN := 0.2
 const SHOCK_ARRIVE_DIST := 10.0
 const SHOCK_STRIKE_DIST := 14.0
-## Launch off an anchor on arrival: forward speed and upward speed.
-const SHOCK_FLING := Vector2(200, -200)
+## Where Storm's feet sit relative to a ring he's hanging from, so the ring is
+## just above his head and he can fire level at the next one.
+const SHOCK_HANG_OFFSET := Vector2(0, 19)
 const SHOCK_STRIKE_BOUNCE := Vector2(140, -240)
-## How long the fling's momentum resists air steering.
+## How long momentum after a shockline pull resists air steering.
 const CARRY_TIME := 0.25
 
 const INVULN_TIME := 1.0
@@ -98,7 +101,7 @@ var _air_dash := true
 ## Recent positions during a dash, drawn as fading afterimages: [{pos, age}].
 var _trail: Array[Dictionary] = []
 
-enum Shock { NONE, FIRING, PULLING }
+enum Shock { NONE, FIRING, PULLING, HANGING }
 var _shock := Shock.NONE
 var _shock_target: Node2D = null
 ## Where the end of the line is, in global coordinates.
@@ -106,8 +109,6 @@ var _shock_tip := Vector2.ZERO
 var _shock_dir := Vector2.RIGHT
 var _shock_time := 0.0
 var _shock_cd := 0.0
-## After a miss, the line is drawn reeling back in while Storm moves freely.
-var _shock_retracting := false
 var _carry := 0.0
 
 
@@ -154,7 +155,6 @@ func _reset_moves() -> void:
 	_trail.clear()
 	_shock = Shock.NONE
 	_shock_target = null
-	_shock_retracting = false
 	_carry = 0.0
 
 
@@ -177,8 +177,10 @@ func _physics_process(delta: float) -> void:
 		if not controls_locked and _on_safe_ground():
 			safe_position = global_position
 
-	if not controls_locked and _shock == Shock.NONE:
+	if not controls_locked and (_shock == Shock.NONE or _shock == Shock.HANGING):
 		if Input.is_action_just_pressed("dash") and _can_dash():
+			if _shock == Shock.HANGING:
+				_end_shockline(0.0)
 			_start_dash(input_x)
 		elif Input.is_action_just_pressed("shockline") and _can_shock():
 			_fire_shockline(input_x)
@@ -187,6 +189,10 @@ func _physics_process(delta: float) -> void:
 		_update_shock_firing(delta)
 	elif _shock == Shock.PULLING:
 		_update_shock_pull(delta)
+	elif _shock == Shock.HANGING:
+		if input_x != 0.0:
+			facing = 1 if input_x > 0.0 else -1
+		_update_shock_hang()
 	elif _dash_time > 0.0:
 		_update_dash(delta)
 	else:
@@ -217,9 +223,6 @@ func _tick_timers(delta: float) -> void:
 	_recoil -= delta
 	_dash_cd -= delta
 	_shock_cd -= delta
-	if _shock_retracting:
-		_shock_tip = _shock_tip.move_toward(_center(), SHOCK_RETRACT_SPEED * delta)
-		_shock_retracting = _shock_tip.distance_to(_center()) > 4.0
 	_carry -= delta
 	for point in _trail:
 		point.age += delta
@@ -300,14 +303,34 @@ func _fire_shockline(input_x: float) -> void:
 	if input_x != 0.0:
 		facing = 1 if input_x > 0.0 else -1
 	_shock = Shock.FIRING
-	_shock_dir = Vector2(facing, 0)
+	_shock_dir = _shock_aim()
 	_shock_tip = _center()
-	_shock_retracting = false
+	_shock_target = null
 	_dash_time = 0.0
 	_carry = 0.0
 
 
-## The line flies straight out. Storm braces in place until it hits or misses.
+## Straight ahead, or straight at the nearest ring or enemy roughly ahead.
+func _shock_aim() -> Vector2:
+	var ahead := Vector2(facing, 0)
+	var center := _center()
+	var best := ahead
+	var best_dist := INF
+	for target: Node2D in get_tree().get_nodes_in_group("shock_target"):
+		var to: Vector2 = target.shock_point() - center
+		var dist := to.length()
+		if dist > SHOCK_RANGE or dist >= best_dist or absf(ahead.angle_to(to)) > SHOCK_ASSIST_ANGLE:
+			continue
+		var blocked := get_world_2d().direct_space_state.intersect_ray(
+			PhysicsRayQueryParameters2D.create(center, target.shock_point(), LAYER_WORLD))
+		if blocked.is_empty():
+			best = to.normalized()
+			best_dist = dist
+	return best
+
+
+## The line flies straight out while Storm braces. Whatever it hits, or wherever
+## it runs out, he gets dragged there.
 func _update_shock_firing(delta: float) -> void:
 	velocity = Vector2.ZERO
 	var from := _shock_tip
@@ -323,19 +346,14 @@ func _update_shock_firing(delta: float) -> void:
 
 	var target := _shock_target_between(from, to)
 	if target:
-		_shock = Shock.PULLING
-		_shock_target = target
-		_shock_tip = target.shock_point()
-		_shock_time = 0.0
-		return
-	_shock_tip = to
-	if out_of_range or not wall.is_empty():
-		_shock = Shock.NONE
-		_shock_retracting = true
-		_shock_cd = SHOCK_COOLDOWN
+		_start_shock_pull(target, target.shock_point())
+	elif out_of_range or not wall.is_empty():
+		_start_shock_pull(null, to)
+	else:
+		_shock_tip = to
 
 
-## The first anchor or enemy the line passes over between two points.
+## The first ring or enemy the line passes over between two points.
 func _shock_target_between(from: Vector2, to: Vector2) -> Node2D:
 	var best: Node2D = null
 	var best_dist := INF
@@ -351,9 +369,17 @@ func _shock_target_between(from: Vector2, to: Vector2) -> Node2D:
 	return best
 
 
+## Target is a ring or enemy, or null to be dragged to a bare point (a miss).
+func _start_shock_pull(target: Node2D, point: Vector2) -> void:
+	_shock = Shock.PULLING
+	_shock_target = target
+	_shock_tip = point
+	_shock_time = 0.0
+
+
 func _update_shock_pull(delta: float) -> void:
 	_shock_time += delta
-	if not is_instance_valid(_shock_target) or _shock_time > SHOCK_MAX_PULL_TIME:
+	if _shock_time > SHOCK_MAX_PULL_TIME or (_shock_target != null and not is_instance_valid(_shock_target)):
 		_end_shockline()
 		return
 	if not controls_locked and Input.is_action_just_pressed("jump"):
@@ -362,34 +388,59 @@ func _update_shock_pull(delta: float) -> void:
 		velocity.y = JUMP_VELOCITY
 		_no_jump_cut = false
 		return
-	_shock_tip = _shock_target.shock_point()
+	if _shock_target:
+		_shock_tip = _shock_target.shock_point()
 	var to: Vector2 = _shock_tip - _center()
 	_shock_dir = to.normalized()
 	velocity = _shock_dir * SHOCK_PULL_SPEED
 
 
 func _check_shock_arrival() -> void:
-	if not is_instance_valid(_shock_target):
+	if _shock_target != null and not is_instance_valid(_shock_target):
 		_end_shockline()
 		return
-	var is_enemy := _shock_target.has_method("take_hit")
-	var dist: float = _center().distance_to(_shock_target.shock_point())
+	var is_enemy := _shock_target != null and _shock_target.has_method("take_hit")
+	var dist := _center().distance_to(_shock_tip)
 	if dist <= (SHOCK_STRIKE_DIST if is_enemy else SHOCK_ARRIVE_DIST):
 		if is_enemy:
 			_shock_strike(_shock_target)
+		elif _shock_target:
+			_start_shock_hang()
 		else:
-			_shock_fling()
+			_end_shockline()
+			velocity = _shock_dir * RUN_SPEED
+			_carry = CARRY_TIME
 	elif _shock_time > 0.05 and get_real_velocity().length() < 20.0:
-		_end_shockline()  # snagged on a wall or ledge
+		_end_shockline()  # reached a wall, or snagged on a ledge
 
 
-func _shock_fling() -> void:
-	_end_shockline()
-	velocity = Vector2(_shock_dir.x * SHOCK_FLING.x, SHOCK_FLING.y)
-	_carry = CARRY_TIME
-	_no_jump_cut = true
+# Hanging from a ring: held for as long as the shockline button is held.
+
+func _start_shock_hang() -> void:
+	_shock = Shock.HANGING
 	_air_dash = true
-	_coyote = 0.0
+	_no_jump_cut = false
+	_snap_to_ring()
+
+
+func _update_shock_hang() -> void:
+	if not is_instance_valid(_shock_target):
+		_end_shockline(0.0)
+		return
+	if not controls_locked and Input.is_action_just_pressed("jump"):
+		_end_shockline(0.0)
+		velocity.y = JUMP_VELOCITY
+		return
+	if controls_locked or not Input.is_action_pressed("shockline"):
+		_end_shockline(0.0)  # let go and drop
+		return
+	_snap_to_ring()
+
+
+func _snap_to_ring() -> void:
+	velocity = Vector2.ZERO
+	_shock_tip = _shock_target.shock_point()
+	global_position = _shock_tip + SHOCK_HANG_OFFSET
 
 
 func _shock_strike(enemy: Node2D) -> void:
@@ -403,10 +454,10 @@ func _shock_strike(enemy: Node2D) -> void:
 	_hitstop()
 
 
-func _end_shockline() -> void:
+func _end_shockline(cooldown := SHOCK_COOLDOWN) -> void:
 	_shock = Shock.NONE
 	_shock_target = null
-	_shock_cd = SHOCK_COOLDOWN
+	_shock_cd = cooldown
 
 
 # --- Combat ---
@@ -531,7 +582,7 @@ func _draw() -> void:
 		var o: Vector2 = point.pos - global_position
 		draw_rect(Rect2(o + Vector2(-5, -22), Vector2(10, 22)), Color(COLOR_ICE, 0.35 * fade))
 
-	if _shock != Shock.NONE or _shock_retracting:
+	if _shock != Shock.NONE:
 		_draw_shockline(_center() - global_position, _shock_tip - global_position)
 
 	var blinking := _invuln > 0.0 and fmod(_invuln, 0.16) < 0.08
