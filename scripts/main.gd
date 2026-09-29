@@ -18,6 +18,9 @@ var _transitioning := false
 
 
 func _ready() -> void:
+	# Hide the cursor while playing and keep clicks inside the window.
+	Input.mouse_mode = Input.MOUSE_MODE_CONFINED_HIDDEN
+
 	player = Player.new()
 	add_child(player)
 
@@ -40,8 +43,12 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if OS.is_debug_build() and event.is_action_pressed("debug_add_piece"):
-		Game.add_piece()
+	if not OS.is_debug_build():
+		return
+	if event.is_action_pressed("debug_unlock_dash"):
+		Game.unlock("dash")
+	elif event.is_action_pressed("debug_unlock_shockline"):
+		Game.unlock("shockline")
 
 
 func _load_room(room_name: String, door: String) -> void:

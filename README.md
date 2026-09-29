@@ -8,16 +8,23 @@ A dark fantasy metroidvania made with Godot 4. See [DESIGN.md](DESIGN.md) for th
 3. Press **F5** to play.
 
 ## Controls
-| Action | Keyboard | Controller |
+| Action | Keyboard & mouse | Controller |
 |---|---|---|
 | Move | A / D or ← / → | Left stick / D-pad |
 | Look up / down (aim slashes) | W / S or ↑ / ↓ | Left stick / D-pad |
 | Jump (hold for higher) | Space, Z or K | A |
-| Attack | J or X | X |
-| Debug: add a blade piece | F1 | — |
+| Attack | Left click | X |
+| Dash (ice piece) | Shift, L or C | RB |
+| Shockline (lightning piece) | Right click | Y |
+| Debug: unlock dash / shockline | F1 / F2 | — |
 
 Hold up while attacking to slash upward. Hold down while in the air to slash downward, and
 land a down-slash on an enemy or spikes to bounce off them (pogo).
+
+**Dash:** a quick burst in the direction you're moving, once on the ground and once per jump.
+**Shockline:** fires straight ahead like a harpoon. If it hits a grapple ring or an enemy it
+yanks you to it, flinging you off rings or striking enemies. It retracts if it misses. Jump
+to line up with higher rings, and press jump mid-pull to cancel.
 
 ## Project layout
 - `scripts/game.gd`: global state (blade pieces, max health) and input bindings.
@@ -25,5 +32,6 @@ land a down-slash on an enemy or spikes to bounce off them (pogo).
 - `scripts/player.gd`: Storm's movement, combat and damage.
 - `scripts/rooms.gd`: room layouts as text maps, and which doors connect.
 - `scripts/room.gd`: turns a text map into collision, spikes, doors and enemies.
-- `scripts/crawler.gd`, `scripts/shard.gd`: first enemy and the test blade shard.
+- `scripts/crawler.gd`: the first enemy.
+- `scripts/shard.gd`, `scripts/anchor.gd`: blade piece pickups and shockline grapple points.
 - `tools/playtest.tscn`: automated smoke test that plays a route and saves screenshots.

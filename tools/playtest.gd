@@ -44,12 +44,7 @@ func _run() -> void:
 	await _wait(0.3)
 	_log("after jumping the pit")
 
-	# Test reach growth, then walk into the drop hole.
-	Game.add_piece()
-	Game.add_piece()
-	await _tap("attack")
-	await _wait(0.03)
-	await _shot("03_slash_two_pieces")
+	# Walk into the drop hole.
 	await _hold_until("move_right", func() -> bool: return main.room.room_name == "undercroft", 4.0)
 	await _wait(0.8)
 	_log("landed in undercroft")
@@ -66,7 +61,84 @@ func _run() -> void:
 	await _wait(0.6)
 	_log("after undercroft")
 	await _shot("05_great_hall")
+
+	# --- Ice dash and lightning shockline, in the broken bridge ---
+	Game.unlock("dash")
+	main._load_room("broken_bridge", "d")
+	await _wait(0.6)
+	_log("bridge start")
+
+	# Running jump, then an air dash across the 8-tile spike gap.
+	_press("move_right")
+	while _x() < 140.0:
+		await get_tree().physics_frame
+	_press("jump")
+	await _wait(0.25)
+	await _tap("dash")
+	await _wait(0.05)
+	await _shot("06_dash")
+	await _wait(0.5)
+	_release("jump")
+	_log("after dash gap (should be past x=272, hp unchanged)")
+
+	# Walk on through the lightning piece to the edge of the long pit.
+	while _x() < 480.0:
+		await get_tree().physics_frame
+	_release("move_right")
+	await _wait(0.2)
+	_log("at pit edge, abilities=%s" % [Game.abilities.keys()])
+
+	# Shockline from anchor to anchor across the pit: aim right and cast as soon
+	# as a target is marked, like a player would.
+	_press("move_right")
+	var casts := 0
+	var elapsed := 0.0
+	var p: CharacterBody2D = main.player
+	while elapsed < 4.0 and _x() < 816.0 and p.hp == 4:
+		if not p._shocking and p._shock_preview and p._shock_cd <= 0.0:
+			await _tap("shockline")
+			casts += 1
+			_log("cast %d" % casts)
+			if casts == 1:
+				await _wait(0.08)
+				await _shot("07_shockline")
+		await get_tree().physics_frame
+		elapsed += 1.0 / 60.0
+	await _wait(0.8)
+	_release("move_right")
+	_log("after shockline chain (should be on far ledge, x > 816)")
+	await _shot("08_far_ledge")
+
+	# Shockline onto an enemy should pull Storm in and strike it.
+	main._load_room("undercroft", "c")
+	await _wait(0.3)
+	var crawlers: Array = main.room.get_children().filter(func(n: Node) -> bool: return n.has_method("take_hit"))
+	var hp_before: Array = crawlers.map(func(c: Node) -> int: return c.hp)
+	_press("move_left")
+	elapsed = 0.0
+	while elapsed < 3.0 and not (p._shock_preview and p._shock_preview.has_method("take_hit")):
+		await get_tree().physics_frame
+		elapsed += 1.0 / 60.0
+	_release("move_left")
+	await _tap("shockline")
+	await _wait(0.5)
+	var hp_after: Array = crawlers.map(func(c: Node) -> int: return c.hp if is_instance_valid(c) else 0)
+	_log("shockline strike: crawler hp %s -> %s" % [hp_before, hp_after])
 	get_tree().quit()
+
+
+var _last_room := ""
+var _last_hp := -1
+
+
+func _physics_process(_delta: float) -> void:
+	if not main or not main.room:
+		return
+	var p: CharacterBody2D = main.player
+	if main.room.room_name != _last_room or p.hp != _last_hp:
+		print("[playtest]     event: room=%s hp=%d pos=%s" % [main.room.room_name, p.hp, p.global_position.round()])
+		_last_room = main.room.room_name
+		_last_hp = p.hp
 
 
 func _x() -> float:

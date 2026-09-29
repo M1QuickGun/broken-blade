@@ -32,6 +32,12 @@ func _ready() -> void:
 	col.shape = shape
 	col.position = Vector2(0, -SIZE.y / 2)
 	add_child(col)
+	add_to_group("shock_target")
+
+
+## Where the shockline latches on.
+func shock_point() -> Vector2:
+	return global_position + Vector2(0, -SIZE.y / 2)
 
 
 func _physics_process(delta: float) -> void:

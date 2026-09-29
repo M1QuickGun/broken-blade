@@ -5,6 +5,13 @@ const COLOR_MASK_FULL := Color("e6e9f0")
 const COLOR_MASK_EMPTY := Color("2a2e3a")
 const COLOR_TEXT := Color("c9ced9")
 
+const ABILITY_NAMES := {"dash": "Ice", "double_jump": "Fire", "shockline": "Lightning"}
+const UNLOCK_MESSAGES := {
+	"dash": "Ice shard recovered. Press Shift or L to dash.",
+	"double_jump": "Fire shard recovered. Jump again in midair.",
+	"shockline": "Lightning shard recovered. Right click to cast the shockline.",
+}
+
 var _hp := 0
 var _max_hp := 0
 var _masks: Control
@@ -32,7 +39,8 @@ func _ready() -> void:
 	_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_fade)
 
-	Game.pieces_changed.connect(_on_pieces_changed)
+	Game.pieces_changed.connect(func(_count: int) -> void: _update_pieces())
+	Game.ability_unlocked.connect(_on_ability_unlocked)
 	_update_pieces()
 
 
@@ -73,16 +81,17 @@ func _make_label(pos: Vector2) -> Label:
 	return label
 
 
-func _on_pieces_changed(count: int) -> void:
-	_update_pieces()
-	if count >= Game.MAX_PIECES:
-		show_message("The blade is whole.")
-	else:
-		show_message("A shard returns. The blade grows longer.")
+func _on_ability_unlocked(ability: String) -> void:
+	show_message(UNLOCK_MESSAGES[ability])
 
 
 func _update_pieces() -> void:
+	var names: Array[String] = []
+	for ability in Game.abilities:
+		names.append(ABILITY_NAMES[ability])
 	_pieces_label.text = "Blade  %d / %d" % [Game.pieces, Game.MAX_PIECES]
+	if not names.is_empty():
+		_pieces_label.text += "   " + "  ".join(names)
 
 
 func _draw_masks() -> void:

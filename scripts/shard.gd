@@ -1,10 +1,13 @@
 extends Area2D
-## A blade shard pickup. Placeholder for the real pieces that bosses will guard.
+## A piece of the broken blade. Touching it grants that piece's ability.
 
-const COLOR_CORE := Color("cfeeff")
-const COLOR_GLOW := Color(0.55, 0.8, 1.0, 0.25)
+const COLORS := {
+	"dash": Color("bfe9ff"),
+	"double_jump": Color("ffb36b"),
+	"shockline": Color("f3e98a"),
+}
 
-var pickup_id := ""
+var ability := "dash"
 
 var _time := 0.0
 
@@ -26,14 +29,14 @@ func _process(delta: float) -> void:
 
 
 func _on_body_entered(_body: Node2D) -> void:
-	Game.collected[pickup_id] = true
-	Game.add_piece()
+	Game.unlock(ability)
 	queue_free()
 
 
 func _draw() -> void:
+	var core: Color = COLORS[ability]
 	var bob := Vector2(0, sin(_time * 2.5) * 2.0)
-	draw_circle(bob, 9.0 + sin(_time * 4.0), COLOR_GLOW)
+	draw_circle(bob, 9.0 + sin(_time * 4.0), Color(core, 0.25))
 	draw_colored_polygon(PackedVector2Array([
 		bob + Vector2(0, -7), bob + Vector2(3, 0), bob + Vector2(0, 7), bob + Vector2(-3, 0),
-	]), COLOR_CORE)
+	]), core)

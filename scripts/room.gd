@@ -7,6 +7,9 @@ signal door_entered(door: String)
 const Rooms := preload("res://scripts/rooms.gd")
 const Crawler := preload("res://scripts/crawler.gd")
 const Shard := preload("res://scripts/shard.gd")
+const Anchor := preload("res://scripts/anchor.gd")
+
+const PIECE_ABILITIES := {"I": "dash", "F": "double_jump", "L": "shockline"}
 
 const TILE := Rooms.TILE
 const LAYER_WORLD := 1
@@ -119,13 +122,17 @@ func _scan_cells() -> void:
 					var crawler := Crawler.new()
 					crawler.position = feet
 					add_child(crawler)
-				"S":
-					var id := "%s:%d,%d" % [room_name, x, y]
-					if not Game.collected.has(id):
+				"I", "F", "L":
+					var ability: String = PIECE_ABILITIES[c]
+					if not Game.has_ability(ability):
 						var shard := Shard.new()
-						shard.pickup_id = id
+						shard.ability = ability
 						shard.position = Vector2((x + 0.5) * TILE, (y + 0.5) * TILE)
 						add_child(shard)
+				"*":
+					var anchor := Anchor.new()
+					anchor.position = Vector2((x + 0.5) * TILE, (y + 0.5) * TILE)
+					add_child(anchor)
 				"^":
 					# Only the lower part of the tile hurts, so brushing the tips is forgiven.
 					_add_rect(hazards, Rect2(x * TILE + 2, y * TILE + 6, TILE - 4, TILE - 6))

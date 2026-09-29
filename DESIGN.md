@@ -28,13 +28,13 @@ is also held by one part of the evil, so each one is likely a boss or region.
 | Hilt | Starting weapon: a normal blade swing | — |
 | First piece | Dash | Ice |
 | Second piece | Double jump | Fire |
-| Final / top piece (the tip) | Zip line–style ability | Lightning |
+| Final / top piece (the tip) | Shockline: fires a straight line to a grapple point or enemy and pulls you to it (like Silksong's clawline) | Lightning |
 
 **Attack reach:** The hilt is just a normal swing. Every piece recovered makes the blade longer,
 so Storm's attack reach grows with each one.
 
 **Order:** The dash (ice) is always first. After that the player chooses: fire (double jump) or
-lightning (zip line), in either order. Levels need to be designed so both routes work.
+lightning (shockline), in either order. Levels need to be designed so both routes work.
 
 ## Art direction (proposed)
 - **Style:** pixel art at a 480×270 base resolution, scaled up to full HD.
