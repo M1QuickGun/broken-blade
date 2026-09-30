@@ -30,8 +30,6 @@ const COLOR_PILLAR_ICE := Color("111c2c")
 const COLOR_GATE := Color("3a3f4f")
 const COLOR_GATE_LIGHT := Color("6a7186")
 const COLOR_ICE_GATE := Color(0.62, 0.86, 1.0, 0.78)
-const COLOR_ICE_GATE_DEEP := Color(0.32, 0.52, 0.72, 0.85)
-const COLOR_ICE_GATE_SHINE := Color(0.92, 0.98, 1.0, 0.9)
 const COLOR_DIRT := Color("2a2a22")
 const COLOR_BG_CAVE := Color("0b0d0c")
 
@@ -46,6 +44,7 @@ const SPIKE_TEX := preload("res://art/world/spikes.png")
 ## The Foothills forest floor: earth, roots and moss; same corner layout as STONE_SHEET.
 const FOREST_SHEET := preload("res://art/world/forest_tileset.png")
 const Forest := preload("res://scripts/forest.gd")
+const ICE_GATE_TEX := preload("res://art/world/frozen_gate.png")
 const SHEET_TILE := 32
 ## Solid-corner mask (NW 8, NE 4, SW 2, SE 1) -> tile in the sheet.
 const STONE_TILES := {
@@ -75,6 +74,7 @@ var _woods := false
 var _cave := false
 ## The breakable earth lid ("=") and the frozen gate ("G"), while they stand.
 var _lid: StaticBody2D
+var _backdrop: Node2D
 var _ice_gate: StaticBody2D
 
 
@@ -93,6 +93,10 @@ func build(name_: String) -> void:
 	size_px = Vector2(size_tiles) * TILE
 	for y in _grid.size():
 		assert(_grid[y].length() == size_tiles.x, "%s row %d has the wrong width" % [name_, y])
+	_backdrop = Node2D.new()
+	_backdrop.z_index = -2
+	_backdrop.draw.connect(_draw_backdrop)
+	add_child(_backdrop)
 	_build_solids()
 	_scan_cells()
 	_build_doors()
@@ -391,14 +395,19 @@ func _on_boss_defeated(info: Dictionary, where: Vector2) -> void:
 	boss_defeated.emit(info.title)
 
 
-func _draw() -> void:
+## The plain background, on its own layer well behind the tiles (and behind anything that
+## hides in the rock, like the burrowing centipede).
+func _draw_backdrop() -> void:
 	if _cave:
-		draw_rect(Rect2(Vector2.ZERO, size_px), COLOR_BG_CAVE)
+		_backdrop.draw_rect(Rect2(Vector2.ZERO, size_px), COLOR_BG_CAVE)
 	elif not _woods:
-		draw_rect(Rect2(Vector2.ZERO, size_px), COLOR_BG_ICE if _ice else COLOR_BG)
+		_backdrop.draw_rect(Rect2(Vector2.ZERO, size_px), COLOR_BG_ICE if _ice else COLOR_BG)
 		# Faint pillars in the background for a sense of ruined architecture.
 		for i in range(3, size_tiles.x, 9):
-			draw_rect(Rect2(i * TILE, 0, TILE * 2, size_px.y), COLOR_PILLAR_ICE if _ice else COLOR_PILLAR)
+			_backdrop.draw_rect(Rect2(i * TILE, 0, TILE * 2, size_px.y), COLOR_PILLAR_ICE if _ice else COLOR_PILLAR)
+
+
+func _draw() -> void:
 	var sheet: Texture2D = ICE_SHEET if _ice else (FOREST_SHEET if _forest or _cave else STONE_SHEET)
 
 	for vy in size_tiles.y + 1:
@@ -422,17 +431,17 @@ func _draw() -> void:
 					draw_rect(Rect2(pos + Vector2(2 + i * 5, 0), Vector2(2, TILE)), COLOR_GATE_LIGHT)
 			if c == "^":
 				draw_texture_rect(SPIKE_TEX, Rect2(pos, Vector2(TILE, TILE)), false)
-			elif c == "G":
-				_draw_ice_gate_cell(x, y, pos)
+			elif c == "G" and _cell(x - 1, y) != "G" and _cell(x, y - 1) != "G":
+				_draw_ice_gate(x, y)
 
 
-## The frozen gate: a wall of clear ice with deeper veins, and a pale shine near its face.
-func _draw_ice_gate_cell(x: int, y: int, pos: Vector2) -> void:
-	draw_rect(Rect2(pos, Vector2(TILE, TILE)), COLOR_ICE_GATE_DEEP)
-	draw_rect(Rect2(pos + Vector2(1, 0), Vector2(TILE - 3, TILE)), COLOR_ICE_GATE)
-	if (x + y) % 3 == 0:
-		draw_line(pos + Vector2(3, 2), pos + Vector2(9, 12), COLOR_ICE_GATE_DEEP, 1.0)
-	if (x * 7 + y * 3) % 5 == 0:
-		draw_line(pos + Vector2(10, 1), pos + Vector2(6, 9), COLOR_ICE_GATE_SHINE, 1.0)
-	if _cell(x - 1, y) != "G":
-		draw_rect(Rect2(pos, Vector2(2, TILE)), COLOR_ICE_GATE_SHINE)
+## The frozen gate (art/world/frozen_gate.png) stretched over its block of G cells, drawn
+## from the block's top-left cell.
+func _draw_ice_gate(x0: int, y0: int) -> void:
+	var w := 0
+	while _cell(x0 + w, y0) == "G" and x0 + w < size_tiles.x:
+		w += 1
+	var h := 0
+	while _cell(x0, y0 + h) == "G" and y0 + h < size_tiles.y:
+		h += 1
+	draw_texture_rect(ICE_GATE_TEX, Rect2(Vector2(x0, y0) * TILE, Vector2(w, h) * TILE), false)

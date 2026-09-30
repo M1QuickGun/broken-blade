@@ -111,7 +111,8 @@ r.put(39, 11, "?")
 r.fill(45, 9, 45, 11, "d")
 
 # The cliff. A narrow chimney first, where the wall jump is easy to learn, then the left wall
-# falls away and it's a single rock face with the forest open below. Ledges now and then.
+# falls away and it's a single rock face with the forest open below. Notches cut into the
+# face (nothing sticking out to bump into) give places to stand and rest.
 r = Room("cliff", 30, 56)
 r.open_sky()
 r.air(0, 0, 0, 50)
@@ -120,9 +121,9 @@ r.fill(0, 51, 0, 53, "d")
 r.put(4, 53, "?")
 r.box(20, 8, 29, 53)
 r.box(12, 36, 13, 50)
-r.box(17, 44, 19, 44)
-r.box(16, 30, 19, 30)
-r.box(17, 19, 19, 19)
+r.air(20, 42, 21, 44)
+r.air(20, 28, 21, 30)
+r.air(20, 16, 21, 18)
 r.put(21, 7, "?")
 r.put(25, 7, "R")
 r.fill(29, 5, 29, 7, "f")
@@ -132,7 +133,8 @@ r.fill(29, 5, 29, 7, "f")
 r = Room("gate_cavern", 40, 18)
 r.floor(16)
 r.fill(0, 13, 0, 15, "f")
-r.fill(35, 1, 36, 15, "G")
+r.box(35, 1, 38, 9)
+r.fill(35, 10, 36, 15, "G")
 r.fill(39, 13, 39, 15, "g")
 r.put(20, 15, "B")
 

@@ -1,23 +1,28 @@
 extends Node2D
-## The Guardian Centipede, the Foothills' boss, fought twice.
+## The Guardian Centipede, the Foothills' boss, fought twice. It lives in the earth: it moves
+## underground and through the rock, and everywhere it's about to come out, the ground
+## rumbles first. Its attacks come in a fixed order, each one announced, so a player can learn
+## the pattern: it's the first boss, so its moves are easy to read and dodge.
 ##
 ## Phase 1, the ring: it lies under the stone ring with the hilt driven into its tail, only the
-## pommel showing above the earth. When Storm pulls at the hilt the ground gives way and he
-## drops into the pit below with it. It crawls the pit floor after him (the hilt still in its
-## tail), rears and lunges and gets its jaws stuck in the dirt, dives into the earth to burst
-## out of a wall and sweep across at knee height, and slams the floor to bring clods down.
-## Beaten, it goes limp and the hilt can be pulled free (the wall jump); then it sinks into the
-## earth, seemingly dead.
+## pommel showing above the earth. Pulling at the hilt breaks the ground and drops Storm into
+## the pit with it. Its pattern:
+## - Breach: a rumble tracks Storm under the floor, stops and swells, then the centipede bursts
+##   up in an arc and dives back in. Step away from the rumble.
+## - Stuck breach: the same, but it dives headfirst into the ground and sticks: free hits.
+## - Wall lunge: a wall rumbles at knee height; the head shoots out and flops onto the floor,
+##   winded: more free hits.
+## Beaten, it collapses out of the earth; the hilt in its tail can be pulled free (the wall
+## jump), and then it sinks back into the ground, seemingly dead.
 ##
-## Phase 2, the gate cavern: it bursts through the ceiling, bigger and armored, and its body
-## pours down into two living walls that trap Storm between them (walls he can cling to). Its
-## head strikes down from the ceiling, bursts out of the coils at floor height, and spits
-## clods. At half health the coils close in and hatchlings drop. Its death throes smash the
-## frozen gate.
+## Phase 2, the gate cavern: risen, bigger and armored. Its body bursts up out of the floor as
+## two living coils that trap Storm between them (walls he can cling to). It adds a ceiling
+## drop, where dust trickles from the spot it'll fall on. At half health the coils close in, it
+## moves faster, and hatchlings drop in. Its death throes smash the frozen gate.
 ##
-## The node's origin is the room's B marker, the middle of the arena's floor.
-## In phase 1 the body follows the head's path like a train. In phase 2 it's a neck hanging
-## from wherever it enters the rock, solved each frame between the head and that anchor.
+## The node's origin is the room's B marker, the middle of the arena's floor. The body follows
+## the head's path like a train, so wherever the head went (into the earth, up a coil, along
+## the ceiling), the body goes too.
 
 signal defeated
 ## Sent when it wakes: the room bars its doors then.
@@ -34,18 +39,26 @@ const HILT_TEX := preload("res://art/blade/blade_0_hilt.png")
 
 const TILE := 16
 const LAYER_ENEMY := 4
+## How far under the floor (or past a wall's face) it travels while hidden.
+const DEPTH := 26.0
+const COLOR_DIRT := Color("3b352b")
+const COLOR_DIRT_LIGHT := Color("5e5443")
 
 enum St {
-	DORMANT, EMERGE, IDLE, REAR, LUNGE, STUCK, RETRACT, DIVE, WARN, SWEEP, SLAM,
-	HIDE, DROP, DOWNED, SINKING, DYING, CHARGE_GATE, GONE,
+	DORMANT, EMERGE, TUNNEL, RUMBLE, BREACH, STUCK, SUBMERGE, TO_WALL, WALL_RUMBLE, LUNGE,
+	TO_CEILING, DUST, DROP, DOWNED, SINKING, DYING, CHARGE_GATE, GONE,
 }
+
+## The attack order, looped.
+const PATTERN_1 := ["breach", "breach_stuck", "wall"]
+const PATTERN_2 := ["breach", "drop", "wall", "breach_stuck", "drop"]
 
 ## Set by the room before it's added (see Rooms.BOSSES).
 var boss_id := ""
 var kind := "centipede"
 var phase := 1
 var title := ""
-var max_hp := 14
+var max_hp := 12
 
 var hp := 0
 
@@ -53,25 +66,31 @@ var _state := St.DORMANT
 var _timer := 0.0
 var _time := 0.0
 var _flash := 0.0
-## Art scale (the risen centipede is bigger) and the spacing of its segments.
 var _scale := 0.5
 var _spacing := 10.0
+var _seg_tex: Texture2D = SEG_TEX
 var _segs: Array[Vector2] = []
-var _head := Vector2.ZERO
-var _head_dir := Vector2.RIGHT
-var _anchor := Vector2.ZERO
-var _target := Vector2.ZERO
-var _speed := 0.0
-var _side := 1
-var _shake := 0.0
-var _cam_base := Vector2.ZERO
-var _head_box: Hitbox
-var _body_boxes: Array[Hitbox] = []
-## Phase 1: the path the head has taken (newest first), which the body follows; and the
-## waypoints of a dive through the earth.
 var _trail: Array[Vector2] = []
 var _path: Array[Vector2] = []
+var _head := Vector2.ZERO
+var _head_dir := Vector2.RIGHT
+var _move := 0
+var _attack := ""
+## Where the next attack comes out, and which way it goes.
+var _spot := Vector2.ZERO
+var _dir := 1
+## A breach: its arc's start, width, height, and how far along it is (0 to 1).
+var _arc_from := Vector2.ZERO
+var _arc_width := 120.0
+var _arc_height := 64.0
+var _arc_t := 0.0
+var _arc_stuck := false
+var _rumble_puff := 0.0
+var _shake := 0.0
+var _cam_base := Vector2.ZERO
 var _near_hilt := false
+var _head_box: Hitbox
+var _body_boxes: Array[Hitbox] = []
 
 # The arena, in the room's coordinates.
 var _left := 0.0
@@ -80,36 +99,37 @@ var _floor := 0.0
 var _top := 0.0
 var _lid_y := 0.0
 
-# Phase 2's living walls: x of each wall's inner face, their height (0 to 1 while they pour
-# down), and the solid bodies Storm clings to.
-var _seg_tex: Texture2D = SEG_TEX
+# Phase 2's living coils: x of each coil's inner face, how far they've risen (0 to 1), and
+# the solid bodies Storm clings to.
 var _walls: Node2D
 var _wall_bodies: Array[StaticBody2D] = []
 var _wall_x := [0.0, 0.0]
-var _wall_drop := 0.0
+var _wall_rise := 0.0
 var _enraged := false
 var _hatch_timer := 4.0
 
 
 func _ready() -> void:
 	hp = max_hp
-	z_index = -1  # behind the tiles, so burrowing into the earth hides it
+	z_index = -1  # behind the tiles, so whatever is in the earth is hidden by it
 	if phase >= 2:
 		_scale = 0.7
 		_spacing = 14.0
 		_seg_tex = SEG_TEX_ARMORED
-	var count := 22 if phase == 1 else 30
+		_arc_width = 150.0
+		_arc_height = 80.0
 	_measure_arena()
-	_head = position
+	var count := 22 if phase == 1 else 26
+	_head = Vector2(position.x, _floor + DEPTH * 3)
 	for i in count:
-		_segs.append(position + Vector2(0, 40))
+		_segs.append(_head)
 	_head_box = _make_box(Vector2(22, 16) * _scale / 0.5, true)
 	for i in range(1, count, 2):
 		_body_boxes.append(_make_box(Vector2(14, 12) * _scale / 0.5, false))
 	_set_boxes_active(false)
 	if phase >= 2:
 		_walls = Node2D.new()
-		_walls.z_index = 1
+		_walls.z_index = 1  # in front of the tiles: the coils stand in the room
 		_walls.draw.connect(_draw_walls)
 		add_child(_walls)
 
@@ -133,7 +153,7 @@ func _measure_arena() -> void:
 	_top = y * TILE
 	_lid_y = (y - 1) * TILE
 	if phase >= 2:
-		# The coils fall a little inside the cavern: one behind Storm, one before the gate.
+		# The coils rise a little inside the cavern: one behind Storm, one before the gate.
 		_wall_x = [6.0 * TILE + 32.0, 32.0 * TILE]
 		_left = _wall_x[0]
 		_right = _wall_x[1]
@@ -163,7 +183,7 @@ func _make_box(size: Vector2, head: bool) -> Hitbox:
 	var box := Hitbox.new()
 	box.boss = self
 	box.is_head = head
-	box.collision_layer = LAYER_ENEMY
+	box.collision_layer = 0
 	box.collision_mask = 0
 	box.monitoring = false
 	var shape := RectangleShape2D.new()
@@ -179,6 +199,11 @@ func _make_box(size: Vector2, head: bool) -> Hitbox:
 func _set_boxes_active(on: bool) -> void:
 	for box in [_head_box] + _body_boxes:
 		box.collision_layer = LAYER_ENEMY if on else 0
+
+
+## Only what's out in the open can hit or be hit; what's in the earth is safe.
+func _in_open(at: Vector2) -> bool:
+	return at.y < _floor + 2.0 and at.y > _top - 2.0 and at.x > _left - 2.0 and at.x < _right + 2.0
 
 
 func shock_point() -> Vector2:
@@ -198,7 +223,7 @@ func take_hit(damage: int, _from_dir: Vector2) -> void:
 		remove_from_group("shock_target")
 		_set_boxes_active(false)
 		if phase == 1:
-			_enter(St.DOWNED, 1.2)
+			_collapse()
 		else:
 			_enter(St.DYING, 1.4)
 
@@ -216,74 +241,69 @@ func _physics_process(delta: float) -> void:
 			_update_dormant(p)
 		St.EMERGE:
 			_update_emerge(delta)
-		St.IDLE:
-			if phase == 1:
-				_crawl(p, delta)
-			else:
-				_hover(p, delta)
+		St.TUNNEL:
+			# Underground, following Storm; the floor rumbles over it.
+			var tx := clampf(p.x, _left + 24, _right - 24)
+			_steer_to(Vector2(tx, _floor + DEPTH), 90.0 * _tempo(), delta, 2.0)
+			_rumble(Vector2(_head.x, _floor), 0.16)
 			if _timer <= 0.0:
-				_choose_attack(p)
-		St.REAR:
-			# Rear up and shake: the lunge is coming.
-			if phase == 1:
-				_steer_to(Vector2(_head.x - _side * 6.0, _floor - 46.0), 200.0, delta)
-			else:
-				_steer_to(Vector2(clampf(p.x, _left + 30, _right - 30) - _side * 40.0, _floor - 90.0 * _scale / 0.5), 260.0, delta)
-			_head += Vector2(randf_range(-1.5, 1.5), 0)
+				_spot = Vector2(_head.x, _floor)
+				_enter(St.RUMBLE, _warn_time())
+		St.RUMBLE:
+			# Stopped: the ground swells right where it'll burst out.
+			_rumble(_spot, 0.05)
+			_shake = maxf(_shake, 0.05)
 			if _timer <= 0.0:
-				_target = Vector2(clampf(p.x, _left + 12, _right - 12), _floor - 8)
-				_enter(St.LUNGE, 1.0)
-		St.LUNGE, St.DROP:
-			if _steer_to(_target, (430.0 if phase == 1 else 520.0) * _tempo(), delta, 14.0) or _timer <= 0.0:
-				_shake = 0.25
-				_spray(_head, Color("3b352b"))
-				_enter(St.STUCK, 1.6 if phase == 1 else 1.1)
+				_start_breach()
+		St.BREACH:
+			_update_breach(delta)
 		St.STUCK:
-			_head += Vector2(randf_range(-0.6, 0.6), 0)
+			_head += Vector2(randf_range(-0.5, 0.5), 0)
 			if _timer <= 0.0:
-				_enter(St.RETRACT, 0.7)
-		St.RETRACT:
-			if phase == 1:
-				_crawl(p, delta)
-			else:
-				_hover(p, delta)
-			if _timer <= 0.0:
-				_enter(St.IDLE)
-		St.DIVE:
-			# Through the earth along its waypoints, out of sight, to the far wall.
-			if _path.is_empty() or _timer <= 0.0:
-				_begin_warning(p)
-			elif _steer_to(_path[0], 300.0, delta, 6.0):
-				_path.pop_front()
-		St.HIDE:
-			# Up into the ceiling, out of sight.
-			if _steer_to(_target, 320.0, delta, 8.0) or _timer <= 0.0:
-				_begin_warning(p)
-		St.WARN:
-			if fmod(_time, 0.08) < delta:
-				_spray(_warn_point(), Color("3b352b"))
-			if _timer <= 0.0:
-				_set_boxes_active(true)
-				if _side == 0:
-					_target = Vector2(_head.x, _floor - 10)
-					_enter(St.DROP, 1.2)
+				_enter(St.SUBMERGE, 1.2)
+		St.SUBMERGE:
+			if _steer_to(Vector2(_head.x, _floor + DEPTH), 110.0, delta, 3.0) or _timer <= 0.0:
+				_next_attack(p)
+		St.TO_WALL, St.TO_CEILING:
+			# Hidden, along waypoints through the earth (and up inside a coil, in phase 2).
+			if _path.is_empty():
+				if _state == St.TO_WALL:
+					_enter(St.WALL_RUMBLE, _warn_time())
 				else:
-					_target = Vector2(_right + 30 if _side > 0 else _left - 30, _floor - 12 * _scale / 0.5)
-					_enter(St.SWEEP, 2.0)
-		St.SWEEP:
-			if _steer_to(_target, 330.0 * _tempo(), delta, 10.0) or _timer <= 0.0:
-				_back_to_hover()
-		St.SLAM:
-			# Rear up tall, then slam its head into the floor: clods rain from above.
-			if _timer > 0.45:
-				_steer_to(Vector2(_head.x, _floor - 64.0), 220.0, delta)
-			elif _steer_to(Vector2(_head.x, _floor - 8.0), 420.0, delta, 8.0) or _timer <= 0.0:
-				_shake = 0.35
-				_spray(_head, Color("3b352b"))
-				_rain_clods(p)
-				_enter(St.STUCK, 0.9)
+					_spot = Vector2(clampf(p.x, _left + 24, _right - 24), _top)
+					_head = Vector2(_spot.x, _top - DEPTH)
+					_enter(St.DUST, _warn_time())
+			elif _steer_to(_path[0], 260.0 * _tempo(), delta, 5.0):
+				_path.pop_front()
+		St.WALL_RUMBLE:
+			_rumble(_spot, 0.05)
+			if _timer <= 0.0:
+				_path = [
+					Vector2(_spot.x + _dir * 80.0, _spot.y),
+					Vector2(_spot.x + _dir * 104.0, _floor - 8.0 * _scale / 0.5),
+				]
+				_enter(St.LUNGE, 1.6)
+		St.LUNGE:
+			# Out of the wall at knee height, then flopping onto the floor, winded.
+			if _path.is_empty() or _timer <= 0.0:
+				_shake = 0.2
+				_spray(_head, COLOR_DIRT)
+				_enter(St.STUCK, 2.0)
+			elif _steer_to(_path[0], 230.0 * _tempo(), delta, 5.0):
+				_path.pop_front()
+		St.DUST:
+			# Hanging in the ceiling over the spot; dust trickles down where it'll fall.
+			if fmod(_time, 0.07) < delta:
+				_spawn_projectile_dust(Vector2(_spot.x + randf_range(-8, 8), _top + 2))
+			if _timer <= 0.0:
+				_enter(St.DROP, 1.2)
+		St.DROP:
+			if _steer_to(Vector2(_spot.x, _floor - 2.0), 420.0 * _tempo(), delta, 4.0) or _timer <= 0.0:
+				_shake = 0.3
+				_spray(_head, COLOR_DIRT)
+				_enter(St.STUCK, 1.8)
 		St.DOWNED:
-			_update_downed(delta)
+			_update_downed()
 		St.SINKING:
 			for i in _trail.size():
 				_trail[i].y += 18.0 * delta
@@ -294,39 +314,37 @@ func _physics_process(delta: float) -> void:
 			_head += Vector2(randf_range(-3, 3), randf_range(-3, 3))
 			_shake = maxf(_shake, 0.1)
 			if _timer <= 0.0:
-				_target = Vector2(_right + 40, _floor - 30)
-				_enter(St.CHARGE_GATE, 1.5)
+				_enter(St.CHARGE_GATE, 1.6)
 		St.CHARGE_GATE:
-			if _steer_to(_target, 420.0, delta, 12.0) or _timer <= 0.0:
+			if _steer_to(Vector2(_right + 40, _floor - 30), 420.0, delta, 12.0) or _timer <= 0.0:
 				_shake = 0.8
 				get_parent().shatter_gate()
-				_enter(St.GONE, 1.2)
+				_enter(St.GONE, 1.4)
 		St.GONE:
-			_wall_drop = clampf(_timer / 1.2, 0.0, 1.0)
-			_head.y += 60.0 * delta
+			_wall_rise = clampf(_timer / 1.4, 0.0, 1.0)
+			_head.y += 70.0 * delta
 			if _timer <= 0.0:
 				_finish()
 	if phase >= 2 and _state != St.DORMANT:
 		_update_walls(delta)
-	_solve_body(delta)
+	_follow_trail()
 	_place_boxes()
 	_update_shake(delta)
 	queue_redraw()
 
 
 func _tempo() -> float:
-	return 1.25 if _enraged else 1.0
+	return 1.2 if _enraged else 1.0
 
 
-func _enter(state: St, time := -1.0) -> void:
+## How long a rumble warns before the attack comes out.
+func _warn_time() -> float:
+	return 0.8 if _enraged else 1.0
+
+
+func _enter(state: St, time := 0.0) -> void:
 	_state = state
-	match state:
-		St.IDLE:
-			_timer = ((1.6 if phase == 1 else 0.8) / _tempo()) if time < 0.0 else time
-		St.REAR:
-			_timer = (0.65 if phase == 1 else 0.55) / _tempo()
-		_:
-			_timer = time
+	_timer = time
 
 
 func _update_dormant(p: Vector2) -> void:
@@ -338,7 +356,7 @@ func _update_dormant(p: Vector2) -> void:
 			_shake = 0.6
 			_wake()
 	elif p.x > 11.0 * TILE:
-		_shake = 1.0
+		_shake = 1.2
 		_wake()
 
 
@@ -346,142 +364,109 @@ func _wake() -> void:
 	engaged.emit()
 	add_to_group("boss")
 	add_to_group("shock_target")
-	if phase == 1:
-		# It bursts up out of the pit floor, its body still buried below.
-		_head = Vector2(position.x + 30, _floor + 40)
-		_trail.clear()
-		for k in 160:
-			_trail.append(_head + Vector2(0, k * 2.0))
-	else:
-		_head = Vector2(position.x, -60)
-		_anchor = Vector2(position.x, -120)
-	for i in _segs.size():
-		_segs[i] = _anchor
-	_target = Vector2(position.x + 20, _floor - 50) if phase == 1 else Vector2(position.x, _floor - 70 * _scale / 0.5)
-	_enter(St.EMERGE, 1.4)
+	_head = Vector2(position.x, _floor + DEPTH * 3)
+	_trail.clear()
+	for k in 200:
+		_trail.append(_head + Vector2(0, k * 2.0))
+	# (Phase 1 gives Storm time to land: he falls in through the middle of the pit.)
+	_enter(St.EMERGE, 1.6 if phase >= 2 else 2.0)
 
 
+## Phase 1: Storm falls into the pit while it stirs below. Phase 2: the coils burst up out of
+## the floor. Then it opens with a breach in the middle.
 func _update_emerge(delta: float) -> void:
 	if phase >= 2:
-		_wall_drop = clampf(1.0 - (_timer - 0.4), 0.0, 1.0)
-	if _timer < 1.0:
-		_set_boxes_active(true)
-		_steer_to(_target, 240.0, delta, 6.0)
+		_wall_rise = clampf(1.0 - (_timer - 0.4) / 1.2, 0.0, 1.0)
+		if fmod(_time, 0.06) < delta:
+			for face in [_left - 16.0, _right + 16.0]:
+				_spray(Vector2(face + randf_range(-14, 14), _floor), COLOR_DIRT)
+	_rumble(Vector2(position.x + (100.0 if phase == 1 else 0.0), _floor), 0.1)
 	if _timer <= 0.0:
-		_enter(St.IDLE)
+		# The opening breach comes up off to one side, never under Storm's feet.
+		_spot = Vector2(position.x + (100.0 if phase == 1 else 0.0), _floor)
+		_head = Vector2(_spot.x, _floor + DEPTH)
+		_attack = "breach"
+		_start_breach()
 
 
-func _choose_attack(p: Vector2) -> void:
-	_side = 1 if p.x < _head.x else -1
-	var roll := randf()
-	if phase == 1:
-		if roll < 0.5:
-			_enter(St.REAR)
-		elif roll < 0.8:
-			# Down into the earth, then out of the wall on the far side from Storm.
-			_side = 1 if p.x > position.x else -1
-			var wall := _left - 22.0 if _side > 0 else _right + 22.0
-			_path = [Vector2(_head.x, _floor + 26), Vector2(wall, _floor + 26), Vector2(wall, _floor - 12)]
-			_set_boxes_active(false)
-			_enter(St.DIVE, 3.0)
+func _next_attack(p: Vector2) -> void:
+	var pattern: Array = PATTERN_1 if phase == 1 else PATTERN_2
+	_attack = pattern[_move % pattern.size()]
+	_move += 1
+	match _attack:
+		"breach", "breach_stuck":
+			_enter(St.TUNNEL, 1.3)
+		"wall":
+			# Through the earth to the wall farther from Storm, then up inside it to knee height.
+			_dir = 1 if p.x > position.x else -1
+			var inside := (_left - DEPTH) if _dir > 0 else (_right + DEPTH)
+			var face := _left if _dir > 0 else _right
+			_spot = Vector2(face, _floor - 12.0 * _scale / 0.5)
+			_path = [Vector2(inside, _floor + DEPTH), Vector2(inside, _spot.y)]
+			_enter(St.TO_WALL)
+		"drop":
+			# Up inside the nearer coil, then along the ceiling, out of sight.
+			var coil := _left - 16.0 if p.x > position.x else _right + 16.0
+			_path = [Vector2(coil, _floor + DEPTH), Vector2(coil, _top - DEPTH)]
+			_enter(St.TO_CEILING)
+
+
+# --- Breach: up out of the ground in an arc, and back down ---
+
+func _start_breach() -> void:
+	_arc_stuck = _attack == "breach_stuck"
+	# Arc toward the middle of the arena, keeping the whole arc inside it.
+	_dir = 1 if _spot.x < position.x else -1
+	var width := _arc_width * (0.7 if _arc_stuck else 1.0)
+	var end_x := _spot.x + _dir * width
+	if end_x < _left + 16 or end_x > _right - 16:
+		_dir = -_dir
+	_arc_from = Vector2(_spot.x, _floor + DEPTH)
+	_head = _arc_from
+	_arc_t = 0.0
+	_shake = 0.3
+	for i in 4:
+		_spray(_spot, COLOR_DIRT)
+	_enter(St.BREACH, 3.0)
+
+
+func _update_breach(delta: float) -> void:
+	var width := _arc_width * (0.7 if _arc_stuck else 1.0)
+	_arc_t = minf(_arc_t + delta / (1.2 / _tempo()), 1.0)
+	var t := _arc_t
+	var x := _arc_from.x + _dir * width * t
+	var rise := (_arc_height + DEPTH) * 4.0 * t * (1.0 - t)
+	var y := _arc_from.y - rise
+	if _arc_stuck:
+		# Instead of diving back under, it drives its head into the ground and sticks.
+		y -= (DEPTH + 2.0) * t
+	_head = Vector2(x, y)
+	if _arc_t >= 1.0:
+		if _arc_stuck:
+			_shake = 0.3
+			_spray(_head, COLOR_DIRT)
+			_enter(St.STUCK, 2.2)
 		else:
-			_enter(St.SLAM, 1.1)
-	else:
-		if roll < 0.4:
-			_side = 0  # from the ceiling, straight down on Storm
-			_target = Vector2(_head.x, -40)
-			_enter(St.HIDE, 0.7)
-		elif roll < 0.75:
-			_side = 1 if p.x > position.x else -1  # out of the coil on the far side from Storm
-			_target = Vector2(_head.x, -40)
-			_enter(St.HIDE, 0.7)
-		else:
-			_spit(p)
-			_enter(St.RETRACT, 0.9)
+			_spray(Vector2(_head.x, _floor), COLOR_DIRT)
+			_enter(St.SUBMERGE, 0.6)
 
 
-func _begin_warning(p: Vector2) -> void:
-	_set_boxes_active(false)  # hidden in the rock while it waits
-	if _side == 0:
-		# Hanging hidden in the ceiling over Storm; dust trickles down where it'll strike.
-		_head = Vector2(clampf(p.x, _left + 16, _right - 16), -30)
-		_anchor = Vector2(_head.x, -140)
-	elif phase == 1:
-		pass  # it's already waiting inside the wall, having tunneled there
-	else:
-		# Waiting inside the coil at knee height, its neck running up inside it.
-		var x := _left - 24 if _side > 0 else _right + 24
-		_head = Vector2(x, _floor - 12 * _scale / 0.5)
-		_anchor = Vector2(x - _side * 30, -100)
-	if phase >= 2:
-		for i in _segs.size():
-			_segs[i] = _anchor
-	_enter(St.WARN, 0.7 / _tempo())
-
-
-func _warn_point() -> Vector2:
-	if _side == 0:
-		return Vector2(_head.x + randf_range(-10, 10), _top + 4)
-	return Vector2(_left if _side > 0 else _right, _floor - randf_range(4, 26))
-
-
-func _back_to_hover() -> void:
-	if phase >= 2:
-		_anchor = Vector2(clampf(_head.x, _left + 40, _right - 40), -140)
-	_enter(St.RETRACT, 0.8)
-
-
-## Phase 1: crawl along the pit floor after Storm, head low (in reach of his blade).
-func _crawl(p: Vector2, delta: float) -> void:
-	var tx := clampf(p.x + _side * 26.0, _left + 14, _right - 14)
-	var ty := _floor - 9.0 + sin(_time * 5.0) * 2.0
-	_steer_to(Vector2(tx, ty), 85.0 * _tempo(), delta, 2.0)
-
-
-## Weave about above Storm, keeping some distance.
-func _hover(p: Vector2, delta: float) -> void:
-	var off := 70.0 * _side
-	var hx := clampf(p.x + off + sin(_time * 1.7) * 20.0, _left + 24, _right - 24)
-	var hy := _floor - (44.0 + sin(_time * 2.3) * 8.0) * _scale / 0.5
-	_steer_to(Vector2(hx, hy), 160.0, delta)
-	if phase >= 2 and _state == St.RETRACT:
-		_anchor = _anchor.move_toward(Vector2(_head.x, -140), 200.0 * delta)
-
+# --- Movement helpers ---
 
 ## Moves the head toward a point, turning like a snake. True once it's there.
 func _steer_to(to: Vector2, speed: float, delta: float, arrive := 4.0) -> bool:
 	var want := _head.direction_to(to)
-	if want != Vector2.ZERO:
-		_head_dir = _head_dir.slerp(want, clampf(8.0 * delta, 0.0, 1.0)).normalized()
 	var step := minf(speed * delta, _head.distance_to(to))
-	_head += (want * 0.6 + _head_dir * 0.4).normalized() * step if want != Vector2.ZERO else Vector2.ZERO
+	_head += want * step
 	return _head.distance_to(to) <= arrive
 
 
-func _rain_clods(p: Vector2) -> void:
-	for i in (5 if phase == 1 else 7):
-		var x := clampf(p.x + randf_range(-110, 110), _left + 8, _right - 8)
-		_spawn_projectile("clod", Vector2(x, _top + 4), Vector2.ZERO, 420.0, 3.0, i * 0.12)
-
-
-func _spit(p: Vector2) -> void:
-	for i in 3:
-		var aim := _head.direction_to(p).rotated((i - 1) * 0.25)
-		_spawn_projectile("clod", _head, aim * 190.0 + Vector2(0, -60), 380.0, 3.0, i * 0.08)
-
-
-func _spawn_projectile(p_kind: String, pos: Vector2, vel: Vector2, grav: float, p_life: float, delay := 0.0) -> void:
-	if delay > 0.0:
-		await get_tree().create_timer(delay).timeout
-		if not is_inside_tree():
-			return
-	var proj := Projectile.new()
-	proj.kind = p_kind
-	proj.velocity = vel
-	proj.fall_accel = grav
-	proj.life = p_life
-	proj.position = pos
-	get_parent().add_child(proj)
+## Dirt kicked up where it's moving or about to come out.
+func _rumble(at: Vector2, every: float) -> void:
+	_rumble_puff -= get_physics_process_delta_time()
+	if _rumble_puff <= 0.0:
+		_rumble_puff = every
+		_spray(at + Vector2(randf_range(-10, 10), 0), COLOR_DIRT)
 
 
 func _spray(at: Vector2, color: Color) -> void:
@@ -490,12 +475,34 @@ func _spray(at: Vector2, color: Color) -> void:
 		room._spawn_debris(at, color)
 
 
-# --- Phase 1's end: limp, the hilt pulled free, then sinking away ---
+func _spawn_projectile_dust(at: Vector2) -> void:
+	var room := get_parent()
+	if room.has_method("_spawn_debris"):
+		room._spawn_debris(at, COLOR_DIRT_LIGHT)
 
-func _update_downed(delta: float) -> void:
-	_steer_to(Vector2(_head.x, _floor - 8), 80.0, delta)
+
+# --- Phase 1's end: collapsed out of the earth, the hilt pulled free, then sinking away ---
+
+## Beaten, it heaves itself out of the ground and collapses along the pit floor, tail and all,
+## so the hilt in its tail can be reached.
+func _collapse() -> void:
+	_shake = 0.6
+	var length := _spacing * _segs.size()
+	var head_x := clampf(_head.x, _left + 20, _right - 20)
+	var back := 1.0 if head_x - _left < _right - head_x else -1.0  # lie toward the roomier side
+	_head = Vector2(head_x, _floor - 7.0)
+	_head_dir = Vector2(-back, 0.2).normalized()
+	_trail.clear()
+	for k in int(length / 2.0) + 20:
+		var x := clampf(head_x + back * k * 2.0, _left + 6, _right - 6)
+		_trail.append(Vector2(x, _floor - 6.0 + sin(k * 0.25) * 1.5))
+	for i in 12:
+		_spray(Vector2(randf_range(_left, _right), _floor), COLOR_DIRT)
+	_enter(St.DOWNED, 1.0)
+
+
+func _update_downed() -> void:
 	if _timer > 0.0:
-		_head += Vector2(randf_range(-2, 2), 0)
 		return
 	if not Game.has_ability("wall_jump"):
 		if get_tree().get_nodes_in_group("hilt_pickup").is_empty():
@@ -507,7 +514,6 @@ func _update_downed(delta: float) -> void:
 		return
 	# The hilt is out: it shudders and sinks into the earth.
 	_shake = 0.6
-	_set_boxes_active(false)
 	_enter(St.SINKING, 1.8)
 
 
@@ -519,7 +525,7 @@ func _finish() -> void:
 	queue_free()
 
 
-# --- Phase 2's living walls ---
+# --- Phase 2's living coils ---
 
 func _update_walls(delta: float) -> void:
 	if _wall_bodies.is_empty():
@@ -539,18 +545,18 @@ func _update_walls(delta: float) -> void:
 	var squeeze := 2.5 * TILE if _enraged else 0.0
 	_left = move_toward(_left, _wall_x[0] + squeeze, 40.0 * delta)
 	_right = move_toward(_right, _wall_x[1] - squeeze, 40.0 * delta)
-	var height := (_floor - _top + TILE) * _wall_drop
+	var height := (_floor - _top + TILE) * _wall_rise
 	var room := get_parent()
 	for i in 2:
 		var face: float = _left if i == 0 else _right
 		var center_x := face - 16.0 if i == 0 else face + 16.0
 		var shape: RectangleShape2D = _wall_bodies[i].get_child(0).shape
 		shape.size = Vector2(32, maxf(1.0, height))
-		_wall_bodies[i].global_position = room.to_global(Vector2(center_x, _top - TILE + height / 2.0))
-	if _enraged and _state != St.GONE and _state != St.DYING and _state != St.CHARGE_GATE:
+		_wall_bodies[i].global_position = room.to_global(Vector2(center_x, _floor - height / 2.0))
+	if _enraged and _state not in [St.GONE, St.DYING, St.CHARGE_GATE]:
 		_hatch_timer -= delta
 		if _hatch_timer <= 0.0:
-			_hatch_timer = 5.5
+			_hatch_timer = 6.0
 			if get_tree().get_nodes_in_group("hatchling").size() < 2:
 				var crawler := Crawler.new()
 				crawler.position = Vector2(randf_range(_left + 20, _right - 20), _top + 8)
@@ -559,55 +565,35 @@ func _update_walls(delta: float) -> void:
 	_walls.queue_redraw()
 
 
+## The coils: segments stacked from the floor up, sliding as if it's circling Storm (up one
+## side, down the other).
 func _draw_walls() -> void:
-	if _wall_drop <= 0.0:
+	if _wall_rise <= 0.0:
 		return
-	var height := (_floor - _top + TILE) * _wall_drop
-	var scroll := fmod(_time * (50.0 if _enraged else 32.0), _spacing)
+	var height := (_floor - _top + TILE) * _wall_rise
+	var scroll := fmod(_time * (46.0 if _enraged else 30.0), _spacing)
 	for i in 2:
 		var face: float = _left if i == 0 else _right
 		var cx := (face - 16.0 if i == 0 else face + 16.0) - position.x
-		var dir := 1.0 if i == 0 else -1.0  # coiling down one side and up the other
-		var y := _top - TILE - _spacing + (scroll if i == 0 else _spacing - scroll)
-		while y < _top - TILE + height:
-			_draw_segment_on(_walls, Vector2(cx, y - position.y), PI / 2.0 * dir, i == 1)
-			y += _spacing
+		var up := i == 0
+		var y := _floor + _spacing - (scroll if up else _spacing - scroll)
+		while y > _floor - height:
+			_draw_segment_on(_walls, Vector2(cx, y - position.y), -PI / 2.0 if up else PI / 2.0, not up)
+			y -= _spacing
 
 
 # --- The body ---
 
-func _solve_body(delta: float) -> void:
+## Each segment sits a fixed distance back along the head's path.
+func _follow_trail() -> void:
 	if _state == St.DORMANT:
 		return
-	if phase == 1:
-		_follow_trail()
-		return
-	var n := _segs.size()
-	var reach := _spacing * (n - 1) * 0.98
-	if _head.distance_to(_anchor) > reach:
-		_head = _anchor + _anchor.direction_to(_head) * reach
-	# A little weight: loose coils settle toward the floor.
-	var rest := _floor - 6.0 * _scale / 0.5
-	for i in range(1, n - 1):
-		if _segs[i].y < rest:  # (buried coils stay buried)
-			_segs[i].y = minf(_segs[i].y + 70.0 * delta, rest)
-	for iteration in 2:
-		_segs[n - 1] = _anchor
-		for i in range(n - 2, -1, -1):
-			_segs[i] = _segs[i + 1] + _segs[i + 1].direction_to(_segs[i]) * _spacing
-		_segs[0] = _head
-		for i in range(1, n):
-			_segs[i] = _segs[i - 1] + _segs[i - 1].direction_to(_segs[i]) * _spacing
-	var ahead := _segs[1].direction_to(_head)
-	if ahead != Vector2.ZERO:
-		_head_dir = _head_dir.slerp(ahead, 0.3).normalized()
-
-
-## Phase 1: each segment sits a fixed distance back along the head's path.
-func _follow_trail() -> void:
 	if _trail.is_empty() or _trail[0].distance_to(_head) >= 2.0:
+		var moved := _head - _trail[0] if not _trail.is_empty() else Vector2.ZERO
+		if moved != Vector2.ZERO and _state != St.DOWNED:
+			_head_dir = _head_dir.slerp(moved.normalized(), 0.35).normalized()
 		_trail.push_front(_head)
-	var need := int(_segs.size() * _spacing / 2.0) + 20
+	var need := int(_segs.size() * _spacing / 2.0) + 30
 	while _trail.size() > need:
 		_trail.pop_back()
 	var k := 0
@@ -626,11 +612,14 @@ func _follow_trail() -> void:
 
 func _place_boxes() -> void:
 	var room := get_parent()
+	var alive := _state not in [St.DORMANT, St.DOWNED, St.SINKING, St.DYING, St.CHARGE_GATE, St.GONE]
 	_head_box.global_position = room.to_global(_head)
+	_head_box.collision_layer = LAYER_ENEMY if alive and _in_open(_head) else 0
 	for k in _body_boxes.size():
 		var i := 1 + k * 2
 		if i < _segs.size():
 			_body_boxes[k].global_position = room.to_global(_segs[i])
+			_body_boxes[k].collision_layer = LAYER_ENEMY if alive and _in_open(_segs[i]) else 0
 
 
 # --- Screen shake ---
@@ -666,11 +655,14 @@ func _draw() -> void:
 				draw_string(font, Vector2(-14, _lid_y - position.y - 26), "W / E", HORIZONTAL_ALIGNMENT_CENTER,
 					28, 8, Color(1, 0.95, 0.8, 0.85))
 		return
+	_draw_warning()
 	var tint := Color(3, 3, 3) if _flash > 0.0 else Color.WHITE
 	if _state == St.SINKING:
 		tint = Color(1, 1, 1, clampf(_timer / 1.8, 0.0, 1.0))
 	for i in range(_segs.size() - 1, 0, -1):
 		var along := _segs[i].direction_to(_segs[i - 1])
+		if along == Vector2.ZERO:
+			continue
 		_draw_segment_on(self, _segs[i] - position, along.angle(), along.x < 0.0, tint)
 	if phase == 1 and not Game.has_ability("wall_jump"):
 		# The hilt, still driven into its tail, grip sticking out behind.
@@ -679,10 +671,34 @@ func _draw() -> void:
 		if back == Vector2.ZERO:
 			back = Vector2.LEFT
 		_draw_hilt(_segs[n - 1] + back * 6.0 - position, false, back.angle() - PI / 2.0)
-	var head_tint := tint
-	if _state in [St.REAR, St.WARN] and fmod(_time, 0.2) < 0.1:
-		head_tint = Color(1.4, 1.1, 0.8, tint.a)
-	_draw_head(_head - position, _head_dir, head_tint)
+	_draw_head(_head - position, _head_dir, tint)
+
+
+## The swell of earth where it's about to burst out: a mound on the floor, a bulge on a wall.
+func _draw_warning() -> void:
+	var grow := 0.0
+	if _state in [St.RUMBLE, St.WALL_RUMBLE, St.DUST]:
+		grow = clampf(1.0 - _timer / _warn_time(), 0.0, 1.0)
+	elif _state == St.TUNNEL:
+		grow = 0.25
+	if grow <= 0.0:
+		return
+	var jitter := Vector2(randf_range(-0.7, 0.7), 0)
+	var at := (_spot if _state != St.TUNNEL else Vector2(_head.x, _floor)) - position + jitter
+	var w := 10.0 + 12.0 * grow
+	var h := 2.0 + 5.0 * grow
+	var pts := PackedVector2Array()
+	for i in 9:
+		var a := PI * i / 8.0
+		match _state:
+			St.WALL_RUMBLE:
+				pts.append(at + Vector2(sin(a) * h * _dir, -cos(a) * w * 0.6))
+			St.DUST:
+				pts.append(at + Vector2(-cos(a) * w, sin(a) * h))
+			_:
+				pts.append(at + Vector2(-cos(a) * w, -sin(a) * h))
+	draw_colored_polygon(pts, COLOR_DIRT)
+	draw_polyline(pts, COLOR_DIRT_LIGHT, 1.0)
 
 
 func _draw_segment_on(canvas: CanvasItem, at: Vector2, angle: float, flip: bool, tint := Color.WHITE) -> void:
