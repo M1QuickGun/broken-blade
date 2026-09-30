@@ -3,11 +3,17 @@ extends Node2D
 ## enemies and pickups. Also draws the placeholder tiles.
 
 signal door_entered(door: String)
+signal sign_read(text: String)
+signal boss_defeated(title: String)
 
 const Rooms := preload("res://scripts/rooms.gd")
 const Crawler := preload("res://scripts/crawler.gd")
 const Shard := preload("res://scripts/shard.gd")
 const Anchor := preload("res://scripts/anchor.gd")
+const Shrine := preload("res://scripts/shrine.gd")
+const MaskShard := preload("res://scripts/mask_shard.gd")
+const Sign := preload("res://scripts/sign.gd")
+const Boss := preload("res://scripts/boss.gd")
 
 const PIECE_ABILITIES := {"I": "dash", "F": "double_jump", "L": "shockline", "W": "wall_jump"}
 
@@ -19,6 +25,8 @@ const LAYER_HAZARD := 8
 const COLOR_BG := Color("0f1119")
 const COLOR_PILLAR := Color("131622")
 const COLOR_SPIKE := Color("9aa0ad")
+const COLOR_GATE := Color("3a3f4f")
+const COLOR_GATE_LIGHT := Color("6a7186")
 
 ## Ruined stone, a 4x4 sheet of 32 px corner tiles (2x detail, 16 world px each).
 ## Tiles are drawn on the dual grid: one per cell corner, picked by which of the four
@@ -41,6 +49,11 @@ var spawn_point := Vector2.ZERO
 var _grid: PackedStringArray
 ## Door letter -> Rect2i of the door's cells.
 var _doors := {}
+## While the room's boss is alive its doors are barred shut.
+var _locked := false
+var _gate: StaticBody2D
+var _boss_spawn := Vector2.ZERO
+var _sign_count := 0
 
 
 func build(name_: String) -> void:
@@ -53,6 +66,7 @@ func build(name_: String) -> void:
 	_build_solids()
 	_scan_cells()
 	_build_doors()
+	_setup_boss()
 
 
 ## Feet position for a player arriving through the given door.
@@ -140,6 +154,23 @@ func _scan_cells() -> void:
 						shard.ability = ability
 						shard.position = Vector2((x + 0.5) * TILE, (y + 0.5) * TILE)
 						add_child(shard)
+				"R":
+					var shrine := Shrine.new()
+					shrine.room_name = room_name
+					shrine.position = feet
+					add_child(shrine)
+				"H":
+					_add_mask_shard("%s:%d,%d" % [room_name, x, y], Vector2((x + 0.5) * TILE, (y + 0.5) * TILE))
+				"B":
+					_boss_spawn = feet
+				"?":
+					var post := Sign.new()
+					var texts: Array = Rooms.SIGNS.get(room_name, [])
+					post.text = texts[_sign_count] if _sign_count < texts.size() else ""
+					_sign_count += 1
+					post.position = feet
+					post.read.connect(func(text: String) -> void: sign_read.emit(text))
+					add_child(post)
 				"*":
 					var anchor := Anchor.new()
 					anchor.position = Vector2((x + 0.5) * TILE, (y + 0.5) * TILE)
@@ -161,7 +192,78 @@ func _build_doors() -> void:
 		area.collision_mask = LAYER_PLAYER
 		add_child(area)
 		_add_rect(area, Rect2(Vector2(r.position) * TILE, Vector2(r.size) * TILE))
-		area.body_entered.connect(func(_body: Node2D) -> void: door_entered.emit(letter))
+		area.body_entered.connect(_on_door_body_entered.bind(letter))
+
+
+func _on_door_body_entered(_body: Node2D, letter: String) -> void:
+	if not _locked:
+		door_entered.emit(letter)
+
+
+func _add_mask_shard(id: String, pos: Vector2) -> void:
+	if Game.collected.has(id):
+		return
+	var mask := MaskShard.new()
+	mask.id = id
+	mask.position = pos
+	add_child(mask)
+
+
+## Spawns what a boss drops: a blade piece or a mask shard (unless already taken).
+func _add_reward(letter: String, pos: Vector2) -> void:
+	if letter == "H":
+		_add_mask_shard("%s:boss" % room_name, pos)
+	elif PIECE_ABILITIES.has(letter) and not Game.has_ability(PIECE_ABILITIES[letter]):
+		var shard := Shard.new()
+		shard.ability = PIECE_ABILITIES[letter]
+		shard.position = pos
+		add_child(shard)
+
+
+func _setup_boss() -> void:
+	if not Rooms.BOSSES.has(room_name):
+		return
+	var info: Dictionary = Rooms.BOSSES[room_name]
+	var reward_pos := _boss_spawn + Vector2(0, -TILE)
+	if Game.defeated.has(info.id):
+		# Beaten already; its reward waits where it fell if it wasn't picked up.
+		if info.has("reward"):
+			_add_reward(info.reward, reward_pos)
+		return
+	var boss := Boss.new()
+	boss.boss_id = info.id
+	boss.kind = info.kind
+	boss.phase = info.phase
+	boss.title = info.title
+	boss.max_hp = info.hp
+	boss.position = _boss_spawn
+	add_child(boss)
+	boss.defeated.connect(func() -> void: _on_boss_defeated(info, boss.global_position))
+	_lock_doors()
+
+
+## Bars every door until the boss falls.
+func _lock_doors() -> void:
+	_locked = true
+	_gate = StaticBody2D.new()
+	_gate.collision_layer = LAYER_WORLD
+	_gate.collision_mask = 0
+	add_child(_gate)
+	for letter in _doors:
+		var r: Rect2i = _doors[letter]
+		_add_rect(_gate, Rect2(Vector2(r.position) * TILE, Vector2(r.size) * TILE))
+	queue_redraw()
+
+
+func _on_boss_defeated(info: Dictionary, where: Vector2) -> void:
+	_locked = false
+	if _gate:
+		_gate.queue_free()
+		_gate = null
+	queue_redraw()
+	if info.has("reward"):
+		_add_reward(info.reward, Vector2(where.x, _boss_spawn.y - TILE))
+	boss_defeated.emit(info.title)
 
 
 func _draw() -> void:
@@ -184,6 +286,11 @@ func _draw() -> void:
 		for x in size_tiles.x:
 			var c := _cell(x, y)
 			var pos := Vector2(x, y) * TILE
+			if _locked and c >= "a" and c <= "z":
+				# Iron bars across the door.
+				draw_rect(Rect2(pos, Vector2(TILE, TILE)), COLOR_GATE)
+				for i in 3:
+					draw_rect(Rect2(pos + Vector2(2 + i * 5, 0), Vector2(2, TILE)), COLOR_GATE_LIGHT)
 			if c == "^":
 				for i in 3:
 					var bx := pos.x + 1 + i * 5

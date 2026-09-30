@@ -6,7 +6,7 @@ const Room := preload("res://scripts/room.gd")
 const Player := preload("res://scripts/player.gd")
 const Hud := preload("res://scripts/hud.gd")
 
-const START_ROOM := "ruins_entry"
+const START_ROOM := "landing"
 const DOOR_FADE := 0.15
 ## How far past the room's edges Storm can go before he's put back on solid ground.
 const OUT_OF_BOUNDS_MARGIN := 48.0
@@ -60,7 +60,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		Game.unlock("wall_jump")
 
 
-func _load_room(room_name: String, door: String) -> void:
+## Loads a room and puts Storm at a door (or at the room's start with door ""), or at
+## `at` when given (waking at a rest shrine).
+func _load_room(room_name: String, door: String, at := Vector2.INF) -> void:
 	if room:
 		remove_child(room)
 		room.queue_free()
@@ -69,9 +71,14 @@ func _load_room(room_name: String, door: String) -> void:
 	add_child(room)
 	move_child(room, 0)
 	room.door_entered.connect(_on_door_entered)
+	room.sign_read.connect(hud.show_message)
+	room.boss_defeated.connect(func(title: String) -> void: hud.show_message("%s falls." % title))
 	Music.play(Rooms.MUSIC.get(room_name, Rooms.DEFAULT_MUSIC))
 
-	player.place_at(room.spawn_point if door == "" else room.door_spawn(door))
+	if at != Vector2.INF:
+		player.place_at(at)
+	else:
+		player.place_at(room.spawn_point if door == "" else room.door_spawn(door))
 	camera.limit_left = 0
 	camera.limit_top = 0
 	camera.limit_right = int(room.size_px.x)
@@ -110,7 +117,11 @@ func _on_player_died() -> void:
 	await get_tree().create_timer(0.4).timeout
 	await hud.fade_out(0.6)
 	player.heal_full()
-	_load_room(START_ROOM, "")
+	# Wake at the last rest shrine, or back at the start if Storm hasn't rested yet.
+	if Game.rest_room != "":
+		_load_room(Game.rest_room, "", Game.rest_point)
+	else:
+		_load_room(START_ROOM, "")
 	await get_tree().physics_frame
 	camera.reset_smoothing()
 	await hud.fade_in(0.6)

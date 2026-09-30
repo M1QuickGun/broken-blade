@@ -242,7 +242,15 @@ func _ready() -> void:
 	_col.position = Vector2(0, -BODY_SIZE.y / 2)
 	add_child(_col)
 	hp = Game.max_hp
+	add_to_group("player")
+	Game.max_hp_changed.connect(_on_max_hp_changed)
 	_build_sprite()
+
+
+## A mask shard raises max health and fills the new mask.
+func _on_max_hp_changed(_max: int) -> void:
+	hp = mini(hp + 1, Game.max_hp)
+	hp_changed.emit(hp, Game.max_hp)
 
 
 func place_at(pos: Vector2) -> void:

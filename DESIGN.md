@@ -98,6 +98,16 @@ mountain doubles as the player's mental map for the rest of the game.
    gate climb needs the double jump and the shockline together. Castle halls are the final
    gauntlet; the Throne holds the final boss.
 
+### Built so far
+The Foothills and the Frozen village are playable end to end (`tools/build_rooms.py`):
+Landing (rest) → Rockfall → Great hall (wall jump pickup; Undercroft below with a mask shard)
+→ Catcher shaft (wall-jump chimney) → Gate fight (Gate Warden) → Village square (rest hub) →
+Ice caverns (the Frozen cellar hides off it, shockline only) → Frost arena (Frost Warden,
+first fight: the ice shard) → Frozen depths (slide tutorial) → Frost throne (the rematch:
+a mask shard) → Ice climb (crawlspace exit) → Broken bridge (placeholder for the Crossroads,
+with the lightning shard). The Ice climb can also be reached from the Village square once
+the slide is learned.
+
 ### Bosses: two fights per region
 Every region's boss is fought twice. The first fight, partway through, wins the region's
 upgrade (the blade piece). The second half of the region then works as the tutorial for that

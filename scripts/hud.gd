@@ -22,6 +22,12 @@ const BLADE_ICON_CENTER := Vector2(50, 17)
 ## The masks start just past the crossguard, so they sit along the blade.
 const MASKS_POS := Vector2(30, 10)
 
+const MASK_MESSAGE := "A mask of the old royal guard. Your health grows."
+const BOSS_BAR_POS := Vector2(140, 250)
+const BOSS_BAR_SIZE := Vector2(200, 4)
+const COLOR_BOSS_BAR := Color("b33a3a")
+const COLOR_BOSS_BAR_BACK := Color("2a1a1e")
+
 const UNLOCK_MESSAGES := {
 	"dash": "Ice shard recovered. Press Shift or L to dash.",
 	"double_jump": "Fire shard recovered. Jump again in midair.",
@@ -36,6 +42,10 @@ var _pieces_label: Label
 var _blade_icon: Sprite2D
 var _message: Label
 var _fade: ColorRect
+var _boss_bar: Control
+var _boss_label: Label
+## The boss being fought (a boss.gd node), or null. Untyped: read for its title and hp.
+var _boss = null
 var _message_tween: Tween
 
 
@@ -61,6 +71,15 @@ func _ready() -> void:
 	_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_message.modulate.a = 0.0
 
+	# The boss's name and health along the bottom of the screen while one is fighting.
+	_boss_bar = Control.new()
+	_boss_bar.position = BOSS_BAR_POS
+	_boss_bar.draw.connect(_draw_boss_bar)
+	add_child(_boss_bar)
+	_boss_label = _make_label(BOSS_BAR_POS + Vector2(0, -14))
+	_boss_label.size = Vector2(BOSS_BAR_SIZE.x, 12)
+	_boss_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+
 	_fade = ColorRect.new()
 	_fade.color = Color(0, 0, 0, 0)
 	_fade.size = Vector2(480, 270)
@@ -69,7 +88,25 @@ func _ready() -> void:
 
 	Game.pieces_changed.connect(func(_count: int) -> void: _update_pieces())
 	Game.ability_unlocked.connect(_on_ability_unlocked)
+	Game.rested.connect(func() -> void: show_message("You rest. Your wounds are mended."))
+	Game.max_hp_changed.connect(func(_max: int) -> void: show_message(MASK_MESSAGE))
 	_update_pieces()
+
+
+func _process(_delta: float) -> void:
+	var boss = get_tree().get_first_node_in_group("boss")
+	if boss != _boss:
+		_boss = boss
+		_boss_label.text = boss.title if boss else ""
+	_boss_bar.queue_redraw()
+
+
+func _draw_boss_bar() -> void:
+	if not is_instance_valid(_boss) or _boss.max_hp <= 0:
+		return
+	var frac := clampf(float(_boss.hp) / _boss.max_hp, 0.0, 1.0)
+	_boss_bar.draw_rect(Rect2(Vector2(-1, -1), BOSS_BAR_SIZE + Vector2(2, 2)), COLOR_BOSS_BAR_BACK)
+	_boss_bar.draw_rect(Rect2(Vector2.ZERO, Vector2(BOSS_BAR_SIZE.x * frac, BOSS_BAR_SIZE.y)), COLOR_BOSS_BAR)
 
 
 func set_hp(hp: int, max_hp: int) -> void:

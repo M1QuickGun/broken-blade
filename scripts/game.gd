@@ -3,6 +3,8 @@ extends Node
 
 signal pieces_changed(count: int)
 signal ability_unlocked(ability: String)
+signal rested
+signal max_hp_changed(max_hp: int)
 
 ## Art is drawn at 2x the world's pixel density: the world uses 16 px tiles, sprites use 32.
 ## Sprites are placed at 1 / ART_SCALE and the camera zooms by ART_SCALE.
@@ -19,6 +21,13 @@ const BLADE_ABILITIES := ["dash", "double_jump", "shockline"]
 var abilities := {}
 var pieces := 0
 var max_hp := 5
+
+## Where Storm wakes after falling: the last rest shrine he touched ("" = the start).
+var rest_room := ""
+var rest_point := Vector2.ZERO
+## Bosses beaten and one-time pickups taken, by id, so they stay gone.
+var defeated := {}
+var collected := {}
 
 
 func _ready() -> void:
@@ -44,6 +53,21 @@ func blade_stage() -> String:
 	if lightning:
 		return "ice_lightning"
 	return "ice"
+
+
+func rest_at(room: String, point: Vector2) -> void:
+	rest_room = room
+	rest_point = point
+	rested.emit()
+
+
+## A mask shard: one more point of health, for good.
+func add_mask(id: String) -> void:
+	if collected.has(id):
+		return
+	collected[id] = true
+	max_hp += 1
+	max_hp_changed.emit(max_hp)
 
 
 func has_ability(ability: String) -> bool:
