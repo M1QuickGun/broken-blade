@@ -11,8 +11,8 @@ signal max_hp_changed(max_hp: int)
 const ART_SCALE := 2.0
 const MAX_PIECES := 3
 ## Attack reach with only the hilt, and how much each recovered piece adds.
-const BASE_REACH := 22.0
-const REACH_PER_PIECE := 10.0
+const BASE_REACH := 27.0
+const REACH_PER_PIECE := 9.0
 
 ## Abilities unlocked so far. The blade pieces each grant one: "dash" (ice),
 ## "double_jump" (fire) or "shockline" (lightning). "wall_jump" isn't a piece: it's

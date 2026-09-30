@@ -74,7 +74,11 @@ const WALL_CLIMB_PUSH := 60.0
 const WALL_CLIMB_VELOCITY := -340.0
 ## The cling art leans into the wall; this is how far back to draw each stage's pose so his
 ## boots meet the wall's surface instead of sinking into it (measured from the art).
-const WALL_POSE_BACK := {"hilt": 16.5, "ice": 13.5, "ice_fire": 16.0, "ice_lightning": 13.0, "full": 13.75}
+## Where the hilt meets the wall while sliding, from Storm's centre (x toward the wall).
+const WALL_SCRAPE := Vector2(5, -12)
+const WALL_POSE_BACK := {"hilt": 14.0, "ice": 14.5, "ice_fire": 15.0, "ice_lightning": 15.0, "full": 15.0}
+## The wall-slide art sits high in its frame (feet well above the bottom); drop it this much.
+const WALL_POSE_DROP := 6.0
 
 ## Sliding and spinning tuck Storm down to half height: a slide from the feet up,
 ## a spin around the middle of his body.
@@ -130,7 +134,9 @@ const COLOR_WIRE := Color("3a2a5c")
 const SHOCK_TIP := preload("res://art/blade/tip.png")
 ## Where the lightning tip sits on the held blade, relative to Storm's centre when facing
 ## right: the shockline fires from here.
-const SWORD_POINT := Vector2(16, 1.5)
+## Measured on the held aim pose (art/storm/<stage>/point.png, last frame): the join
+## between the blade and its lightning tip.
+const SWORD_POINT := Vector2(19.75, -13.75)
 ## While the tip is out on the shockline, Storm's sword is shown without it: the stages
 ## that hold the tip look exactly like these once it's gone.
 const TIPLESS_STAGE := {"ice_lightning": "ice", "full": "ice_fire"}
@@ -450,6 +456,12 @@ func _update_wall(input_x: float) -> void:
 	_wall_dir = side
 	facing = side
 	velocity.y = minf(velocity.y, WALL_SLIDE_SPEED)
+	if velocity.y > 10.0 and _embers.size() < MAX_EMBERS:
+		# The hilt grinding down the stone throws sparks back off the wall.
+		var scrape := _center() + Vector2(side * WALL_SCRAPE.x, WALL_SCRAPE.y)
+		_embers.append({"pos": scrape, "age": randf() * 0.15,
+			"vel": Vector2(-side * randf_range(30.0, 80.0), randf_range(-50.0, 10.0)),
+			"color": COLOR_FIRE_CORE if randf() < 0.5 else COLOR_FIRE})
 	_wall_coyote = WALL_COYOTE_TIME
 	_wall_coyote_dir = side
 	_air_jump = true
@@ -973,9 +985,12 @@ func _update_sprite() -> void:
 	# The spin art whirls around the middle of its frame (half a frame above the feet, in
 	# world units a quarter of the art size); drop it so that lines up with the spin body.
 	_sprite.position.y = size / 4.0 + SPIN_BODY.get_center().y if _spin_time > 0.0 else 0.0
+	if _wall_dir != 0 and _spin_time <= 0.0:
+		_sprite.position.y = WALL_POSE_DROP
 	if _spin_time > 0.0:
 		return  # started in _start_spin, plays through once
-	if _shock == Shock.AIMING:
+	if _shock in [Shock.AIMING, Shock.FIRING, Shock.PULLING]:
+		# Aim, then hold the blade level while the tip flies and drags him along.
 		_sprite.play("point" if _sprite.sprite_frames.has_animation("point") else "idle")
 		return
 	if _is_small():
