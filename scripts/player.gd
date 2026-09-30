@@ -37,7 +37,7 @@ const STRIKE_GUARD_TIME := 0.3
 
 ## Ice dash: a fixed-length horizontal burst with no gravity. One air dash per jump.
 const DASH_SPEED := 320.0
-const DASH_TIME := 0.18
+const DASH_TIME := 0.27
 const DASH_COOLDOWN := 0.45
 ## The slide leaves a streak of frost on the floor that melts away over this long.
 const TRAIL_LIFE := 1.2
@@ -58,6 +58,17 @@ const SPIN_RING_START := 10.0
 const SPIN_HIT_SLACK := 8.0
 const EMBER_LIFE := 0.45
 const MAX_EMBERS := 90
+
+## Wall jump (the hilt's sword catcher): holding toward a wall while falling hooks Storm
+## onto it and he slides down slowly; jumping kicks him off and away. A short grace
+## period after letting go still counts, and grabbing a wall restores the double jump.
+const WALL_SLIDE_SPEED := 55.0
+const WALL_JUMP_PUSH := 170.0
+const WALL_JUMP_VELOCITY := -310.0
+const WALL_COYOTE_TIME := 0.1
+## How long after a wall jump air steering is weakened, so the kick-off carries.
+const WALL_JUMP_CARRY := 0.18
+const WALL_SPRITE_BACK := 4.0
 
 ## Sliding and spinning tuck Storm down to half height: a slide from the feet up,
 ## a spin around the middle of his body.
@@ -97,6 +108,14 @@ const COLOR_ICE := Color(0.6, 0.88, 1.0)
 const COLOR_FIRE := Color(1.0, 0.45, 0.12)
 const COLOR_FIRE_CORE := Color(1.0, 0.85, 0.4)
 const COLOR_BOLT := Color("fff3a8")
+const COLOR_WIRE := Color("3a2a5c")
+## The lightning tip of the blade, pointing right. The shockline fires it off the sword
+## on a line of crackling barbed wire.
+const SHOCK_TIP := preload("res://art/blade/tip.png")
+## Where the sword points from, relative to Storm's centre when facing right.
+const SWORD_POINT := Vector2(9, 3)
+const WIRE_TWIST := 5.0
+const WIRE_BARB_SPACING := 7.0
 const COLOR_BOLT_GLOW := Color(0.65, 0.55, 1.0, 0.45)
 
 var facing := 1
@@ -137,6 +156,11 @@ var _shock_cd := 0.0
 var _carry := 0.0
 
 var _air_jump := true
+## Which side Storm is clinging to (1 = wall on his right, -1 = left, 0 = none), and
+## the grace period and side for jumping off after letting go.
+var _wall_dir := 0
+var _wall_coyote := 0.0
+var _wall_coyote_dir := 0
 var _spin_time := 0.0
 ## Enemies already struck by the current spin, so each is hit once.
 var _spin_hit: Array[Object] = []
@@ -160,6 +184,7 @@ const ANIMS := {
 	"jump": [0.0, false],
 	"slide": [40.0, false],
 	"spin": [26.0, false],
+	"wall": [6.0, true],
 }
 ## Where Storm's body sits across each frame size, in art pixels. Larger frames leave
 ## room for the blade ahead of him, so he's off-centre and the flip has to account for it.
@@ -271,11 +296,14 @@ func _physics_process(delta: float) -> void:
 	else:
 		_move_horizontal(input_x, delta)
 		_apply_gravity(delta)
+		_update_wall(input_x)
 		if _jump_buffer > 0.0 and _coyote > 0.0:
 			velocity.y = JUMP_VELOCITY
 			_jump_buffer = 0.0
 			_coyote = 0.0
 			_no_jump_cut = false
+		elif _jump_buffer > 0.0 and _wall_coyote > 0.0:
+			_wall_jump()
 		elif _jump_buffer > 0.0 and _can_double_jump():
 			_start_spin()
 		if _spin_time > 0.0:
@@ -306,6 +334,7 @@ func _tick_timers(delta: float) -> void:
 	_shock_cd -= delta
 	_carry -= delta
 	_spin_time -= delta
+	_wall_coyote -= delta
 	for point in _trail:
 		point.age += delta
 	while not _trail.is_empty() and _trail[0].age > TRAIL_LIFE:
@@ -371,6 +400,34 @@ func _apply_gravity(delta: float) -> void:
 	if velocity.y < 0.0 and not _no_jump_cut and not Input.is_action_pressed("jump"):
 		g *= JUMP_CUT_MULT
 	velocity.y = minf(velocity.y + g * delta, MAX_FALL)
+
+
+# --- Wall jump ---
+
+func _update_wall(input_x: float) -> void:
+	_wall_dir = 0
+	if not Game.has_ability("wall_jump") or controls_locked or is_on_floor() \
+			or not is_on_wall() or velocity.y < 0.0:
+		return
+	var side := -int(signf(get_wall_normal().x))
+	if side == 0 or signf(input_x) != side:
+		return
+	_wall_dir = side
+	facing = side
+	velocity.y = minf(velocity.y, WALL_SLIDE_SPEED)
+	_wall_coyote = WALL_COYOTE_TIME
+	_wall_coyote_dir = side
+	_air_jump = true
+
+
+func _wall_jump() -> void:
+	velocity = Vector2(-_wall_coyote_dir * WALL_JUMP_PUSH, WALL_JUMP_VELOCITY)
+	facing = -_wall_coyote_dir
+	_wall_dir = 0
+	_wall_coyote = 0.0
+	_jump_buffer = 0.0
+	_no_jump_cut = false
+	_carry = WALL_JUMP_CARRY
 
 
 # --- Ice dash ---
@@ -838,6 +895,8 @@ func _update_sprite() -> void:
 	var body_x: float = BODY_X_BY_FRAME.get(size, size / 2.0)
 	_sprite.offset = Vector2((size / 2.0 - body_x) * facing, -size / 2.0)
 	_sprite.visible = not (_invuln > 0.0 and fmod(_invuln, 0.16) < 0.08)
+	# In the cling pose the hooked sword reaches past his body; pull him back so it meets the wall.
+	_sprite.position.x = -facing * WALL_SPRITE_BACK if _wall_dir != 0 else 0.0
 	# The spin art whirls around the middle of its frame (half a frame above the feet, in
 	# world units a quarter of the art size); drop it so that lines up with the spin body.
 	_sprite.position.y = size / 4.0 + SPIN_BODY.get_center().y if _spin_time > 0.0 else 0.0
@@ -850,6 +909,9 @@ func _update_sprite() -> void:
 			_sprite.frame = SLIDE_FIRST_FRAME
 		return
 	if _attack_anim > 0.0:
+		return
+	if _wall_dir != 0:
+		_sprite.play("wall")
 		return
 	if not is_on_floor() and _shock != Shock.HANGING:
 		_sprite.animation = "jump"
@@ -892,7 +954,8 @@ func _draw() -> void:
 
 
 	if _shock != Shock.NONE:
-		_draw_shockline(_center() - global_position, _shock_tip - global_position)
+		var sword := _center() - global_position + Vector2(SWORD_POINT.x * facing, SWORD_POINT.y)
+		_draw_shockline(sword, _shock_tip - global_position)
 
 	if _slash_time > 0.0:
 		var center := Vector2(0, -11)
@@ -902,9 +965,45 @@ func _draw() -> void:
 		draw_arc(center, radius * 0.75, angle - 0.8, angle + 0.8, 12, Color(COLOR_SLASH, 0.5), 2.0)
 
 
-## The shockline: a taut, straight line with a bright spark at its tip.
+## The shockline: the blade's lightning tip flying out ahead on a strand of barbed wire,
+## two twisted wires with barbs along them and electricity crackling down the middle.
 func _draw_shockline(from: Vector2, to: Vector2) -> void:
-	draw_line(from, to, COLOR_BOLT_GLOW, 3.0)
-	draw_line(from, to, COLOR_BOLT, 1.0)
-	draw_circle(to, 2.5, COLOR_BOLT_GLOW)
-	draw_circle(to, 1.2, COLOR_BOLT)
+	var length := from.distance_to(to)
+	if length < 1.0:
+		return
+	var dir := (to - from) / length
+	var side := dir.orthogonal()
+	draw_line(from, to, COLOR_BOLT_GLOW, 4.0)
+	# Two strands twisted around each other.
+	var strand_a := PackedVector2Array()
+	var strand_b := PackedVector2Array()
+	var t := 0.0
+	while t <= length:
+		var twist := sin(t / WIRE_TWIST * PI) * 1.2
+		strand_a.append(from + dir * t + side * twist)
+		strand_b.append(from + dir * t - side * twist)
+		t += 1.5
+	if strand_a.size() >= 2:
+		draw_polyline(strand_a, COLOR_WIRE, 1.0)
+		draw_polyline(strand_b, COLOR_WIRE, 1.0)
+	# Barbs: little crossed spikes along the wire.
+	t = WIRE_BARB_SPACING
+	while t < length - 4.0:
+		var p := from + dir * t
+		draw_line(p - side * 2.5 - dir * 1.5, p + side * 2.5 + dir * 1.5, COLOR_WIRE, 1.0)
+		draw_line(p + side * 2.5 - dir * 1.5, p - side * 2.5 + dir * 1.5, COLOR_WIRE, 1.0)
+		t += WIRE_BARB_SPACING
+	# A jagged spark of lightning running down the wire, redrawn every frame.
+	var bolt := PackedVector2Array([from])
+	t = 4.0
+	while t < length:
+		bolt.append(from + dir * t + side * randf_range(-1.5, 1.5))
+		t += 4.0
+	bolt.append(to)
+	draw_polyline(bolt, COLOR_BOLT, 1.0)
+	# The tip itself, drawn at the art's 2x detail, its broken end on the wire.
+	var size := SHOCK_TIP.get_size() / Game.ART_SCALE
+	draw_set_transform(to, dir.angle(), Vector2.ONE / Game.ART_SCALE)
+	draw_texture(SHOCK_TIP, Vector2(-SHOCK_TIP.get_width() * 0.35, -SHOCK_TIP.get_height() / 2.0))
+	draw_set_transform(Vector2.ZERO)
+	draw_circle(to, size.y * 0.6, Color(COLOR_BOLT_GLOW, 0.25))

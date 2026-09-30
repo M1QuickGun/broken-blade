@@ -1,10 +1,12 @@
 extends Area2D
-## A piece of the broken blade. Touching it grants that piece's ability.
+## A piece of the broken blade (or, for the wall jump, a technique for the hilt).
+## Touching it grants that ability.
 
 const COLORS := {
 	"dash": Color("bfe9ff"),
 	"double_jump": Color("ffb36b"),
 	"shockline": Color("f3e98a"),
+	"wall_jump": Color("d8b25a"),  # the hilt's gold
 }
 
 var ability := "dash"

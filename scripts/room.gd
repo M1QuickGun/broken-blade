@@ -9,7 +9,7 @@ const Crawler := preload("res://scripts/crawler.gd")
 const Shard := preload("res://scripts/shard.gd")
 const Anchor := preload("res://scripts/anchor.gd")
 
-const PIECE_ABILITIES := {"I": "dash", "F": "double_jump", "L": "shockline"}
+const PIECE_ABILITIES := {"I": "dash", "F": "double_jump", "L": "shockline", "W": "wall_jump"}
 
 const TILE := Rooms.TILE
 const LAYER_WORLD := 1
@@ -133,7 +133,7 @@ func _scan_cells() -> void:
 					var crawler := Crawler.new()
 					crawler.position = feet
 					add_child(crawler)
-				"I", "F", "L":
+				"I", "F", "L", "W":
 					var ability: String = PIECE_ABILITIES[c]
 					if not Game.has_ability(ability):
 						var shard := Shard.new()

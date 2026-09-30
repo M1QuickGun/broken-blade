@@ -12,8 +12,10 @@ const MAX_PIECES := 3
 const BASE_REACH := 22.0
 const REACH_PER_PIECE := 10.0
 
-## Blade pieces recovered so far. Each one grants an ability: "dash" (ice),
-## "double_jump" (fire) or "shockline" (lightning).
+## Abilities unlocked so far. The blade pieces each grant one: "dash" (ice),
+## "double_jump" (fire) or "shockline" (lightning). "wall_jump" isn't a piece: it's
+## Storm learning to hook the hilt's sword catcher into walls, found in the tutorial.
+const BLADE_ABILITIES := ["dash", "double_jump", "shockline"]
 var abilities := {}
 var pieces := 0
 var max_hp := 5
@@ -52,8 +54,9 @@ func unlock(ability: String) -> void:
 	if abilities.has(ability):
 		return
 	abilities[ability] = true
-	pieces = abilities.size()
-	pieces_changed.emit(pieces)
+	if ability in BLADE_ABILITIES:
+		pieces += 1
+		pieces_changed.emit(pieces)
 	ability_unlocked.emit(ability)
 
 
@@ -77,6 +80,7 @@ func _setup_input() -> void:
 	_bind("debug_unlock_dash", [KEY_1], [], [])
 	_bind("debug_unlock_shockline", [KEY_2], [], [])
 	_bind("debug_unlock_double_jump", [KEY_3], [], [])
+	_bind("debug_unlock_wall_jump", [KEY_4], [], [])
 
 
 ## Adds an action with default bindings, unless it's already defined in Project Settings.

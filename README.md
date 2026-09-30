@@ -14,24 +14,28 @@ A dark fantasy metroidvania made with Godot 4. See [DESIGN.md](DESIGN.md) for th
 | Look up / down (aim slashes) | W / S or ↑ / ↓ | Left stick / D-pad |
 | Jump (hold for higher) | Space, Z or K | A |
 | Attack | Left click | X |
+| Wall cling / wall jump | Hold toward a wall in midair, then jump | Stick + A |
 | Dash / slide (ice piece) | Shift, L or C | RB |
 | Double jump spin (fire piece) | Jump again in midair | A |
 | Shockline (lightning piece) | Right click | Y |
 | Toggle fullscreen | F11 | — |
-| Debug: unlock dash / shockline / double jump | 1 / 2 / 3 | — |
+| Debug: unlock dash / shockline / double jump / wall jump | 1 / 2 / 3 / 4 | — |
 
 Hold up while attacking to slash upward. Hold down while in the air to slash downward, and
 land a down-slash on an enemy or spikes to bounce off them (pogo).
 
 **Dash:** a quick slide along the ground on Storm's back, the ice blade freezing the floor behind him. Ground only. Storm is half height while sliding, so he fits under low gaps, and sliding into an enemy strikes it and bounces him back.
+**Wall jump:** Storm hooks the hilt's sword catcher into the stone. Hold toward a wall while
+falling to cling and slide down slowly; jump to kick off. Grabbing a wall restores the double jump.
 **Double jump:** jump again in midair to spin in a ring of fire that strikes every enemy around you. Storm is half height during the spin. Once per jump.
-**Shockline:** fires straight ahead like a harpoon and drags you to whatever it hits, or to
+**Shockline:** fires the blade's lightning tip straight ahead on a line of barbed wire, like a harpoon, and drags you to whatever it hits, or to
 the end of the line if it hits nothing. Enemies get struck. On a grapple ring you hang for as
 long as you hold right click: let go to drop, or jump to leap off. Jump mid-pull to cancel.
 
 ## Project layout
 - `scripts/game.gd`: global state (blade pieces, max health) and input bindings.
 - `scripts/main.gd`: player, camera, HUD, and room transitions.
+- `scripts/music.gd`: background music (tracks in `audio/music/`), crossfading per room.
 - `scripts/player.gd`: Storm's movement, combat and damage.
 - `scripts/rooms.gd`: room layouts as text maps, and which doors connect.
 - `scripts/room.gd`: turns a text map into collision, spikes, doors and enemies.

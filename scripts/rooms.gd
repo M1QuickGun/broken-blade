@@ -4,9 +4,15 @@ extends RefCounted
 ## Legend:  #  solid stone      .  empty          ^  spikes
 ##          P  start position   E  crawler enemy  *  shockline anchor
 ##          I / F / L  ice, fire and lightning blade pieces (dash, double jump, shockline)
+##          W          the sword catcher technique (wall jump)
 ##          a-z  door cells on the room's edge; LINKS says where each one leads.
 
 const TILE := 16
+
+## Which track (res://audio/music/<name>.ogg) plays in each room; unlisted rooms get
+## DEFAULT_MUSIC. "frozen_land" is for the ice region once it exists.
+const DEFAULT_MUSIC := "exploration"
+const MUSIC := {}
 
 const LINKS := {
 	"ruins_entry": {"a": ["great_hall", "a"], "b": ["undercroft", "b"]},

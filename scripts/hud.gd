@@ -26,6 +26,7 @@ const UNLOCK_MESSAGES := {
 	"dash": "Ice shard recovered. Press Shift or L to dash.",
 	"double_jump": "Fire shard recovered. Jump again in midair.",
 	"shockline": "Lightning shard recovered. Right click to cast the shockline.",
+	"wall_jump": "The hilt's sword catcher bites stone. Hold toward a wall to cling, then jump.",
 }
 
 var _hp := 0

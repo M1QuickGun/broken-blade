@@ -56,6 +56,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		Game.unlock("shockline")
 	elif event.is_action_pressed("debug_unlock_double_jump"):
 		Game.unlock("double_jump")
+	elif event.is_action_pressed("debug_unlock_wall_jump"):
+		Game.unlock("wall_jump")
 
 
 func _load_room(room_name: String, door: String) -> void:
@@ -67,6 +69,7 @@ func _load_room(room_name: String, door: String) -> void:
 	add_child(room)
 	move_child(room, 0)
 	room.door_entered.connect(_on_door_entered)
+	Music.play(Rooms.MUSIC.get(room_name, Rooms.DEFAULT_MUSIC))
 
 	player.place_at(room.spawn_point if door == "" else room.door_spawn(door))
 	camera.limit_left = 0

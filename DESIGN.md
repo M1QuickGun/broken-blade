@@ -26,6 +26,7 @@ is also held by one part of the evil, so each one is likely a boss or region.
 | Piece | Ability | Theme |
 |---|---|---|
 | Hilt | Starting weapon: a normal blade swing | — |
+| Hilt technique (not a piece) | Wall jump: Storm hooks the hilt's sword catcher into the stone to cling to walls and kick off them. The first ability, learned in the tutorial | — |
 | First piece | Dash | Ice |
 | Second piece | Double jump | Fire |
 | Final / top piece (the tip) | Shockline: fires a straight line to a grapple point or enemy and pulls you to it (like Silksong's clawline) | Lightning |
@@ -78,7 +79,8 @@ mountain doubles as the player's mental map for the rest of the game.
 
 1. **Foothills (tutorial, hilt only).** Landing (Storm wakes, rest point) → Rockfall (run and
    jump) → Great hall (hilt swing, pogo, crawlers) → Undercroft (spikes, a small off-path
-   reward) → Gate fight (mini-boss before the village). The first playable build's rooms
+   reward) → Gate fight (mini-boss before the village). Storm learns the **wall jump** here,
+   the first ability, and the rooms after it teach it. The first playable build's rooms
    (ruins entry, great hall, undercroft) fit into this stretch.
 2. **Frozen village, taken by the ice evil (dash).** Village square is the lower mountain's hub
    (rest point, maybe the first survivors). Drop through the Ice caverns up into the Frost boss
@@ -95,6 +97,16 @@ mountain doubles as the player's mental map for the rest of the game.
 5. **High pass and castle.** The High pass joins the tops of both faces into one loop. The Castle
    gate climb needs the double jump and the shockline together. Castle halls are the final
    gauntlet; the Throne holds the final boss.
+
+### Bosses: two fights per region
+Every region's boss is fought twice. The first fight, partway through, wins the region's
+upgrade (the blade piece). The second half of the region then works as the tutorial for that
+new ability, building up to the rematch at the end with the boss at full strength.
+
+### Music
+Tracks live in `audio/music/` and are set per room in `scripts/rooms.gd` (`MUSIC`).
+- `exploration`: the default for the Foothills and general travel.
+- `frozen_land`: the Frozen village region.
 
 ### Level design rules
 - Every region has one ability-locked door forward, and at least one secret that pays off on
