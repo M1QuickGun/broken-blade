@@ -42,7 +42,7 @@ var _backdrop: Sprite2D
 
 
 func _ready() -> void:
-	z_index = 1 if front else -1
+	z_index = 1 if front else -2  # the centipede burrows at -1, between it and the tiles
 	if not front:
 		_backdrop = Sprite2D.new()
 		_backdrop.texture = BACKDROP

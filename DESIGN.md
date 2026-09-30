@@ -74,18 +74,22 @@ mountain doubles as the player's mental map for the rest of the game.
                                     D
                [Frozen cellar] S [ Village square * ]-[Frost boss]
                                     |          [ Ice caverns ]
-  [Landing *]-[Rockfall]-[Great hall]-[Gate fight]
-                          [Undercroft]
+  [Landing *]-[Rockfall]-[Ring * / pit]-[Cliff *]-[Gate cavern]
 
   D dash · J double jump · S shockline = ability-locked door   * rest point
   Hidden shrine and Frozen cellar are optional secret rooms.
 ```
 
-1. **Foothills (tutorial, hilt only).** Landing (Storm wakes, rest point) → Rockfall (run and
-   jump) → Great hall (hilt swing, pogo, crawlers) → Undercroft (spikes, a small off-path
-   reward) → Gate fight (mini-boss before the village). Storm learns the **wall jump** here,
-   the first ability, and the rooms after it teach it. The first playable build's rooms
-   (ruins entry, great hall, undercroft) fit into this stretch.
+1. **Foothills (tutorial, forest, open sky).** Landing (Storm wakes with the shard, rest
+   point) → Rockfall (run, jump, swing, pogo) → the Ring: a ring of standing stones with the
+   hilt glinting in its middle. Stepping in breaks the ground and drops Storm into the pit
+   below, where the Guardian Centipede lies pinned by the hilt (fight 1). Beaten, it goes limp;
+   Storm pulls the hilt free (the wall jump) and it sinks into the earth, seemingly dead. The
+   pit is then the wall-jump tutorial: climbing out (a side tunnel hides a mask shard) →
+   the Cliff: a narrow chimney, then a single rock face open to the forest below, with a
+   shrine at the top → the Gate cavern: the frozen gate to the village in sight across it,
+   until the centipede bursts through the ceiling, risen, and its body coils into the
+   arena's walls (fight 2). Its death throes shatter the gate.
 2. **Frozen village, taken by the ice evil (dash).** Village square is the lower mountain's hub
    (rest point, maybe the first survivors). Drop through the Ice caverns up into the Frost boss
    arena for the first blade piece. The Ice climb up the mountain needs the dash. A shockline
@@ -104,13 +108,12 @@ mountain doubles as the player's mental map for the rest of the game.
 
 ### Built so far
 The Foothills and the Frozen village are playable end to end (`tools/build_rooms.py`):
-Landing (rest) → Rockfall → Great hall (wall jump pickup; Undercroft below with a mask shard)
-→ Catcher shaft (wall-jump chimney) → Gate fight (Gate Warden) → Village square (rest hub) →
-Ice caverns (the Frozen cellar hides off it, shockline only) → Frost arena (Frost Warden,
-first fight: the ice shard) → Frozen depths (slide tutorial) → Frost throne (the rematch:
-a mask shard) → Ice climb (crawlspace exit) → Broken bridge (placeholder for the Crossroads,
-with the lightning shard). The Ice climb can also be reached from the Village square once
-the slide is learned.
+Landing (rest) → Rockfall → Ring (rest; the pit and the first centipede fight: the hilt)
+→ Cliff (rest at the top) → Gate cavern (the risen centipede; the frozen gate) → Village
+square (rest hub) → Ice caverns (the Frozen cellar hides off it, shockline only) → Frost
+arena (Frost Warden, first fight: the ice shard) → Frozen depths (slide tutorial) → Frost
+throne (the rematch: a mask shard) → Ice climb (crawlspace exit) → Broken bridge
+(placeholder for the Crossroads, with the lightning shard).
 
 ### Bosses: two fights per region
 Every region's boss is fought twice. The first fight, partway through, wins the region's

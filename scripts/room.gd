@@ -14,6 +14,7 @@ const Shrine := preload("res://scripts/shrine.gd")
 const MaskShard := preload("res://scripts/mask_shard.gd")
 const Sign := preload("res://scripts/sign.gd")
 const Boss := preload("res://scripts/boss.gd")
+const Centipede := preload("res://scripts/centipede.gd")
 
 const PIECE_ABILITIES := {"I": "dash", "F": "double_jump", "L": "shockline", "W": "wall_jump"}
 
@@ -28,6 +29,11 @@ const COLOR_BG_ICE := Color("0c1320")
 const COLOR_PILLAR_ICE := Color("111c2c")
 const COLOR_GATE := Color("3a3f4f")
 const COLOR_GATE_LIGHT := Color("6a7186")
+const COLOR_ICE_GATE := Color(0.62, 0.86, 1.0, 0.78)
+const COLOR_ICE_GATE_DEEP := Color(0.32, 0.52, 0.72, 0.85)
+const COLOR_ICE_GATE_SHINE := Color(0.92, 0.98, 1.0, 0.9)
+const COLOR_DIRT := Color("2a2a22")
+const COLOR_BG_CAVE := Color("0b0d0c")
 
 ## Ruined stone, a 4x4 sheet of 32 px corner tiles (2x detail, 16 world px each).
 ## Tiles are drawn on the dual grid: one per cell corner, picked by which of the four
@@ -66,6 +72,10 @@ var _ice := false
 var _forest := false
 ## Trees and light behind and in front of the tiles (forest and overgrown rooms).
 var _woods := false
+var _cave := false
+## The breakable earth lid ("=") and the frozen gate ("G"), while they stand.
+var _lid: StaticBody2D
+var _ice_gate: StaticBody2D
 
 
 func build(name_: String) -> void:
@@ -73,7 +83,12 @@ func build(name_: String) -> void:
 	_ice = room_name in Rooms.ICE_ROOMS
 	_forest = room_name in Rooms.FOREST_ROOMS
 	_woods = _forest or room_name in Rooms.OVERGROWN_ROOMS
+	_cave = room_name in Rooms.CAVE_ROOMS
 	_grid = PackedStringArray(Rooms.LAYOUTS[name_])
+	# Once the room's boss is beaten, its lid has fallen in and its frozen gate is broken.
+	if Rooms.BOSSES.has(room_name) and Game.defeated.has(Rooms.BOSSES[room_name].id):
+		for y in _grid.size():
+			_grid[y] = _grid[y].replace("=", ".").replace("G", ".")
 	size_tiles = Vector2i(_grid[0].length(), _grid.size())
 	size_px = Vector2(size_tiles) * TILE
 	for y in _grid.size():
@@ -107,10 +122,15 @@ func door_spawn(door: String) -> Vector2:
 	return Vector2(center_x, (size_tiles.y - 2) * TILE)
 
 
+## Past the edge, a room carries on as its edge does: walled rooms stay walled, and rooms
+## open to the sky (or to a drop) stay open instead of growing a rim of tiles.
 func _cell(x: int, y: int) -> String:
-	if x < 0 or y < 0 or x >= size_tiles.x or y >= size_tiles.y:
-		return "#"
-	return _grid[y][x]
+	return _grid[clampi(y, 0, size_tiles.y - 1)][clampi(x, 0, size_tiles.x - 1)]
+
+
+func _earth(x: int, y: int) -> bool:
+	var c := _cell(x, y)
+	return c == "#" or c == "="
 
 
 ## Merges solid cells into as few rectangles as possible, so the player
@@ -135,8 +155,82 @@ func _build_solids() -> void:
 				for xx in range(x, x + w):
 					used[Vector2i(xx, yy)] = true
 			_add_rect(body, Rect2(x * TILE, y * TILE, w * TILE, h * TILE))
-	# An unseen lid a little above the room, for rooms open to the sky.
-	_add_rect(body, Rect2(0, -TILE * 4, size_px.x, TILE * 2))
+	# Unseen walls just past the room's edges, for rooms open to the sky or the drop.
+	_add_rect(body, Rect2(-TILE * 2, -TILE * 4, size_px.x + TILE * 4, TILE * 2))
+	_add_rect(body, Rect2(-TILE * 2, -TILE * 4, TILE * 2, size_px.y + TILE * 4))
+	_add_rect(body, Rect2(size_px.x, -TILE * 4, TILE * 2, size_px.y + TILE * 4))
+	_lid = _cells_body("=")
+	_ice_gate = _cells_body("G")
+
+
+## A separate solid body for every cell of one kind, so it can be taken away whole.
+func _cells_body(kind: String) -> StaticBody2D:
+	var body: StaticBody2D = null
+	for y in size_tiles.y:
+		for x in size_tiles.x:
+			if _cell(x, y) != kind:
+				continue
+			if body == null:
+				body = StaticBody2D.new()
+				body.collision_layer = LAYER_WORLD
+				body.collision_mask = 0
+				add_child(body)
+			_add_rect(body, Rect2(x * TILE, y * TILE, TILE, TILE))
+	return body
+
+
+## The earth lid gives way (the centipede bursting up under Storm's feet).
+func break_lid() -> void:
+	_clear_cells("=", COLOR_DIRT)
+	if _lid:
+		_lid.queue_free()
+		_lid = null
+
+
+## The frozen gate shatters.
+func shatter_gate() -> void:
+	_clear_cells("G", COLOR_ICE_GATE)
+	if _ice_gate:
+		_ice_gate.queue_free()
+		_ice_gate = null
+
+
+func _clear_cells(kind: String, debris_color: Color) -> void:
+	for y in _grid.size():
+		if kind not in _grid[y]:
+			continue
+		for x in _grid[y].length():
+			if _grid[y][x] == kind:
+				_spawn_debris(Vector2((x + 0.5) * TILE, (y + 0.5) * TILE), debris_color)
+		_grid[y] = _grid[y].replace(kind, ".")
+	queue_redraw()
+
+
+func _spawn_debris(at: Vector2, color: Color) -> void:
+	for i in 3:
+		var chunk := Debris.new()
+		chunk.position = at + Vector2(randf_range(-6, 6), randf_range(-6, 6))
+		chunk.velocity = Vector2(randf_range(-60, 60), randf_range(-160, -20))
+		chunk.color = color
+		add_child(chunk)
+
+
+## A chunk of earth or ice flying loose, falling and fading.
+class Debris extends Node2D:
+	var velocity := Vector2.ZERO
+	var color := Color.WHITE
+	var life := 1.2
+
+	func _process(delta: float) -> void:
+		velocity.y += 500.0 * delta
+		position += velocity * delta
+		life -= delta
+		if life <= 0.0:
+			queue_free()
+		queue_redraw()
+
+	func _draw() -> void:
+		draw_rect(Rect2(-2, -2, 4, 3), Color(color, clampf(life, 0.0, 1.0)))
 
 
 func _row_solid(x: int, w: int, y: int, used: Dictionary) -> bool:
@@ -258,7 +352,7 @@ func _setup_boss() -> void:
 		if info.has("reward"):
 			_add_reward(info.reward, reward_pos)
 		return
-	var boss := Boss.new()
+	var boss: Node2D = Centipede.new() if info.kind == "centipede" else Boss.new()
 	boss.boss_id = info.id
 	boss.kind = info.kind
 	boss.phase = info.phase
@@ -267,7 +361,10 @@ func _setup_boss() -> void:
 	boss.position = _boss_spawn
 	add_child(boss)
 	boss.defeated.connect(func() -> void: _on_boss_defeated(info, boss.global_position))
-	_lock_doors()
+	if boss.has_signal("engaged"):
+		boss.engaged.connect(_lock_doors)  # it lies in wait: the doors bar only once it wakes
+	else:
+		_lock_doors()
 
 
 ## Bars every door until the boss falls.
@@ -295,17 +392,19 @@ func _on_boss_defeated(info: Dictionary, where: Vector2) -> void:
 
 
 func _draw() -> void:
-	if not _woods:
+	if _cave:
+		draw_rect(Rect2(Vector2.ZERO, size_px), COLOR_BG_CAVE)
+	elif not _woods:
 		draw_rect(Rect2(Vector2.ZERO, size_px), COLOR_BG_ICE if _ice else COLOR_BG)
 		# Faint pillars in the background for a sense of ruined architecture.
 		for i in range(3, size_tiles.x, 9):
 			draw_rect(Rect2(i * TILE, 0, TILE * 2, size_px.y), COLOR_PILLAR_ICE if _ice else COLOR_PILLAR)
-	var sheet: Texture2D = ICE_SHEET if _ice else (FOREST_SHEET if _forest else STONE_SHEET)
+	var sheet: Texture2D = ICE_SHEET if _ice else (FOREST_SHEET if _forest or _cave else STONE_SHEET)
 
 	for vy in size_tiles.y + 1:
 		for vx in size_tiles.x + 1:
-			var mask := int(_cell(vx - 1, vy - 1) == "#") * 8 + int(_cell(vx, vy - 1) == "#") * 4 \
-				+ int(_cell(vx - 1, vy) == "#") * 2 + int(_cell(vx, vy) == "#")
+			var mask := int(_earth(vx - 1, vy - 1)) * 8 + int(_earth(vx, vy - 1)) * 4 \
+				+ int(_earth(vx - 1, vy)) * 2 + int(_earth(vx, vy))
 			if mask == 0:
 				continue
 			var src := Rect2(Vector2(STONE_TILES[mask]) * SHEET_TILE, Vector2(SHEET_TILE, SHEET_TILE))
@@ -323,3 +422,17 @@ func _draw() -> void:
 					draw_rect(Rect2(pos + Vector2(2 + i * 5, 0), Vector2(2, TILE)), COLOR_GATE_LIGHT)
 			if c == "^":
 				draw_texture_rect(SPIKE_TEX, Rect2(pos, Vector2(TILE, TILE)), false)
+			elif c == "G":
+				_draw_ice_gate_cell(x, y, pos)
+
+
+## The frozen gate: a wall of clear ice with deeper veins, and a pale shine near its face.
+func _draw_ice_gate_cell(x: int, y: int, pos: Vector2) -> void:
+	draw_rect(Rect2(pos, Vector2(TILE, TILE)), COLOR_ICE_GATE_DEEP)
+	draw_rect(Rect2(pos + Vector2(1, 0), Vector2(TILE - 3, TILE)), COLOR_ICE_GATE)
+	if (x + y) % 3 == 0:
+		draw_line(pos + Vector2(3, 2), pos + Vector2(9, 12), COLOR_ICE_GATE_DEEP, 1.0)
+	if (x * 7 + y * 3) % 5 == 0:
+		draw_line(pos + Vector2(10, 1), pos + Vector2(6, 9), COLOR_ICE_GATE_SHINE, 1.0)
+	if _cell(x - 1, y) != "G":
+		draw_rect(Rect2(pos, Vector2(2, TILE)), COLOR_ICE_GATE_SHINE)

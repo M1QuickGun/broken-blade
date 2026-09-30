@@ -8,8 +8,11 @@ const LAYER_ENEMY := 4
 const COLOR_ICE := Color("bfe9ff")
 const COLOR_ICE_DARK := Color("5d8fb8")
 const COLOR_DUST := Color("8a7a66")
+const COLOR_CLOD := Color("3b352b")
+const COLOR_CLOD_LIGHT := Color("5e5443")
 
-## "icicle" (falls, shatters on the ground), "frost_wave" or "dust_wave" (runs along the floor).
+## "icicle" or "clod" (falls or is thrown, breaks on the ground), "frost_wave" or "dust_wave"
+## (runs along the floor).
 var kind := "icicle"
 var velocity := Vector2.ZERO
 var fall_accel := 0.0
@@ -20,15 +23,18 @@ var _size := Vector2(6, 12)
 
 func _ready() -> void:
 	collision_layer = LAYER_ENEMY
-	collision_mask = LAYER_WORLD if kind == "icicle" else 0
-	monitoring = kind == "icicle"
-	if kind != "icicle":
+	var falls := kind == "icicle" or kind == "clod"
+	collision_mask = LAYER_WORLD if falls else 0
+	monitoring = falls
+	if kind == "clod":
+		_size = Vector2(8, 8)
+	elif not falls:
 		_size = Vector2(12, 10)
 	var shape := RectangleShape2D.new()
 	shape.size = _size
 	var col := CollisionShape2D.new()
 	col.shape = shape
-	col.position = Vector2(0, -_size.y / 2) if kind != "icicle" else Vector2.ZERO
+	col.position = Vector2.ZERO if falls else Vector2(0, -_size.y / 2)
 	add_child(col)
 	body_entered.connect(func(_body: Node2D) -> void: queue_free())
 
@@ -37,7 +43,7 @@ func _physics_process(delta: float) -> void:
 	velocity.y += fall_accel * delta
 	position += velocity * delta
 	life -= delta
-	if life <= 0.0 or (kind != "icicle" and _wall_ahead()):
+	if life <= 0.0 or (kind.ends_with("wave") and _wall_ahead()):
 		queue_free()
 	queue_redraw()
 
@@ -59,6 +65,10 @@ func _draw() -> void:
 		"icicle":
 			draw_colored_polygon(PackedVector2Array([Vector2(-3, -6), Vector2(3, -6), Vector2(0, 6)]), COLOR_ICE)
 			draw_line(Vector2(-1, -5), Vector2(0, 3), COLOR_ICE_DARK, 1.0)
+		"clod":
+			draw_circle(Vector2.ZERO, 4.0, COLOR_CLOD)
+			draw_circle(Vector2(-1, -1.5), 2.0, COLOR_CLOD_LIGHT)
+			draw_rect(Rect2(2, -3, 2, 2), COLOR_CLOD_LIGHT)
 		"frost_wave":
 			var fade := clampf(life * 2.0, 0.0, 1.0)
 			for i in 3:

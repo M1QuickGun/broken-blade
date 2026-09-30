@@ -77,7 +77,8 @@ r.fill(55, 12, 55, 14, "b")
 r.fill(10, 15, 13, 15, "^")
 r.box(20, 13, 23, 14)
 r.box(21, 12, 23, 12)
-r.put(17, 14, "?")
+r.put(6, 14, "?")
+r.put(25, 14, "?")
 r.fill(28, 15, 32, 15, "^")
 r.box(27, 11, 30, 11)
 r.box(33, 8, 36, 8)
@@ -87,53 +88,53 @@ r.fill(41, 15, 44, 15, "^")
 r.box(46, 14, 48, 14)
 r.put(52, 14, "E")
 
-r = Room("great_hall", 48, 22)
-r.floor(20)
-r.box(0, 9, 9, 9)
-r.fill(0, 6, 0, 8, "b")
-r.fill(0, 17, 0, 19, "c")
-r.fill(47, 17, 47, 19, "d")
-r.box(13, 11, 18, 11)
-r.put(16, 10, "E")
-r.box(31, 11, 36, 11)
-r.put(34, 10, "W")
-r.box(22, 14, 27, 14)
-r.box(14, 17, 19, 17)
-r.put(10, 19, "E")
-r.put(30, 19, "E")
-r.put(33, 19, "?")
-r.fill(38, 20, 43, 20, "^")
-
-r = Room("undercroft", 40, 17)
-r.floor(15)
-r.fill(39, 11, 39, 14, "c")
-r.box(4, 12, 9, 12)
-r.box(12, 12, 15, 12)
-r.box(18, 9, 27, 9)
-r.put(22, 8, "H")
-r.put(12, 14, "E")
-r.fill(18, 15, 23, 15, "^")
-r.put(33, 14, "E")
-
-# A chimney six tiles wide: too tall to jump, climbed by wall jumping between its sides.
-r = Room("catcher_shaft", 22, 40)
+# The stone ring. The golden hilt glints in the middle, but the ring's floor (=) is a thin
+# lid over a pit: stepping onto it drops Storm into the Guardian Centipede's lair. The
+# pit's own walls are the arena. Beaten, the centipede leaves the hilt (the wall jump),
+# which is also the only way back up. A side tunnel the centipede dug hides a mask shard.
+r = Room("ring", 46, 40)
 r.open_sky()
-r.floor(38)
-r.fill(0, 35, 0, 37, "d")
-r.put(4, 37, "?")
-r.box(1, 6, 7, 32)
-r.box(14, 6, 20, 32)
-r.fill(21, 3, 21, 5, "f")
-r.put(17, 5, "?")
+r.floor(12)
+r.fill(0, 9, 0, 11, "b")
+r.put(4, 11, "R")
+r.put(8, 11, "?")
+r.fill(13, 12, 32, 12, "=")
+r.air(13, 13, 32, 36)
+r.put(22, 36, "B")
+# A few footholds on the pit walls for catching a breath on the way up.
+r.box(13, 27, 14, 27)
+r.box(31, 21, 32, 21)
+# The side tunnel, dug through the left pit wall.
+r.air(5, 32, 12, 34)
+r.put(6, 34, "H")
+r.put(39, 11, "?")
+r.fill(45, 9, 45, 11, "d")
 
-r = Room("gate_fight", 40, 17)
+# The cliff. A narrow chimney first, where the wall jump is easy to learn, then the left wall
+# falls away and it's a single rock face with the forest open below. Ledges now and then.
+r = Room("cliff", 30, 56)
 r.open_sky()
-r.floor(15)
-r.fill(0, 12, 0, 14, "f")
-r.fill(39, 12, 39, 14, "g")
-r.box(8, 12, 11, 12)
-r.box(28, 12, 31, 12)
-r.put(26, 14, "B")
+r.air(0, 0, 0, 50)
+r.floor(54)
+r.fill(0, 51, 0, 53, "d")
+r.put(4, 53, "?")
+r.box(20, 8, 29, 53)
+r.box(12, 36, 13, 50)
+r.box(17, 44, 19, 44)
+r.box(16, 30, 19, 30)
+r.box(17, 19, 19, 19)
+r.put(21, 7, "?")
+r.put(25, 7, "R")
+r.fill(29, 5, 29, 7, "f")
+
+# The gate cavern. Across it, the frozen gate (G) seals the way to the village. The
+# centipede's return turns its body into the arena's walls; its death shatters the gate.
+r = Room("gate_cavern", 40, 18)
+r.floor(16)
+r.fill(0, 13, 0, 15, "f")
+r.fill(35, 1, 36, 15, "G")
+r.fill(39, 13, 39, 15, "g")
+r.put(20, 15, "B")
 
 # ---------------------------------------------------------------- Frozen village (ice)
 
@@ -247,12 +248,11 @@ r.put(26, 13, "L")
 
 LINKS = {
     "landing": {"a": ("rockfall", "a")},
-    "rockfall": {"a": ("landing", "a"), "b": ("great_hall", "b")},
-    "great_hall": {"b": ("rockfall", "b"), "c": ("undercroft", "c"), "d": ("catcher_shaft", "d")},
-    "undercroft": {"c": ("great_hall", "c")},
-    "catcher_shaft": {"d": ("great_hall", "d"), "f": ("gate_fight", "f")},
-    "gate_fight": {"f": ("catcher_shaft", "f"), "g": ("village_square", "g")},
-    "village_square": {"g": ("gate_fight", "g"), "h": ("ice_caverns", "h"), "j": ("ice_climb", "j")},
+    "rockfall": {"a": ("landing", "a"), "b": ("ring", "b")},
+    "ring": {"b": ("rockfall", "b"), "d": ("cliff", "d")},
+    "cliff": {"d": ("ring", "d"), "f": ("gate_cavern", "f")},
+    "gate_cavern": {"f": ("cliff", "f"), "g": ("village_square", "g")},
+    "village_square": {"g": ("gate_cavern", "g"), "h": ("ice_caverns", "h"), "j": ("ice_climb", "j")},
     "ice_caverns": {"h": ("village_square", "h"), "k": ("frost_arena", "k"), "i": ("frozen_cellar", "i")},
     "frost_arena": {"k": ("ice_caverns", "k"), "l": ("frozen_depths", "l")},
     "frozen_depths": {"l": ("frost_arena", "l"), "m": ("frost_throne", "m")},
