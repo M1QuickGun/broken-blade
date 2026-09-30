@@ -45,6 +45,8 @@ const SPIKE_TEX := preload("res://art/world/spikes.png")
 const FOREST_SHEET := preload("res://art/world/forest_tileset.png")
 const Forest := preload("res://scripts/forest.gd")
 const ICE_GATE_TEX := preload("res://art/world/frozen_gate.png")
+## The part of the gate's art that isn't empty margin, so it can fill its doorway exactly.
+const ICE_GATE_ART := Rect2(0, 8, 64, 169)
 const SHEET_TILE := 32
 ## Solid-corner mask (NW 8, NE 4, SW 2, SE 1) -> tile in the sheet.
 const STONE_TILES := {
@@ -132,9 +134,11 @@ func _cell(x: int, y: int) -> String:
 	return _grid[clampi(y, 0, size_tiles.y - 1)][clampi(x, 0, size_tiles.x - 1)]
 
 
+## Cells drawn as solid earth. The frozen gate counts too, so the rock is whole behind it and
+## the gate fills its doorway edge to edge.
 func _earth(x: int, y: int) -> bool:
 	var c := _cell(x, y)
-	return c == "#" or c == "="
+	return c == "#" or c == "=" or c == "G"
 
 
 ## Merges solid cells into as few rectangles as possible, so the player
@@ -444,4 +448,4 @@ func _draw_ice_gate(x0: int, y0: int) -> void:
 	var h := 0
 	while _cell(x0, y0 + h) == "G" and y0 + h < size_tiles.y:
 		h += 1
-	draw_texture_rect(ICE_GATE_TEX, Rect2(Vector2(x0, y0) * TILE, Vector2(w, h) * TILE), false)
+	draw_texture_rect_region(ICE_GATE_TEX, Rect2(Vector2(x0, y0) * TILE, Vector2(w, h) * TILE), ICE_GATE_ART)

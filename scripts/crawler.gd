@@ -17,8 +17,15 @@ const SIZE := Vector2(16, 12)
 const TEX := preload("res://art/enemies/crawler.png")
 const TEX_FROST := preload("res://art/enemies/crawler_frost.png")
 
+## The Guardian Centipede's hatchlings: a crawling strip of 32 px frames, facing right.
+const TEX_HATCHLING := preload("res://art/enemies/hatchling.png")
+const HATCHLING_FPS := 9.0
+
 ## The Frozen village's variant: same behaviour, frosted shell.
 var frost := false
+## A centipede hatchling instead: same behaviour, its own crawling art.
+var hatchling := false
+var _anim := 0.0
 var hp := 3
 var dir := -1
 
@@ -46,6 +53,7 @@ func shock_point() -> Vector2:
 func _physics_process(delta: float) -> void:
 	velocity.y = minf(velocity.y + GRAVITY * delta, MAX_FALL)
 	_flash -= delta
+	_anim += delta
 	_knockback -= delta
 	if _knockback > 0.0:
 		velocity.x = move_toward(velocity.x, 0.0, 800.0 * delta)
@@ -80,10 +88,17 @@ func _ground_ahead() -> bool:
 
 
 func _draw() -> void:
+	var tint := Color(3, 3, 3) if _flash > 0.0 else Color.WHITE
+	if hatchling:
+		var frames := TEX_HATCHLING.get_width() / 32
+		var frame := int(_anim * HATCHLING_FPS) % frames
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2(1 if dir > 0 else -1, 1))
+		draw_texture_rect_region(TEX_HATCHLING, Rect2(-8, -16, 16, 16), Rect2(frame * 32, 0, 32, 32), tint)
+		draw_set_transform(Vector2.ZERO)
+		return
 	var tex: Texture2D = TEX_FROST if frost else TEX
 	var faces_right := frost
 	var flip := (dir > 0) != faces_right
-	var tint := Color(3, 3, 3) if _flash > 0.0 else Color.WHITE
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2(-1 if flip else 1, 1))
 	draw_texture_rect(tex, Rect2(-8, -16, 16, 16), false, tint)
 	draw_set_transform(Vector2.ZERO)

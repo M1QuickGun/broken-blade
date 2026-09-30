@@ -101,9 +101,9 @@ r.put(8, 11, "?")
 r.fill(13, 12, 32, 12, "=")
 r.air(13, 13, 32, 36)
 r.put(22, 36, "B")
-# A few footholds on the pit walls for catching a breath on the way up.
-r.box(13, 27, 14, 27)
-r.box(31, 21, 32, 21)
+# Notches cut into the pit walls for catching a breath on the way up (nothing sticks out).
+r.air(11, 25, 12, 27)
+r.air(33, 19, 34, 21)
 # The side tunnel, dug through the left pit wall.
 r.air(5, 32, 12, 34)
 r.put(6, 34, "H")
