@@ -68,7 +68,13 @@ const WALL_JUMP_VELOCITY := -310.0
 const WALL_COYOTE_TIME := 0.1
 ## How long after a wall jump air steering is weakened, so the kick-off carries.
 const WALL_JUMP_CARRY := 0.18
-const WALL_SPRITE_BACK := 4.0
+## Holding toward the wall while jumping off it climbs instead: mostly up, a small hop
+## out, so Storm comes straight back to the wall higher up.
+const WALL_CLIMB_PUSH := 60.0
+const WALL_CLIMB_VELOCITY := -340.0
+## The cling art leans into the wall; this is how far back to draw each stage's pose so his
+## boots meet the wall's surface instead of sinking into it (measured from the art).
+const WALL_POSE_BACK := {"hilt": 16.5, "ice": 13.5, "ice_fire": 16.0, "ice_lightning": 13.0, "full": 13.75}
 
 ## Sliding and spinning tuck Storm down to half height: a slide from the feet up,
 ## a spin around the middle of his body.
@@ -90,6 +96,9 @@ const SHOCK_ASSIST_ANGLE := 0.6
 const SHOCK_PULL_SPEED := 600.0
 const SHOCK_MAX_PULL_TIME := 0.6
 const SHOCK_COOLDOWN := 0.2
+## Before the tip flies, Storm stops and points the blade at the target for this long
+## while lightning gathers at the tip.
+const SHOCK_AIM_TIME := 0.16
 const SHOCK_ARRIVE_DIST := 10.0
 const SHOCK_STRIKE_DIST := 14.0
 ## Where Storm's feet sit relative to a ring he's hanging from, so the ring is
@@ -104,6 +113,13 @@ const HURT_LOCK_TIME := 0.25
 const HURT_KNOCKBACK := Vector2(160, -200)
 
 const COLOR_SLASH := Color(0.85, 0.9, 1.0)
+## Each swing throws a crescent wave from the blade. It grows with every piece recovered and
+## takes on each piece's element: ice, then fire and lightning around it.
+const WAVE_TIME := 0.22
+const WAVE_ARC := 1.15
+const COLOR_WAVE_STEEL := Color(0.8, 0.84, 0.92)
+const COLOR_WAVE_ICE := Color(0.62, 0.9, 1.0)
+const COLOR_WAVE_BOLT := Color(0.72, 0.56, 1.0)
 const COLOR_ICE := Color(0.6, 0.88, 1.0)
 const COLOR_FIRE := Color(1.0, 0.45, 0.12)
 const COLOR_FIRE_CORE := Color(1.0, 0.85, 0.4)
@@ -134,6 +150,7 @@ var _jump_buffer := 0.0
 var _attack_cd := 0.0
 var _slash_time := 0.0
 var _slash_dir := Vector2.RIGHT
+var _wave_time := 0.0
 var _invuln := 0.0
 var _strike_guard := 0.0
 var _hurt_lock := 0.0
@@ -149,7 +166,7 @@ var _dash_dir := 1
 ## Recent positions during a dash, drawn as fading afterimages: [{pos, age}].
 var _trail: Array[Dictionary] = []
 
-enum Shock { NONE, FIRING, PULLING, HANGING }
+enum Shock { NONE, AIMING, FIRING, PULLING, HANGING }
 var _shock := Shock.NONE
 var _shock_target: Node2D = null
 ## Where the end of the line is, in global coordinates.
@@ -189,6 +206,7 @@ const ANIMS := {
 	"slide": [40.0, false],
 	"spin": [26.0, false],
 	"wall": [6.0, true],
+	"point": [24.0, false],
 }
 ## Where Storm's body sits across each frame size, in art pixels. Larger frames leave
 ## room for the blade ahead of him, so he's off-centre and the flip has to account for it.
@@ -289,7 +307,9 @@ func _physics_process(delta: float) -> void:
 		elif Input.is_action_just_pressed("shockline") and _can_shock():
 			_fire_shockline(input_x)
 
-	if _shock == Shock.FIRING:
+	if _shock == Shock.AIMING:
+		_update_shock_aiming(delta)
+	elif _shock == Shock.FIRING:
 		_update_shock_firing(delta)
 	elif _shock == Shock.PULLING:
 		_update_shock_pull(delta)
@@ -331,6 +351,7 @@ func _tick_timers(delta: float) -> void:
 	_jump_buffer -= delta
 	_attack_cd -= delta
 	_slash_time -= delta
+	_wave_time -= delta
 	_attack_anim -= delta
 	_invuln -= delta
 	_strike_guard -= delta
@@ -427,13 +448,18 @@ func _update_wall(input_x: float) -> void:
 
 
 func _wall_jump() -> void:
-	velocity = Vector2(-_wall_coyote_dir * WALL_JUMP_PUSH, WALL_JUMP_VELOCITY)
-	facing = -_wall_coyote_dir
+	var toward_wall := signf(Input.get_axis("move_left", "move_right")) == _wall_coyote_dir
+	if toward_wall:
+		velocity = Vector2(-_wall_coyote_dir * WALL_CLIMB_PUSH, WALL_CLIMB_VELOCITY)
+		facing = _wall_coyote_dir
+	else:
+		velocity = Vector2(-_wall_coyote_dir * WALL_JUMP_PUSH, WALL_JUMP_VELOCITY)
+		facing = -_wall_coyote_dir
 	_wall_dir = 0
 	_wall_coyote = 0.0
 	_jump_buffer = 0.0
 	_no_jump_cut = false
-	_carry = WALL_JUMP_CARRY
+	_carry = 0.0 if toward_wall else WALL_JUMP_CARRY
 
 
 # --- Ice dash ---
@@ -549,9 +575,10 @@ func _fire_shockline(input_x: float) -> void:
 	_spin_time = 0.0
 	if input_x != 0.0:
 		facing = 1 if input_x > 0.0 else -1
-	_shock = Shock.FIRING
+	_shock = Shock.AIMING
+	_shock_time = 0.0
 	_shock_dir = _shock_aim()
-	_shock_tip = _center()
+	_shock_tip = _sword_point()
 	_shock_target = null
 	_dash_time = 0.0
 	_carry = 0.0
@@ -574,6 +601,20 @@ func _shock_aim() -> Vector2:
 			best = to.normalized()
 			best_dist = dist
 	return best
+
+
+## Where the lightning tip sits on the held blade, in global coordinates.
+func _sword_point() -> Vector2:
+	return _center() + Vector2(SWORD_POINT.x * facing, SWORD_POINT.y)
+
+
+## Storm hangs still, pointing the blade, then the tip flies.
+func _update_shock_aiming(delta: float) -> void:
+	velocity = Vector2.ZERO
+	_shock_time += delta
+	if _shock_time >= SHOCK_AIM_TIME:
+		_shock = Shock.FIRING
+		_shock_tip = _sword_point()
 
 
 ## The line flies straight out while Storm braces. Whatever it hits, or wherever
@@ -705,6 +746,8 @@ func _strike(dir: Vector2) -> void:
 	facing = 1 if dir.x > 0.0 else -1
 	_slash_dir = dir
 	_slash_time = SLASH_TIME
+	_wave_time = WAVE_TIME
+	_wave_sparks()
 	_attack_anim = ATTACK_COOLDOWN
 	_sprite.play("attack")
 	_sprite.frame = 0
@@ -724,6 +767,7 @@ func _attack() -> void:
 	_attack_cd = ATTACK_COOLDOWN
 	_slash_time = SLASH_TIME
 	_attack_anim = ATTACK_COOLDOWN
+	_wave_time = WAVE_TIME
 	var anim := "attack"
 	if Input.is_action_pressed("look_up"):
 		_slash_dir = Vector2.UP
@@ -740,6 +784,7 @@ func _attack() -> void:
 			anim = "attack2"
 	_sprite.play(anim)
 	_sprite.frame = 0
+	_wave_sparks()
 
 	var hit_enemy := false
 	var hit_hazard_tile := false
@@ -860,7 +905,7 @@ func _build_sprite() -> void:
 ## The blade stage to draw right now: the real one, minus the tip while it's flying.
 func _display_stage() -> String:
 	var stage := Game.blade_stage()
-	if _shock != Shock.NONE:
+	if _shock != Shock.NONE and _shock != Shock.AIMING:
 		return TIPLESS_STAGE.get(stage, stage)
 	return stage
 
@@ -892,6 +937,8 @@ func _load_stage_frames(stage: String) -> SpriteFrames:
 		var path := "res://art/storm/%s/%s.png" % [stage, anim]
 		if not ResourceLoader.exists(path):
 			path = "res://art/storm/hilt/%s.png" % anim
+		if not ResourceLoader.exists(path):
+			continue
 		var sheet: Texture2D = load(path)
 		var size := sheet.get_height()
 		frames.add_animation(anim)
@@ -913,13 +960,16 @@ func _update_sprite() -> void:
 	var body_x: float = BODY_X_BY_FRAME.get(size, size / 2.0)
 	_sprite.offset = Vector2((size / 2.0 - body_x) * facing, -size / 2.0)
 	_sprite.visible = not (_invuln > 0.0 and fmod(_invuln, 0.16) < 0.08)
-	# In the cling pose the hooked sword reaches past his body; pull him back so it meets the wall.
-	_sprite.position.x = -facing * WALL_SPRITE_BACK if _wall_dir != 0 else 0.0
+	_sprite.position.x = -facing * WALL_POSE_BACK.get(_shown_stage, 0.0) if _wall_dir != 0 else 0.0
+
 	# The spin art whirls around the middle of its frame (half a frame above the feet, in
 	# world units a quarter of the art size); drop it so that lines up with the spin body.
 	_sprite.position.y = size / 4.0 + SPIN_BODY.get_center().y if _spin_time > 0.0 else 0.0
 	if _spin_time > 0.0:
 		return  # started in _start_spin, plays through once
+	if _shock == Shock.AIMING:
+		_sprite.play("point" if _sprite.sprite_frames.has_animation("point") else "idle")
+		return
 	if _is_small():
 		# Sliding, or still tucked under a low ceiling: hold the low slide pose.
 		if _sprite.animation != "slide":
@@ -967,20 +1017,81 @@ func _draw() -> void:
 
 	for ember in _embers:
 		var life: float = 1.0 - ember.age / EMBER_LIFE
-		var color := COLOR_FIRE_CORE.lerp(COLOR_FIRE, 1.0 - life)
+		var color: Color = ember.color if ember.has("color") else COLOR_FIRE_CORE.lerp(COLOR_FIRE, 1.0 - life)
 		draw_circle(ember.pos - global_position, 0.6 + life, Color(color, life))
 
 
-	if _shock != Shock.NONE:
-		var sword := _center() - global_position + Vector2(SWORD_POINT.x * facing, SWORD_POINT.y)
-		_draw_shockline(sword, _shock_tip - global_position)
+	if _shock == Shock.AIMING:
+		# Lightning gathering at the tip before it flies.
+		var tip := _sword_point() - global_position
+		var charge := clampf(_shock_time / SHOCK_AIM_TIME, 0.0, 1.0)
+		draw_circle(tip, 2.0 + charge * 3.0, Color(COLOR_BOLT_GLOW, 0.3 + charge * 0.4))
+		for i in 3:
+			var spark := Vector2.from_angle(randf() * TAU) * (3.0 + charge * 4.0)
+			draw_line(tip, tip + spark, COLOR_BOLT, 1.0)
+	elif _shock != Shock.NONE:
+		_draw_shockline(_sword_point() - global_position, _shock_tip - global_position)
 
-	if _slash_time > 0.0:
-		var center := Vector2(0, -11)
-		var angle := _slash_dir.angle()
-		var radius := Game.blade_reach() + 4.0
-		draw_arc(center, radius, angle - 1.0, angle + 1.0, 16, COLOR_SLASH, 3.0)
-		draw_arc(center, radius * 0.75, angle - 0.8, angle + 0.8, 12, Color(COLOR_SLASH, 0.5), 2.0)
+	if _wave_time > 0.0:
+		_draw_wave()
+
+
+## The swing's elemental wave: a crescent thrown out along the slash that widens as it fades.
+## The hilt alone throws a thin steel arc; ice thickens it into a frozen crescent, fire wraps
+## flame around its outer edge, lightning crackles along it.
+func _draw_wave() -> void:
+	var t := 1.0 - _wave_time / WAVE_TIME
+	var fade := 1.0 - t
+	var center := Vector2(0, _body.get_center().y)
+	var angle := _slash_dir.angle()
+	var radius := (Game.blade_reach() + 2.0) * (0.75 + 0.35 * t)
+	var thick := 2.0 + 2.5 * Game.pieces
+	var ice := Game.has_ability("dash")
+	var fire := Game.has_ability("double_jump")
+	var bolt := Game.has_ability("shockline")
+	if fire:
+		_draw_crescent(center, radius + thick * 0.5, thick * 0.9, angle, Color(COLOR_FIRE, 0.75 * fade))
+		_draw_crescent(center, radius + thick * 0.2, thick * 0.5, angle, Color(COLOR_FIRE_CORE, 0.8 * fade))
+	_draw_crescent(center, radius, thick, angle, Color(COLOR_WAVE_ICE if ice else COLOR_WAVE_STEEL, 0.85 * fade))
+	_draw_crescent(center, radius - thick * 0.35, thick * 0.35, angle, Color(1, 1, 1, 0.7 * fade))
+	if bolt:
+		var zig := PackedVector2Array()
+		for i in 13:
+			var a := angle - WAVE_ARC + WAVE_ARC * 2.0 * i / 12.0
+			zig.append(center + Vector2.from_angle(a) * (radius + randf_range(-thick, thick) * 0.6))
+		draw_polyline(zig, Color(COLOR_WAVE_BOLT, fade), 1.5)
+		draw_polyline(zig, Color(COLOR_BOLT, fade), 0.8)
+
+
+## A crescent: thickest in the middle of the arc, tapering to points at both ends.
+func _draw_crescent(center: Vector2, radius: float, thick: float, angle: float, color: Color) -> void:
+	var points := PackedVector2Array()
+	var steps := 16
+	for i in steps + 1:
+		var a := angle - WAVE_ARC + WAVE_ARC * 2.0 * i / steps
+		points.append(center + Vector2.from_angle(a) * radius)
+	for i in range(steps, -1, -1):
+		var a := angle - WAVE_ARC + WAVE_ARC * 2.0 * i / steps
+		var taper := sin(PI * i / steps)
+		points.append(center + Vector2.from_angle(a) * (radius - thick * taper))
+	draw_colored_polygon(points, color)
+
+
+## Throws a few sparks of the blade's elements off the wave when a swing starts.
+func _wave_sparks() -> void:
+	var colors: Array[Color] = [COLOR_WAVE_ICE if Game.has_ability("dash") else COLOR_WAVE_STEEL]
+	if Game.has_ability("double_jump"):
+		colors.append(COLOR_FIRE)
+	if Game.has_ability("shockline"):
+		colors.append(COLOR_BOLT)
+	var center := global_position + Vector2(0, _body.get_center().y)
+	for i in 3 + 2 * Game.pieces:
+		if _embers.size() >= MAX_EMBERS:
+			break
+		var a := _slash_dir.angle() + randf_range(-WAVE_ARC, WAVE_ARC)
+		var dir := Vector2.from_angle(a)
+		_embers.append({"pos": center + dir * Game.blade_reach(), "vel": dir * 60.0,
+			"age": 0.0, "color": colors[i % colors.size()]})
 
 
 ## The shockline: the blade's lightning tip flying out ahead on a strand of barbed wire,

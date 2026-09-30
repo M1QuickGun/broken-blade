@@ -26,9 +26,11 @@ land a down-slash on an enemy or spikes to bounce off them (pogo).
 
 **Dash:** a quick slide along the ground on Storm's back, the ice blade freezing the floor behind him. Ground only. Storm is half height while sliding, so he fits under low gaps, and sliding into an enemy strikes it and bounces him back.
 **Wall jump:** Storm hooks the hilt's sword catcher into the stone. Hold toward a wall while
-falling to cling and slide down slowly; jump to kick off. Grabbing a wall restores the double jump.
+falling to cling and slide down slowly. Jump while still holding toward the wall to climb it (a hop
+straight up and back onto the wall); jump without holding toward it to kick off and away. Grabbing a
+wall restores the double jump.
 **Double jump:** jump again in midair to spin in a ring of fire that strikes every enemy around you. Storm is half height during the spin. Once per jump.
-**Shockline:** fires the blade's lightning tip straight ahead on a line of barbed wire, like a harpoon, and drags you to whatever it hits, or to
+**Shockline:** Storm points the blade and lightning gathers, then he fires the blade's lightning tip straight ahead on a line of barbed wire, like a harpoon, and drags you to whatever it hits, or to
 the end of the line if it hits nothing. Enemies get struck. On a grapple ring you hang for as
 long as you hold right click: let go to drop, or jump to leap off. Jump mid-pull to cancel.
 
