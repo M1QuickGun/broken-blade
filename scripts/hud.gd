@@ -15,6 +15,7 @@ const ABILITY_NAMES := {"dash": "Ice", "double_jump": "Fire", "shockline": "Ligh
 ## The blade as it's been reforged so far (see Game.blade_stage): ice is the right half
 ## of the blade, fire the left half, lightning the tip.
 const BLADE_ICONS := {
+	"bare": preload("res://art/blade/blade_bare.png"),
 	"hilt": preload("res://art/blade/blade_0_hilt.png"),
 	"ice": preload("res://art/blade/blade_1_ice.png"),
 	"ice_fire": preload("res://art/blade/blade_2_ice_fire.png"),
@@ -38,7 +39,7 @@ const UNLOCK_MESSAGES := {
 	"dash": "Ice shard recovered. Press Shift or L to dash.",
 	"double_jump": "Fire shard recovered. Jump again in midair.",
 	"shockline": "Lightning shard recovered. Right click to cast the shockline.",
-	"wall_jump": "The hilt's sword catcher bites stone. Hold toward a wall to cling, then jump.",
+	"wall_jump": "The hilt is yours again. Its sword catcher bites stone: hold toward a wall to cling, then jump.",
 }
 
 var _hp := 0

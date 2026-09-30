@@ -11,13 +11,17 @@ Dark fantasy: a ruined kingdom, oppressive atmosphere, melancholy rather than he
 ## Story
 - **The shattering:** The sword that sealed the ancient evil breaks. The evil is released and
   kills the royal family.
-- **The escape:** With his last power, the King sends his last surviving son, **Storm**, away
-  with the **hilt** of the broken blade.
+- **The escape:** With his last power, the King throws his last surviving son, **Storm**, off
+  the mountain with the **hilt** of the broken blade. The fall goes wrong: Storm wakes at the
+  mountain's foot clutching only a jagged **shard** of the blade, its broken end wrapped in
+  rags. The hilt is gone.
 - **Twenty years later:** Storm returns to a broken kingdom, now split between the parts of the
   great evil. Each part is bound to one piece of the broken blade.
 
 ## Protagonist
-**Storm**, the last surviving member of the royal family. He starts with the hilt.
+**Storm**, the last surviving member of the royal family. He starts with only a rag-wrapped
+shard of the blade, no hilt: something has clearly gone wrong. The hilt is the first piece
+he recovers, pried from the Guardian Centipede, and with it its sword catcher (the wall jump).
 
 ## Blade pieces → abilities
 Each piece of the blade grants a movement ability and has its own elemental theme. Each piece
@@ -25,8 +29,8 @@ is also held by one part of the evil, so each one is likely a boss or region.
 
 | Piece | Ability | Theme |
 |---|---|---|
-| Hilt | Starting weapon: a normal blade swing | — |
-| Hilt technique (not a piece) | Wall jump: Storm hooks the hilt's sword catcher into the stone to cling to walls and kick off them. The first ability, learned in the tutorial | — |
+| Shard | Starting weapon: a normal swing with a broken piece of blade, no hilt | — |
+| Hilt (first piece) | Wall jump: Storm hooks the hilt's sword catcher into the stone to cling to walls and kick off them. Recovered from the Guardian Centipede in the tutorial | — |
 | First piece | Dash | Ice |
 | Second piece | Double jump | Fire |
 | Final / top piece (the tip) | Shockline: fires a straight line to a grapple point or enemy and pulls you to it (like Silksong's clawline) | Lightning |

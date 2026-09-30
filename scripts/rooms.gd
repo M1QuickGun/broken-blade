@@ -49,7 +49,7 @@ const SIGNS := {
 		"A / D to move. Space to jump; hold it to jump higher.",
 		"The castle waits at the top of the mountain, and so does what killed your family.",
 	],
-	"rockfall": ["Left click to swing the hilt. Hold W while attacking to strike upward."],
+	"rockfall": ["Left click to swing the shard. Hold W while attacking to strike upward."],
 	"great_hall": ["Spikes ahead. In the air, hold S and attack to strike down and bounce off them."],
 	"catcher_shaft": [
 		"Beyond: the gate of the frozen village. Something guards it.",

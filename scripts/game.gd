@@ -11,7 +11,7 @@ signal flasks_changed(count: int, max_count: int)
 ## Sprites are placed at 1 / ART_SCALE and the camera zooms by ART_SCALE.
 const ART_SCALE := 2.0
 const MAX_PIECES := 3
-## Attack reach with only the hilt, and how much each recovered piece adds.
+## Attack reach with only the shard (or the hilt), and how much each recovered piece adds.
 const BASE_REACH := 27.0
 const REACH_PER_PIECE := 9.0
 
@@ -45,11 +45,12 @@ func blade_reach() -> float:
 
 
 ## How much of the blade has been reforged, as named in art/storm/ and art/blade/:
-## "hilt", "ice", "ice_fire", "ice_lightning" or "full". Ice is always first; an
-## order the game doesn't allow (a debug unlock without ice) shows the bare hilt.
+## "bare" (Storm wakes with only a rag-wrapped shard), "hilt" (the hilt recovered, with its
+## sword catcher: the wall jump), then "ice", "ice_fire", "ice_lightning" or "full". Ice is
+## always first; an order the game doesn't allow (a debug unlock without ice) shows the hilt.
 func blade_stage() -> String:
 	if not has_ability("dash"):
-		return "hilt"
+		return "hilt" if has_ability("wall_jump") else "bare"
 	var fire := has_ability("double_jump")
 	var lightning := has_ability("shockline")
 	if fire and lightning:

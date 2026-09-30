@@ -1204,8 +1204,8 @@ func _draw() -> void:
 	elif _shock != Shock.NONE:
 		_draw_shockline(_sword_point() - global_position, _shock_tip - global_position)
 
-	if _wave_time > 0.0:
-		_draw_wave()
+	if _wave_time > 0.0 and _shown_stage != "bare":
+		_draw_wave()  # the bare shard's swings carry their own plain slash in the art
 
 
 ## The swing's elemental wave: a crescent thrown out along the slash that widens as it fades.
