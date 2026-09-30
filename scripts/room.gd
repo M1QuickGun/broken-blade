@@ -24,7 +24,8 @@ const LAYER_HAZARD := 8
 
 const COLOR_BG := Color("0f1119")
 const COLOR_PILLAR := Color("131622")
-const COLOR_SPIKE := Color("9aa0ad")
+const COLOR_BG_ICE := Color("0c1320")
+const COLOR_PILLAR_ICE := Color("111c2c")
 const COLOR_GATE := Color("3a3f4f")
 const COLOR_GATE_LIGHT := Color("6a7186")
 
@@ -32,6 +33,10 @@ const COLOR_GATE_LIGHT := Color("6a7186")
 ## Tiles are drawn on the dual grid: one per cell corner, picked by which of the four
 ## cells around that corner are solid.
 const STONE_SHEET := preload("res://art/world/ruins_tileset.png")
+## The Frozen village's frosted bricks; same corner layout as STONE_SHEET.
+const ICE_SHEET := preload("res://art/world/ice_tileset.png")
+## A spike trap seen from the side, drawn at 2x detail over one tile.
+const SPIKE_TEX := preload("res://art/world/spikes.png")
 const SHEET_TILE := 32
 ## Solid-corner mask (NW 8, NE 4, SW 2, SE 1) -> tile in the sheet.
 const STONE_TILES := {
@@ -54,10 +59,12 @@ var _locked := false
 var _gate: StaticBody2D
 var _boss_spawn := Vector2.ZERO
 var _sign_count := 0
+var _ice := false
 
 
 func build(name_: String) -> void:
 	room_name = name_
+	_ice = room_name in Rooms.ICE_ROOMS
 	_grid = PackedStringArray(Rooms.LAYOUTS[name_])
 	size_tiles = Vector2i(_grid[0].length(), _grid.size())
 	size_px = Vector2(size_tiles) * TILE
@@ -145,6 +152,7 @@ func _scan_cells() -> void:
 					spawn_point = feet
 				"E":
 					var crawler := Crawler.new()
+					crawler.frost = _ice
 					crawler.position = feet
 					add_child(crawler)
 				"I", "F", "L", "W":
@@ -267,10 +275,11 @@ func _on_boss_defeated(info: Dictionary, where: Vector2) -> void:
 
 
 func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size_px), COLOR_BG)
+	draw_rect(Rect2(Vector2.ZERO, size_px), COLOR_BG_ICE if _ice else COLOR_BG)
 	# Faint pillars in the background for a sense of ruined architecture.
 	for i in range(3, size_tiles.x, 9):
-		draw_rect(Rect2(i * TILE, 0, TILE * 2, size_px.y), COLOR_PILLAR)
+		draw_rect(Rect2(i * TILE, 0, TILE * 2, size_px.y), COLOR_PILLAR_ICE if _ice else COLOR_PILLAR)
+	var sheet: Texture2D = ICE_SHEET if _ice else STONE_SHEET
 
 	for vy in size_tiles.y + 1:
 		for vx in size_tiles.x + 1:
@@ -280,7 +289,7 @@ func _draw() -> void:
 				continue
 			var src := Rect2(Vector2(STONE_TILES[mask]) * SHEET_TILE, Vector2(SHEET_TILE, SHEET_TILE))
 			var dst := Rect2(Vector2(vx - 0.5, vy - 0.5) * TILE, Vector2(TILE, TILE))
-			draw_texture_rect_region(STONE_SHEET, dst, src)
+			draw_texture_rect_region(sheet, dst, src)
 
 	for y in size_tiles.y:
 		for x in size_tiles.x:
@@ -292,8 +301,4 @@ func _draw() -> void:
 				for i in 3:
 					draw_rect(Rect2(pos + Vector2(2 + i * 5, 0), Vector2(2, TILE)), COLOR_GATE_LIGHT)
 			if c == "^":
-				for i in 3:
-					var bx := pos.x + 1 + i * 5
-					draw_colored_polygon(PackedVector2Array([
-						Vector2(bx, pos.y + TILE), Vector2(bx + 2.5, pos.y + 5), Vector2(bx + 5, pos.y + TILE),
-					]), COLOR_SPIKE)
+				draw_texture_rect(SPIKE_TEX, Rect2(pos, Vector2(TILE, TILE)), false)

@@ -21,6 +21,12 @@ const MUSIC := {
 	"frozen_cellar": "frozen_land",
 }
 
+## Rooms of the Frozen village: drawn with the ice tileset and frost-crawlers.
+const ICE_ROOMS := [
+	"village_square", "ice_caverns", "frost_arena", "frozen_depths", "frost_throne", "ice_climb",
+	"frozen_cellar",
+]
+
 ## Boss fights. The doors lock until the boss falls; `reward` (a map letter) appears where
 ## it died. Every region's boss is fought twice: the first fight wins the blade piece, the
 ## rematch at the end of the region comes after the player has learned to use it.

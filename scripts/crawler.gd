@@ -12,10 +12,13 @@ const KNOCKBACK_SPEED := 150.0
 const KNOCKBACK_TIME := 0.15
 const SIZE := Vector2(16, 12)
 
-const COLOR_SHELL := Color("4a2a2e")
-const COLOR_SHELL_EDGE := Color("6e3a3a")
-const COLOR_EYES := Color("ff8a3d")
+## Sprites at 2x detail (32 px for the 16 px body). The rust crawler is drawn facing
+## left, the frost crawler facing right.
+const TEX := preload("res://art/enemies/crawler.png")
+const TEX_FROST := preload("res://art/enemies/crawler_frost.png")
 
+## The Frozen village's variant: same behaviour, frosted shell.
+var frost := false
 var hp := 3
 var dir := -1
 
@@ -77,8 +80,10 @@ func _ground_ahead() -> bool:
 
 
 func _draw() -> void:
-	var shell := Color.WHITE if _flash > 0.0 else COLOR_SHELL
-	draw_rect(Rect2(-SIZE.x / 2, -SIZE.y, SIZE.x, SIZE.y), shell)
-	draw_rect(Rect2(-SIZE.x / 2, -SIZE.y, SIZE.x, 3), COLOR_SHELL_EDGE)
-	draw_rect(Rect2(dir * 4 - 1, -8, 2, 2), COLOR_EYES)
-	draw_rect(Rect2(dir * 7 - 1, -8, 2, 2), COLOR_EYES)
+	var tex: Texture2D = TEX_FROST if frost else TEX
+	var faces_right := frost
+	var flip := (dir > 0) != faces_right
+	var tint := Color(3, 3, 3) if _flash > 0.0 else Color.WHITE
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2(-1 if flip else 1, 1))
+	draw_texture_rect(tex, Rect2(-8, -16, 16, 16), false, tint)
+	draw_set_transform(Vector2.ZERO)
