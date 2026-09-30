@@ -20,7 +20,9 @@ A dark fantasy metroidvania made with Godot 4. See [DESIGN.md](DESIGN.md) for th
 | Shockline (lightning piece) | Right click | Y |
 | Drink a flask (heal; refills at shrines) | F or Q | B |
 | Toggle fullscreen | F11 | — |
+| Interact (pull the hilt) | W, E or ↑ | D-pad up |
 | Debug: unlock dash / shockline / double jump / wall jump | 1 / 2 / 3 / 4 | — |
+| Debug: defeat the boss being fought | 5 | — |
 
 Hold up while attacking to slash upward. Hold down while in the air to slash downward, and
 land a down-slash on an enemy or spikes to bounce off them (pogo).

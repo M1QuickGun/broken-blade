@@ -58,6 +58,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		Game.unlock("double_jump")
 	elif event.is_action_pressed("debug_unlock_wall_jump"):
 		Game.unlock("wall_jump")
+	elif event.is_action_pressed("debug_defeat_boss"):
+		# Finish off whatever boss is fighting (for testing what comes after it).
+		var boss = get_tree().get_first_node_in_group("boss")
+		if boss:
+			boss.hp = 1
+			boss.take_hit(1, Vector2.RIGHT)
 
 
 ## Loads a room and puts Storm at a door (or at the room's start with door ""), or at

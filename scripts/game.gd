@@ -123,11 +123,13 @@ func _setup_input() -> void:
 	_bind("dash", [KEY_SHIFT, KEY_L, KEY_C], [JOY_BUTTON_RIGHT_SHOULDER], [])
 	_bind("shockline", [], [JOY_BUTTON_Y], [], [MOUSE_BUTTON_RIGHT])
 	_bind("heal", [KEY_F, KEY_Q], [JOY_BUTTON_B], [])
+	_bind("interact", [KEY_E, KEY_W, KEY_UP], [JOY_BUTTON_DPAD_UP], [])
 	_bind("toggle_fullscreen", [KEY_F11], [], [])
 	_bind("debug_unlock_dash", [KEY_1], [], [])
 	_bind("debug_unlock_shockline", [KEY_2], [], [])
 	_bind("debug_unlock_double_jump", [KEY_3], [], [])
 	_bind("debug_unlock_wall_jump", [KEY_4], [], [])
+	_bind("debug_defeat_boss", [KEY_5], [], [])
 
 
 ## Adds an action with default bindings, unless it's already defined in Project Settings.

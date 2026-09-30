@@ -1,11 +1,13 @@
 extends Node2D
 ## The Guardian Centipede, the Foothills' boss, fought twice.
 ##
-## Phase 1, the ring: it lies under the stone ring, pinned to the bottom of a pit by the hilt
-## driven through its tail. When Storm steps onto the ring the lid of earth gives way and he
-## drops into the pit with it. Tethered to the pin, it rears and lunges, sweeps across the
-## floor at knee height, and slams the walls to bring clods down. Beaten, it goes limp and the
-## hilt can be pulled free (the wall jump); then it sinks into the earth, seemingly dead.
+## Phase 1, the ring: it lies under the stone ring with the hilt driven into its tail, only the
+## pommel showing above the earth. When Storm pulls at the hilt the ground gives way and he
+## drops into the pit below with it. It crawls the pit floor after him (the hilt still in its
+## tail), rears and lunges and gets its jaws stuck in the dirt, dives into the earth to burst
+## out of a wall and sweep across at knee height, and slams the floor to bring clods down.
+## Beaten, it goes limp and the hilt can be pulled free (the wall jump); then it sinks into the
+## earth, seemingly dead.
 ##
 ## Phase 2, the gate cavern: it bursts through the ceiling, bigger and armored, and its body
 ## pours down into two living walls that trap Storm between them (walls he can cling to). Its
@@ -13,9 +15,9 @@ extends Node2D
 ## clods. At half health the coils close in and hatchlings drop. Its death throes smash the
 ## frozen gate.
 ##
-## The node's origin is the room's B marker: the pin in phase 1, the arena's middle in phase 2.
-## The body is a chain of segments hanging off the head, solved each frame between the head
-## and an anchor (the pin, or wherever the neck enters the rock), with a little gravity.
+## The node's origin is the room's B marker, the middle of the arena's floor.
+## In phase 1 the body follows the head's path like a train. In phase 2 it's a neck hanging
+## from wherever it enters the rock, solved each frame between the head and that anchor.
 
 signal defeated
 ## Sent when it wakes: the room bars its doors then.
@@ -65,6 +67,11 @@ var _shake := 0.0
 var _cam_base := Vector2.ZERO
 var _head_box: Hitbox
 var _body_boxes: Array[Hitbox] = []
+## Phase 1: the path the head has taken (newest first), which the body follows; and the
+## waypoints of a dive through the earth.
+var _trail: Array[Vector2] = []
+var _path: Array[Vector2] = []
+var _near_hilt := false
 
 # The arena, in the room's coordinates.
 var _left := 0.0
@@ -210,12 +217,18 @@ func _physics_process(delta: float) -> void:
 		St.EMERGE:
 			_update_emerge(delta)
 		St.IDLE:
-			_hover(p, delta)
+			if phase == 1:
+				_crawl(p, delta)
+			else:
+				_hover(p, delta)
 			if _timer <= 0.0:
 				_choose_attack(p)
 		St.REAR:
-			# Rear up high and shake: the lunge is coming.
-			_steer_to(Vector2(clampf(p.x, _left + 30, _right - 30) - _side * 40.0, _floor - 90.0 * _scale / 0.5), 260.0, delta)
+			# Rear up and shake: the lunge is coming.
+			if phase == 1:
+				_steer_to(Vector2(_head.x - _side * 6.0, _floor - 46.0), 200.0, delta)
+			else:
+				_steer_to(Vector2(clampf(p.x, _left + 30, _right - 30) - _side * 40.0, _floor - 90.0 * _scale / 0.5), 260.0, delta)
 			_head += Vector2(randf_range(-1.5, 1.5), 0)
 			if _timer <= 0.0:
 				_target = Vector2(clampf(p.x, _left + 12, _right - 12), _floor - 8)
@@ -224,17 +237,26 @@ func _physics_process(delta: float) -> void:
 			if _steer_to(_target, (430.0 if phase == 1 else 520.0) * _tempo(), delta, 14.0) or _timer <= 0.0:
 				_shake = 0.25
 				_spray(_head, Color("3b352b"))
-				_enter(St.STUCK, 1.1 if phase == 1 else 0.9)
+				_enter(St.STUCK, 1.6 if phase == 1 else 1.1)
 		St.STUCK:
 			_head += Vector2(randf_range(-0.6, 0.6), 0)
 			if _timer <= 0.0:
 				_enter(St.RETRACT, 0.7)
 		St.RETRACT:
-			_hover(p, delta)
+			if phase == 1:
+				_crawl(p, delta)
+			else:
+				_hover(p, delta)
 			if _timer <= 0.0:
 				_enter(St.IDLE)
-		St.DIVE, St.HIDE:
-			# Into the earth (phase 1) or up into the ceiling (phase 2), out of sight.
+		St.DIVE:
+			# Through the earth along its waypoints, out of sight, to the far wall.
+			if _path.is_empty() or _timer <= 0.0:
+				_begin_warning(p)
+			elif _steer_to(_path[0], 300.0, delta, 6.0):
+				_path.pop_front()
+		St.HIDE:
+			# Up into the ceiling, out of sight.
 			if _steer_to(_target, 320.0, delta, 8.0) or _timer <= 0.0:
 				_begin_warning(p)
 		St.WARN:
@@ -246,24 +268,26 @@ func _physics_process(delta: float) -> void:
 					_target = Vector2(_head.x, _floor - 10)
 					_enter(St.DROP, 1.2)
 				else:
-					_target = Vector2(_right + 30 if _side < 0 else _left - 30, _floor - 12 * _scale / 0.5)
+					_target = Vector2(_right + 30 if _side > 0 else _left - 30, _floor - 12 * _scale / 0.5)
 					_enter(St.SWEEP, 2.0)
 		St.SWEEP:
 			if _steer_to(_target, 330.0 * _tempo(), delta, 10.0) or _timer <= 0.0:
 				_back_to_hover()
 		St.SLAM:
-			if _steer_to(_target, 380.0, delta, 10.0) or _timer <= 0.0:
+			# Rear up tall, then slam its head into the floor: clods rain from above.
+			if _timer > 0.45:
+				_steer_to(Vector2(_head.x, _floor - 64.0), 220.0, delta)
+			elif _steer_to(Vector2(_head.x, _floor - 8.0), 420.0, delta, 8.0) or _timer <= 0.0:
 				_shake = 0.35
 				_spray(_head, Color("3b352b"))
 				_rain_clods(p)
-				_enter(St.RETRACT, 0.8)
+				_enter(St.STUCK, 0.9)
 		St.DOWNED:
 			_update_downed(delta)
 		St.SINKING:
-			for i in _segs.size():
-				_segs[i].y += 18.0 * delta
+			for i in _trail.size():
+				_trail[i].y += 18.0 * delta
 			_head.y += 18.0 * delta
-			_anchor.y += 18.0 * delta
 			if _timer <= 0.0:
 				_finish()
 		St.DYING:
@@ -298,20 +322,20 @@ func _enter(state: St, time := -1.0) -> void:
 	_state = state
 	match state:
 		St.IDLE:
-			_timer = ((0.9 if phase == 1 else 0.7) / _tempo()) if time < 0.0 else time
+			_timer = ((1.6 if phase == 1 else 0.8) / _tempo()) if time < 0.0 else time
 		St.REAR:
-			_timer = 0.55 / _tempo()
+			_timer = (0.65 if phase == 1 else 0.55) / _tempo()
 		_:
 			_timer = time
 
 
 func _update_dormant(p: Vector2) -> void:
 	if phase == 1:
-		# Stepping onto the ring breaks the lid.
-		_anchor = position
-		if p.x > _left + 8 and p.x < _right - 8 and p.y <= _lid_y + 4:
+		# Pulling at the hilt in the ring wakes what it's stuck in; the ground gives way.
+		_near_hilt = absf(p.x - position.x) < 20.0 and absf(p.y - _lid_y) < 8.0
+		if _near_hilt and Input.is_action_just_pressed("interact"):
 			get_parent().break_lid()
-			_shake = 0.5
+			_shake = 0.6
 			_wake()
 	elif p.x > 11.0 * TILE:
 		_shake = 1.0
@@ -323,15 +347,17 @@ func _wake() -> void:
 	add_to_group("boss")
 	add_to_group("shock_target")
 	if phase == 1:
-		# It bursts up out of the pit floor beside the pin.
-		_head = Vector2(position.x + 30, _floor + 30)
-		_anchor = position
+		# It bursts up out of the pit floor, its body still buried below.
+		_head = Vector2(position.x + 30, _floor + 40)
+		_trail.clear()
+		for k in 160:
+			_trail.append(_head + Vector2(0, k * 2.0))
 	else:
 		_head = Vector2(position.x, -60)
 		_anchor = Vector2(position.x, -120)
 	for i in _segs.size():
 		_segs[i] = _anchor
-	_target = Vector2(position.x + (20 if phase == 1 else 0), _floor - 70 * _scale / 0.5)
+	_target = Vector2(position.x + 20, _floor - 50) if phase == 1 else Vector2(position.x, _floor - 70 * _scale / 0.5)
 	_enter(St.EMERGE, 1.4)
 
 
@@ -349,16 +375,17 @@ func _choose_attack(p: Vector2) -> void:
 	_side = 1 if p.x < _head.x else -1
 	var roll := randf()
 	if phase == 1:
-		if roll < 0.45:
+		if roll < 0.5:
 			_enter(St.REAR)
 		elif roll < 0.8:
 			# Down into the earth, then out of the wall on the far side from Storm.
 			_side = 1 if p.x > position.x else -1
-			_target = Vector2(position.x, _floor + 40)
-			_enter(St.DIVE, 0.9)
+			var wall := _left - 22.0 if _side > 0 else _right + 22.0
+			_path = [Vector2(_head.x, _floor + 26), Vector2(wall, _floor + 26), Vector2(wall, _floor - 12)]
+			_set_boxes_active(false)
+			_enter(St.DIVE, 3.0)
 		else:
-			_target = Vector2(_left - 10 if p.x > position.x else _right + 10, _floor - 70)
-			_enter(St.SLAM, 1.0)
+			_enter(St.SLAM, 1.1)
 	else:
 		if roll < 0.4:
 			_side = 0  # from the ceiling, straight down on Storm
@@ -379,14 +406,16 @@ func _begin_warning(p: Vector2) -> void:
 		# Hanging hidden in the ceiling over Storm; dust trickles down where it'll strike.
 		_head = Vector2(clampf(p.x, _left + 16, _right - 16), -30)
 		_anchor = Vector2(_head.x, -140)
+	elif phase == 1:
+		pass  # it's already waiting inside the wall, having tunneled there
 	else:
-		# Waiting inside the rock (or the coil) at knee height.
+		# Waiting inside the coil at knee height, its neck running up inside it.
 		var x := _left - 24 if _side > 0 else _right + 24
 		_head = Vector2(x, _floor - 12 * _scale / 0.5)
-		# Phase 1 stays tethered to the pin; phase 2's neck runs up inside its coil.
-		_anchor = position if phase == 1 else Vector2(x - _side * 30, -100)
-	for i in _segs.size():
-		_segs[i] = _anchor
+		_anchor = Vector2(x - _side * 30, -100)
+	if phase >= 2:
+		for i in _segs.size():
+			_segs[i] = _anchor
 	_enter(St.WARN, 0.7 / _tempo())
 
 
@@ -397,18 +426,23 @@ func _warn_point() -> Vector2:
 
 
 func _back_to_hover() -> void:
-	if phase == 1:
-		_anchor = position
-	else:
+	if phase >= 2:
 		_anchor = Vector2(clampf(_head.x, _left + 40, _right - 40), -140)
 	_enter(St.RETRACT, 0.8)
+
+
+## Phase 1: crawl along the pit floor after Storm, head low (in reach of his blade).
+func _crawl(p: Vector2, delta: float) -> void:
+	var tx := clampf(p.x + _side * 26.0, _left + 14, _right - 14)
+	var ty := _floor - 9.0 + sin(_time * 5.0) * 2.0
+	_steer_to(Vector2(tx, ty), 85.0 * _tempo(), delta, 2.0)
 
 
 ## Weave about above Storm, keeping some distance.
 func _hover(p: Vector2, delta: float) -> void:
 	var off := 70.0 * _side
 	var hx := clampf(p.x + off + sin(_time * 1.7) * 20.0, _left + 24, _right - 24)
-	var hy := _floor - (62.0 + sin(_time * 2.3) * 10.0) * _scale / 0.5
+	var hy := _floor - (44.0 + sin(_time * 2.3) * 8.0) * _scale / 0.5
 	_steer_to(Vector2(hx, hy), 160.0, delta)
 	if phase >= 2 and _state == St.RETRACT:
 		_anchor = _anchor.move_toward(Vector2(_head.x, -140), 200.0 * delta)
@@ -467,7 +501,7 @@ func _update_downed(delta: float) -> void:
 		if get_tree().get_nodes_in_group("hilt_pickup").is_empty():
 			var shard := Shard.new()
 			shard.ability = "wall_jump"
-			shard.position = position + Vector2(0, -10)
+			shard.position = _segs[-1] + Vector2(0, -10)
 			shard.add_to_group("hilt_pickup")
 			get_parent().add_child(shard)
 		return
@@ -545,6 +579,9 @@ func _draw_walls() -> void:
 func _solve_body(delta: float) -> void:
 	if _state == St.DORMANT:
 		return
+	if phase == 1:
+		_follow_trail()
+		return
 	var n := _segs.size()
 	var reach := _spacing * (n - 1) * 0.98
 	if _head.distance_to(_anchor) > reach:
@@ -564,6 +601,27 @@ func _solve_body(delta: float) -> void:
 	var ahead := _segs[1].direction_to(_head)
 	if ahead != Vector2.ZERO:
 		_head_dir = _head_dir.slerp(ahead, 0.3).normalized()
+
+
+## Phase 1: each segment sits a fixed distance back along the head's path.
+func _follow_trail() -> void:
+	if _trail.is_empty() or _trail[0].distance_to(_head) >= 2.0:
+		_trail.push_front(_head)
+	var need := int(_segs.size() * _spacing / 2.0) + 20
+	while _trail.size() > need:
+		_trail.pop_back()
+	var k := 0
+	var walked := 0.0
+	for i in _segs.size():
+		var want := i * _spacing
+		while k < _trail.size() - 1 and walked + _trail[k].distance_to(_trail[k + 1]) < want:
+			walked += _trail[k].distance_to(_trail[k + 1])
+			k += 1
+		if k >= _trail.size() - 1:
+			_segs[i] = _trail[-1]
+		else:
+			var span := _trail[k].distance_to(_trail[k + 1])
+			_segs[i] = _trail[k].lerp(_trail[k + 1], (want - walked) / span if span > 0.0 else 0.0)
 
 
 func _place_boxes() -> void:
@@ -602,7 +660,11 @@ func _exit_tree() -> void:
 func _draw() -> void:
 	if _state == St.DORMANT:
 		if phase == 1:
-			_draw_hilt(Vector2(0, _lid_y - position.y), true)
+			_draw_hilt(Vector2(0, _lid_y - position.y), true, PI)
+			if _near_hilt:
+				var font := ThemeDB.fallback_font
+				draw_string(font, Vector2(-14, _lid_y - position.y - 26), "W / E", HORIZONTAL_ALIGNMENT_CENTER,
+					28, 8, Color(1, 0.95, 0.8, 0.85))
 		return
 	var tint := Color(3, 3, 3) if _flash > 0.0 else Color.WHITE
 	if _state == St.SINKING:
@@ -610,8 +672,13 @@ func _draw() -> void:
 	for i in range(_segs.size() - 1, 0, -1):
 		var along := _segs[i].direction_to(_segs[i - 1])
 		_draw_segment_on(self, _segs[i] - position, along.angle(), along.x < 0.0, tint)
-	if phase == 1 and _state != St.SINKING and not Game.has_ability("wall_jump"):
-		_draw_hilt(_anchor - position, false)
+	if phase == 1 and not Game.has_ability("wall_jump"):
+		# The hilt, still driven into its tail, grip sticking out behind.
+		var n := _segs.size()
+		var back := _segs[n - 2].direction_to(_segs[n - 1])
+		if back == Vector2.ZERO:
+			back = Vector2.LEFT
+		_draw_hilt(_segs[n - 1] + back * 6.0 - position, false, back.angle() - PI / 2.0)
 	var head_tint := tint
 	if _state in [St.REAR, St.WARN] and fmod(_time, 0.2) < 0.1:
 		head_tint = Color(1.4, 1.1, 0.8, tint.a)
@@ -635,10 +702,11 @@ func _draw_head(at: Vector2, dir: Vector2, tint: Color) -> void:
 
 ## The hilt, driven point-first into the tail (or, before the fight, into the ring's earth,
 ## only the pommel showing and catching the light).
-func _draw_hilt(at: Vector2, glint: bool) -> void:
-	# The icon is 32x96, tip up, with the hilt in its bottom third; flipped so the grip points up.
+func _draw_hilt(at: Vector2, glint: bool, angle: float) -> void:
+	# The icon is 32x96, tip up, with the hilt in its bottom third; turned so the broken tip
+	# points into whatever it's stuck in and the grip sticks out.
 	var src := Rect2(0, 58, 32, 38)
-	draw_set_transform(at + Vector2(0, -8), PI, Vector2(0.4, 0.4))
+	draw_set_transform(at + (Vector2(0, -8) if glint else Vector2.ZERO), angle, Vector2(0.4, 0.4))
 	draw_texture_rect_region(HILT_TEX, Rect2(Vector2(-16, -19), src.size), src)
 	draw_set_transform(Vector2.ZERO)
 	if glint:
