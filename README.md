@@ -23,7 +23,7 @@ A dark fantasy metroidvania made with Godot 4. See [DESIGN.md](DESIGN.md) for th
 Hold up while attacking to slash upward. Hold down while in the air to slash downward, and
 land a down-slash on an enemy or spikes to bounce off them (pogo).
 
-**Dash:** a quick, low slide in the direction you're moving, dragging the ice blade; once on the ground and once per jump. Storm is half height while sliding, so he fits under low gaps.
+**Dash:** a quick slide along the ground on Storm's back, the ice blade freezing the floor behind him. Ground only. Storm is half height while sliding, so he fits under low gaps, and sliding into an enemy strikes it and bounces him back.
 **Double jump:** jump again in midair to spin in a ring of fire that strikes every enemy around you. Storm is half height during the spin. Once per jump.
 **Shockline:** fires straight ahead like a harpoon and drags you to whatever it hits, or to
 the end of the line if it hits nothing. Enemies get struck. On a grapple ring you hang for as

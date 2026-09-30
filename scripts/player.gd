@@ -32,12 +32,15 @@ const RECOIL_SPEED := 120.0
 const RECOIL_TIME := 0.08
 const HITSTOP_TIME := 0.04
 const COMBO_WINDOW := 0.7
+## After a slide or shockline strike, how long touching the enemy can't hurt Storm.
+const STRIKE_GUARD_TIME := 0.3
 
 ## Ice dash: a fixed-length horizontal burst with no gravity. One air dash per jump.
 const DASH_SPEED := 320.0
 const DASH_TIME := 0.18
 const DASH_COOLDOWN := 0.45
-const TRAIL_LIFE := 0.2
+## The slide leaves a streak of frost on the floor that melts away over this long.
+const TRAIL_LIFE := 1.2
 ## The slide is also an attack: the blade scraping ahead of Storm strikes the first
 ## enemy it meets, ending the slide and bouncing him back a little.
 const SLIDE_REACH := 8.0
@@ -109,6 +112,7 @@ var _attack_cd := 0.0
 var _slash_time := 0.0
 var _slash_dir := Vector2.RIGHT
 var _invuln := 0.0
+var _strike_guard := 0.0
 var _hurt_lock := 0.0
 var _recoil := 0.0
 ## True while rising from a pogo or knockback, so releasing jump doesn't cut the arc.
@@ -119,7 +123,6 @@ var _frozen := false
 var _dash_time := 0.0
 var _dash_cd := 0.0
 var _dash_dir := 1
-var _air_dash := true
 ## Recent positions during a dash, drawn as fading afterimages: [{pos, age}].
 var _trail: Array[Dictionary] = []
 
@@ -219,7 +222,6 @@ func heal_full() -> void:
 
 func _reset_moves() -> void:
 	_dash_time = 0.0
-	_air_dash = true
 	_air_jump = true
 	_spin_time = 0.0
 	_embers.clear()
@@ -244,7 +246,6 @@ func _physics_process(delta: float) -> void:
 	if is_on_floor():
 		_coyote = COYOTE_TIME
 		_no_jump_cut = false
-		_air_dash = true
 		_air_jump = true
 		if not controls_locked and _on_safe_ground():
 			safe_position = global_position
@@ -298,6 +299,7 @@ func _tick_timers(delta: float) -> void:
 	_slash_time -= delta
 	_attack_anim -= delta
 	_invuln -= delta
+	_strike_guard -= delta
 	_hurt_lock -= delta
 	_recoil -= delta
 	_dash_cd -= delta
@@ -373,9 +375,9 @@ func _apply_gravity(delta: float) -> void:
 
 # --- Ice dash ---
 
+## The ice slide freezes the ground under Storm as he goes, so it only works on the floor.
 func _can_dash() -> bool:
-	return Game.has_ability("dash") and _dash_cd <= 0.0 and _dash_time <= 0.0 \
-		and (is_on_floor() or _air_dash)
+	return Game.has_ability("dash") and _dash_cd <= 0.0 and _dash_time <= 0.0 and is_on_floor()
 
 
 func _start_dash(input_x: float) -> void:
@@ -386,8 +388,6 @@ func _start_dash(input_x: float) -> void:
 	_dash_time = DASH_TIME
 	_dash_cd = DASH_COOLDOWN
 	_carry = 0.0
-	if not is_on_floor():
-		_air_dash = false
 
 
 func _update_dash(delta: float) -> void:
@@ -396,7 +396,8 @@ func _update_dash(delta: float) -> void:
 		return
 	velocity = Vector2(_dash_dir * DASH_SPEED, 0.0)
 	_trail.append({"pos": global_position, "age": 0.0})
-	if _dash_time <= 0.0 or is_on_wall():
+	# Sliding off a ledge ends the slide: there's no ground left to freeze.
+	if _dash_time <= 0.0 or is_on_wall() or not is_on_floor():
 		_dash_time = 0.0
 		velocity.x = _dash_dir * RUN_SPEED
 
@@ -413,8 +414,7 @@ func _slide_strike() -> bool:
 		velocity = Vector2(-_dash_dir * SLIDE_BOUNCE.x, SLIDE_BOUNCE.y)
 		_no_jump_cut = true
 		_recoil = SLIDE_BOUNCE_TIME
-		_invuln = maxf(_invuln, 0.3)
-		_hitstop()
+		_strike(Vector2(_dash_dir, 0))
 		return true
 	return false
 
@@ -602,7 +602,6 @@ func _check_shock_arrival() -> void:
 
 func _start_shock_hang() -> void:
 	_shock = Shock.HANGING
-	_air_dash = true
 	_air_jump = true
 	_no_jump_cut = false
 	_snap_to_ring()
@@ -634,8 +633,19 @@ func _shock_strike(enemy: Node2D) -> void:
 	enemy.take_hit(1, Vector2(side, 0))
 	velocity = Vector2(-side * SHOCK_STRIKE_BOUNCE.x, SHOCK_STRIKE_BOUNCE.y)
 	_no_jump_cut = true
-	_air_dash = true
-	_invuln = maxf(_invuln, 0.3)
+	_strike(Vector2(side, 0))
+
+
+## A slide or shockline landing on an enemy: Storm swipes at it and bounces off. He's
+## briefly safe from contact damage, without the hurt blink, so it reads as an attack.
+func _strike(dir: Vector2) -> void:
+	facing = 1 if dir.x > 0.0 else -1
+	_slash_dir = dir
+	_slash_time = SLASH_TIME
+	_attack_anim = ATTACK_COOLDOWN
+	_sprite.play("attack")
+	_sprite.frame = 0
+	_strike_guard = STRIKE_GUARD_TIME
 	_hitstop()
 
 
@@ -719,7 +729,7 @@ func _check_damage() -> void:
 			if not controls_locked:
 				_hurt_by_hazard()
 			return
-		if _invuln <= 0.0 and source.has_method("take_hit"):
+		if _invuln <= 0.0 and _strike_guard <= 0.0 and source.has_method("take_hit"):
 			_hurt_by_enemy(source.global_position.x)
 			return
 
@@ -857,10 +867,15 @@ func _update_sprite() -> void:
 
 
 func _draw() -> void:
-	for point in _trail:
+	for i in _trail.size():
+		var point: Dictionary = _trail[i]
 		var fade: float = 1.0 - point.age / TRAIL_LIFE
 		var o: Vector2 = point.pos - global_position
-		draw_rect(Rect2(o + Vector2(-5, -SMALL_HEIGHT), Vector2(10, SMALL_HEIGHT)), Color(COLOR_ICE, 0.35 * fade))
+		draw_rect(Rect2(o + Vector2(-3, -1.5), Vector2(6, 1.5)), Color(COLOR_ICE, 0.7 * fade))
+		draw_rect(Rect2(o + Vector2(-3, -2), Vector2(6, 0.5)), Color(1, 1, 1, 0.5 * fade))
+		if i % 3 == 0:
+			# Little ice crystals sticking up out of the frost.
+			draw_rect(Rect2(o + Vector2(-0.5, -3.5), Vector2(1, 2)), Color(COLOR_ICE, 0.8 * fade))
 
 	if _spin_time > 0.0:
 		var center := _center() - global_position

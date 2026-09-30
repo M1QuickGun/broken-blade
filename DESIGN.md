@@ -44,11 +44,75 @@ lightning (shockline), in either order. Levels need to be designed so both route
 - **Placeholder first:** the game uses simple shapes until the controls feel right. Real art
   comes after.
 
+## World: the mountain
+The kingdom is built on a great mountain: the castle at the summit, villages on the slopes
+around it. The whole game is one climb from the bottom to the top.
+
+**Intro (planned animation):** the kingdom on its mountain → the blade shatters and the evil
+pours out → the King's last power throws Storm to the foot of the mountain → Storm, years later,
+wakes at the bottom with the hilt on the ground beside him. The opening shot of the whole
+mountain doubles as the player's mental map for the rest of the game.
+
+### Map outline (bottom to top)
+```
+                          [ Throne (final boss) ]
+                          [    Castle halls     ]
+                          [    Castle gate  *   ]
+                                  J+S
+        [=================== High pass ===================]
+          J                                             S
+  [Forge boss]-[Shaft]        [ Hidden shrine ]        [Tower]-[Spire boss]
+  [Burning homes *]               J / S                 [Bridges *]
+  [ Ashen road ]-------------[ Crossroads * ]------------[ Cliff road ]
+                                    |
+                               [ Ice climb ]
+                                    D
+               [Frozen cellar] S [ Village square * ]-[Frost boss]
+                                    |          [ Ice caverns ]
+  [Landing *]-[Rockfall]-[Great hall]-[Gate fight]
+                          [Undercroft]
+
+  D dash · J double jump · S shockline = ability-locked door   * rest point
+  Hidden shrine and Frozen cellar are optional secret rooms.
+```
+
+1. **Foothills (tutorial, hilt only).** Landing (Storm wakes, rest point) → Rockfall (run and
+   jump) → Great hall (hilt swing, pogo, crawlers) → Undercroft (spikes, a small off-path
+   reward) → Gate fight (mini-boss before the village). The first playable build's rooms
+   (ruins entry, great hall, undercroft) fit into this stretch.
+2. **Frozen village, taken by the ice evil (dash).** Village square is the lower mountain's hub
+   (rest point, maybe the first survivors). Drop through the Ice caverns up into the Frost boss
+   arena for the first blade piece. The Ice climb up the mountain needs the dash. A shockline
+   anchor visible from the square leads to the Frozen cellar: a promise to come back later.
+3. **Crossroads (choose fire or lightning).** Rest point where the path splits west and east.
+   The Hidden shrine above it opens with the double jump *or* the shockline, so either route
+   unlocks it.
+4. **Fire slopes (west face) and Lightning peaks (east face), mirror images.** Road in (dash
+   only) → Burning homes / Bridges (rest point) → Forge boss / Spire boss (blade piece) →
+   Shaft / Tower, whose only exit is the new ability (double jump up the Shaft, shockline up the
+   Tower) onto the High pass. Finish one side, come out on the pass, drop back to the
+   Crossroads, do the other.
+5. **High pass and castle.** The High pass joins the tops of both faces into one loop. The Castle
+   gate climb needs the double jump and the shockline together. Castle halls are the final
+   gauntlet; the Throne holds the final boss.
+
+### Level design rules
+- Every region has one ability-locked door forward, and at least one secret that pays off on
+  a later return.
+- Rest points before every boss and at every fork.
+- Each region's rooms test its own ability: ice rooms are long dash gaps, fire rooms are tall
+  climbs, lightning rooms are wide drops with anchor points.
+- Fire and lightning regions must be fully completable with only the dash plus their own piece.
+- Roughly 25 rooms for the first full slice. New rooms go in `scripts/rooms.gd` using the same
+  door-letter links as the existing ones.
+
 ## Target platform
 The goal is a commercial release on **Steam** someday.
 
 ## Open questions
-- Does each evil fragment rule its own region, with its own biome matching the piece's element?
+- Are the fire and lightning regions villages too, or wilder terrain (volcano, storm peaks)?
+- Do the villages have survivors or NPCs (shops, rest keepers)?
+- Does Storm wake right where the tutorial starts, or wander a little first?
 - How does the game end? Reforge the blade and reseal the evil, or something darker?
 - Engine, art style, and scope of the first playable build.
 
