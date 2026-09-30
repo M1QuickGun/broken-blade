@@ -39,6 +39,10 @@ class Room:
     def put(self, x, y, ch):
         self.g[y][x] = ch
 
+    def open_sky(self):
+        """No ceiling: the forest opens to the sky (room.gd keeps Storm from leaving the top)."""
+        self.air(1, 0, self.w - 2, 0)
+
     def floor(self, top):
         """Solid ground from row `top` down to the bottom."""
         self.box(0, top, self.w - 1, self.h - 1)
@@ -52,6 +56,7 @@ class Room:
 # Anything taller needs the wall jump; one-tile-high gaps need the slide.
 
 r = Room("landing", 40, 17)
+r.open_sky()
 r.floor(15)
 r.put(2, 14, "P")
 r.put(4, 14, "R")
@@ -65,6 +70,7 @@ r.box(33, 13, 35, 14)
 r.fill(39, 12, 39, 14, "a")
 
 r = Room("rockfall", 56, 17)
+r.open_sky()
 r.floor(15)
 r.fill(0, 12, 0, 14, "a")
 r.fill(55, 12, 55, 14, "b")
@@ -111,6 +117,7 @@ r.put(33, 14, "E")
 
 # A chimney six tiles wide: too tall to jump, climbed by wall jumping between its sides.
 r = Room("catcher_shaft", 22, 40)
+r.open_sky()
 r.floor(38)
 r.fill(0, 35, 0, 37, "d")
 r.put(4, 37, "?")
@@ -120,6 +127,7 @@ r.fill(21, 3, 21, 5, "f")
 r.put(17, 5, "?")
 
 r = Room("gate_fight", 40, 17)
+r.open_sky()
 r.floor(15)
 r.fill(0, 12, 0, 14, "f")
 r.fill(39, 12, 39, 14, "g")

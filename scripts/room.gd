@@ -135,6 +135,8 @@ func _build_solids() -> void:
 				for xx in range(x, x + w):
 					used[Vector2i(xx, yy)] = true
 			_add_rect(body, Rect2(x * TILE, y * TILE, w * TILE, h * TILE))
+	# An unseen lid a little above the room, for rooms open to the sky.
+	_add_rect(body, Rect2(0, -TILE * 4, size_px.x, TILE * 2))
 
 
 func _row_solid(x: int, w: int, y: int, used: Dictionary) -> bool:

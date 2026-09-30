@@ -37,6 +37,7 @@ const STRIKE_GUARD_TIME := 0.3
 
 ## Ice dash: a fixed-length horizontal burst with no gravity. One air dash per jump.
 const DASH_SPEED := 320.0
+## The shortest slide; holding the button keeps it going for as long as it's held.
 const DASH_TIME := 0.27
 const DASH_COOLDOWN := 0.45
 ## The slide leaves a streak of frost on the floor that melts away over this long.
@@ -147,6 +148,11 @@ const SHOCK_TIP := preload("res://art/blade/tip.png")
 ## Measured on the held aim pose (art/storm/<stage>/point.png, last frame): the join
 ## between the blade and its lightning tip.
 const SWORD_POINT := Vector2(19.75, -13.75)
+## Being dragged along the line (art/storm/<stage>/pull.png) Storm flies flat behind his
+## blade: the art sits high in its frame so it's dropped onto his body, and the line leaves
+## from the end of the (tipless) blade.
+const PULL_POSE_DROP := 14.5
+const SWORD_POINT_PULL := Vector2(27, 1)
 ## While the tip is out on the shockline, Storm's sword is shown without it: the stages
 ## that hold the tip look exactly like these once it's gone.
 const TIPLESS_STAGE := {"ice_lightning": "ice", "full": "ice_fire"}
@@ -226,6 +232,7 @@ const ANIMS := {
 	"spin": [26.0, false],
 	"wall": [6.0, true],
 	"drink": [10.0, false],
+	"pull": [10.0, true],
 	"point": [24.0, false],
 }
 ## Where Storm's body sits across each frame size, in art pixels. Larger frames leave
@@ -424,11 +431,25 @@ func _update_height() -> void:
 		want = SLIDE_BODY
 	if want == _body:
 		return
-	if want == FULL_BODY and not _query(FULL_BODY.grow(-0.5), LAYER_WORLD).is_empty():
-		return  # still under (or over) something; stay tucked
+	if want == FULL_BODY and not _room_to_stand():
+		return  # still under something; stay tucked
 	_body = want
 	(_col.shape as RectangleShape2D).size = _body.size
 	_col.position = _body.get_center()
+
+
+## Whether the full-height body fits here. Right at a ledge or wall the tucked body can
+## sit where the full one would clip a corner, so a small nudge sideways or up that frees
+## it is taken on the spot (this is what used to leave Storm stuck in the slide pose).
+func _room_to_stand() -> bool:
+	if _query(FULL_BODY.grow(-0.5), LAYER_WORLD).is_empty():
+		return true
+	for nudge: Vector2 in [Vector2(-3, 0), Vector2(3, 0), Vector2(-6, 0), Vector2(6, 0),
+			Vector2(0, -3), Vector2(-3, -3), Vector2(3, -3)]:
+		if _query(Rect2(FULL_BODY.position + nudge, FULL_BODY.size).grow(-0.5), LAYER_WORLD).is_empty() 				and _query(Rect2(_body.position + nudge, _body.size).grow(-0.5), LAYER_WORLD).is_empty():
+			global_position += nudge
+			return true
+	return false
 
 
 ## True when there's solid ground well past both feet, so a spike respawn
@@ -521,6 +542,11 @@ func _start_dash(input_x: float) -> void:
 
 func _update_dash(delta: float) -> void:
 	_dash_time -= delta
+	if not controls_locked and Input.is_action_pressed("dash"):
+		_dash_time = maxf(_dash_time, delta)
+	if _jump_buffer > 0.0 and _room_to_stand():
+		_dash_time = 0.0  # jump straight out of the slide (the buffered jump fires next frame)
+		return
 	if _slide_strike():
 		return
 	velocity = Vector2(_dash_dir * DASH_SPEED, 0.0)
@@ -658,7 +684,10 @@ func _shock_aim() -> Vector2:
 
 ## Where the lightning tip sits on the held blade, in global coordinates.
 func _sword_point() -> Vector2:
-	return _center() + Vector2(SWORD_POINT.x * facing, SWORD_POINT.y)
+	var point := SWORD_POINT
+	if _shock == Shock.PULLING and _sprite.sprite_frames.has_animation("pull"):
+		point = SWORD_POINT_PULL.rotated(_sprite.rotation * facing)
+	return _center() + Vector2(point.x * facing, point.y)
 
 
 ## Storm hangs still, pointing the blade, then the tip flies.
@@ -1077,7 +1106,6 @@ func _load_stage_frames(stage: String) -> SpriteFrames:
 
 func _update_sprite() -> void:
 	_apply_blade_stage()
-	_sprite.z_index = 0
 	_sprite.flip_h = facing < 0
 	# Keep Storm's body on the node's origin, and his feet on the bottom edge of the frame.
 	var size := int(_sprite.sprite_frames.get_frame_texture(_sprite.animation, 0).get_height())
@@ -1093,14 +1121,18 @@ func _update_sprite() -> void:
 		_sprite.position.y = WALL_POSE_DROP
 	if _spin_time > 0.0:
 		return  # started in _start_spin, plays through once
+	_sprite.rotation = 0.0
+	if _shock == Shock.PULLING and _sprite.sprite_frames.has_animation("pull"):
+		# Flat out behind the blade like a hookshot, tilted along the line.
+		_sprite.play("pull")
+		_sprite.position.y = PULL_POSE_DROP
+		var along := Vector2(absf(_shock_dir.x), _shock_dir.y)
+		_sprite.rotation = clampf(along.angle(), -0.7, 0.7) * facing
+		return
 	if _shock in [Shock.AIMING, Shock.FIRING, Shock.PULLING]:
-		# Aim, then hold the blade level while the tip flies and drags him along.
+		# Aim, then hold the blade level while the tip flies.
 		_sprite.play("point" if _sprite.sprite_frames.has_animation("point") else "idle")
 		return
-	# The slide pose sits taller than the slide body; in a crawlspace it would poke up
-	# through the ceiling, so there Storm is drawn behind the tiles instead.
-	var crawling := _is_small() and _spin_time <= 0.0 			and not _query(FULL_BODY.grow(-0.5), LAYER_WORLD).is_empty()
-	_sprite.z_index = -1 if crawling else 0
 	if _is_small():
 		# Sliding, or still tucked under a low ceiling: hold the low slide pose.
 		if _sprite.animation != "slide":

@@ -42,7 +42,7 @@ var _backdrop: Sprite2D
 
 
 func _ready() -> void:
-	z_index = 1 if front else -2  # -1 is left for Storm tucked behind the tiles
+	z_index = 1 if front else -1
 	if not front:
 		_backdrop = Sprite2D.new()
 		_backdrop.texture = BACKDROP
