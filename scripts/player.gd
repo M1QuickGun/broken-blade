@@ -112,8 +112,12 @@ const COLOR_WIRE := Color("3a2a5c")
 ## The lightning tip of the blade, pointing right. The shockline fires it off the sword
 ## on a line of crackling barbed wire.
 const SHOCK_TIP := preload("res://art/blade/tip.png")
-## Where the sword points from, relative to Storm's centre when facing right.
-const SWORD_POINT := Vector2(9, 3)
+## Where the lightning tip sits on the held blade, relative to Storm's centre when facing
+## right: the shockline fires from here.
+const SWORD_POINT := Vector2(16, 1.5)
+## While the tip is out on the shockline, Storm's sword is shown without it: the stages
+## that hold the tip look exactly like these once it's gone.
+const TIPLESS_STAGE := {"ice_lightning": "ice", "full": "ice_fire"}
 const WIRE_TWIST := 5.0
 const WIRE_BARB_SPACING := 7.0
 const COLOR_BOLT_GLOW := Color(0.65, 0.55, 1.0, 0.45)
@@ -199,6 +203,8 @@ const SLIDE_FIRST_FRAME := 4
 var _sprite: AnimatedSprite2D
 ## SpriteFrames per blade stage, built on first use.
 var _stage_frames := {}
+## The stage whose animations are showing (can differ from Game.blade_stage() mid-shockline).
+var _shown_stage := ""
 ## Keeps the attack animation playing after the (much shorter) hitbox is gone.
 var _attack_anim := 0.0
 ## Forward swings alternate between a rising slash and a backhand return, so a string
@@ -851,10 +857,21 @@ func _build_sprite() -> void:
 	Game.pieces_changed.connect(func(_count: int) -> void: _apply_blade_stage())
 
 
+## The blade stage to draw right now: the real one, minus the tip while it's flying.
+func _display_stage() -> String:
+	var stage := Game.blade_stage()
+	if _shock != Shock.NONE:
+		return TIPLESS_STAGE.get(stage, stage)
+	return stage
+
+
 ## Swaps in the animation set for however much of the blade Storm now holds,
 ## carrying on from the same animation and frame.
 func _apply_blade_stage() -> void:
-	var stage := Game.blade_stage()
+	var stage := _display_stage()
+	if stage == _shown_stage:
+		return
+	_shown_stage = stage
 	if not _stage_frames.has(stage):
 		_stage_frames[stage] = _load_stage_frames(stage)
 	var anim := _sprite.animation
@@ -889,6 +906,7 @@ func _load_stage_frames(stage: String) -> SpriteFrames:
 
 
 func _update_sprite() -> void:
+	_apply_blade_stage()
 	_sprite.flip_h = facing < 0
 	# Keep Storm's body on the node's origin, and his feet on the bottom edge of the frame.
 	var size := int(_sprite.sprite_frames.get_frame_texture(_sprite.animation, 0).get_height())
