@@ -14,14 +14,17 @@ A dark fantasy metroidvania made with Godot 4. See [DESIGN.md](DESIGN.md) for th
 | Look up / down (aim slashes) | W / S or ↑ / ↓ | Left stick / D-pad |
 | Jump (hold for higher) | Space, Z or K | A |
 | Attack | Left click | X |
-| Dash (ice piece) | Shift, L or C | RB |
+| Dash / slide (ice piece) | Shift, L or C | RB |
+| Double jump spin (fire piece) | Jump again in midair | A |
 | Shockline (lightning piece) | Right click | Y |
-| Debug: unlock dash / shockline | F1 / F2 | — |
+| Toggle fullscreen | F11 | — |
+| Debug: unlock dash / shockline / double jump | 1 / 2 / 3 | — |
 
 Hold up while attacking to slash upward. Hold down while in the air to slash downward, and
 land a down-slash on an enemy or spikes to bounce off them (pogo).
 
-**Dash:** a quick burst in the direction you're moving, once on the ground and once per jump.
+**Dash:** a quick, low slide in the direction you're moving, dragging the ice blade; once on the ground and once per jump. Storm is half height while sliding, so he fits under low gaps.
+**Double jump:** jump again in midair to spin in a ring of fire that strikes every enemy around you. Storm is half height during the spin. Once per jump.
 **Shockline:** fires straight ahead like a harpoon and drags you to whatever it hits, or to
 the end of the line if it hits nothing. Enemies get struck. On a grapple ring you hang for as
 long as you hold right click: let go to drop, or jump to leap off. Jump mid-pull to cancel.

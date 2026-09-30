@@ -18,9 +18,20 @@ const LAYER_HAZARD := 8
 
 const COLOR_BG := Color("0f1119")
 const COLOR_PILLAR := Color("131622")
-const COLOR_STONE := Color("262a36")
-const COLOR_STONE_TOP := Color("3d4354")
 const COLOR_SPIKE := Color("9aa0ad")
+
+## Ruined stone, a 4x4 sheet of 32 px corner tiles (2x detail, 16 world px each).
+## Tiles are drawn on the dual grid: one per cell corner, picked by which of the four
+## cells around that corner are solid.
+const STONE_SHEET := preload("res://art/world/ruins_tileset.png")
+const SHEET_TILE := 32
+## Solid-corner mask (NW 8, NE 4, SW 2, SE 1) -> tile in the sheet.
+const STONE_TILES := {
+	0: Vector2i(0, 3), 1: Vector2i(1, 3), 2: Vector2i(0, 0), 3: Vector2i(3, 0),
+	4: Vector2i(0, 2), 5: Vector2i(1, 0), 6: Vector2i(2, 3), 7: Vector2i(1, 1),
+	8: Vector2i(3, 3), 9: Vector2i(0, 1), 10: Vector2i(3, 2), 11: Vector2i(2, 0),
+	12: Vector2i(1, 2), 13: Vector2i(2, 2), 14: Vector2i(3, 1), 15: Vector2i(2, 1),
+}
 
 var room_name := ""
 var size_tiles := Vector2i.ZERO
@@ -159,15 +170,21 @@ func _draw() -> void:
 	for i in range(3, size_tiles.x, 9):
 		draw_rect(Rect2(i * TILE, 0, TILE * 2, size_px.y), COLOR_PILLAR)
 
+	for vy in size_tiles.y + 1:
+		for vx in size_tiles.x + 1:
+			var mask := int(_cell(vx - 1, vy - 1) == "#") * 8 + int(_cell(vx, vy - 1) == "#") * 4 \
+				+ int(_cell(vx - 1, vy) == "#") * 2 + int(_cell(vx, vy) == "#")
+			if mask == 0:
+				continue
+			var src := Rect2(Vector2(STONE_TILES[mask]) * SHEET_TILE, Vector2(SHEET_TILE, SHEET_TILE))
+			var dst := Rect2(Vector2(vx - 0.5, vy - 0.5) * TILE, Vector2(TILE, TILE))
+			draw_texture_rect_region(STONE_SHEET, dst, src)
+
 	for y in size_tiles.y:
 		for x in size_tiles.x:
 			var c := _cell(x, y)
 			var pos := Vector2(x, y) * TILE
-			if c == "#":
-				draw_rect(Rect2(pos, Vector2(TILE, TILE)), COLOR_STONE)
-				if _cell(x, y - 1) != "#":
-					draw_rect(Rect2(pos, Vector2(TILE, 2)), COLOR_STONE_TOP)
-			elif c == "^":
+			if c == "^":
 				for i in 3:
 					var bx := pos.x + 1 + i * 5
 					draw_colored_polygon(PackedVector2Array([

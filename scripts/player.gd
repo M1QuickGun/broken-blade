@@ -31,12 +31,37 @@ const POGO_VELOCITY := -300.0
 const RECOIL_SPEED := 120.0
 const RECOIL_TIME := 0.08
 const HITSTOP_TIME := 0.04
+const COMBO_WINDOW := 0.7
 
 ## Ice dash: a fixed-length horizontal burst with no gravity. One air dash per jump.
 const DASH_SPEED := 320.0
 const DASH_TIME := 0.18
 const DASH_COOLDOWN := 0.45
 const TRAIL_LIFE := 0.2
+## The slide is also an attack: the blade scraping ahead of Storm strikes the first
+## enemy it meets, ending the slide and bouncing him back a little.
+const SLIDE_REACH := 8.0
+const SLIDE_BOUNCE := Vector2(130, -140)
+const SLIDE_BOUNCE_TIME := 0.15
+
+## Fire double jump: a second jump in midair that spins Storm into a ring of fire,
+## striking everything around him. One per jump.
+const DOUBLE_JUMP_VELOCITY := -300.0
+const SPIN_TIME := 0.32
+## The spin throws out a ring of fire that grows to this radius and strikes whatever it reaches.
+const SPIN_RANGE := 56.0
+const SPIN_RING_START := 10.0
+## Enemies count as reached this far outside the ring, since they aren't points.
+const SPIN_HIT_SLACK := 8.0
+const EMBER_LIFE := 0.45
+const MAX_EMBERS := 90
+
+## Sliding and spinning tuck Storm down to half height: a slide from the feet up,
+## a spin around the middle of his body.
+const SMALL_HEIGHT := BODY_SIZE.y / 2
+const FULL_BODY := Rect2(-BODY_SIZE.x / 2, -BODY_SIZE.y, BODY_SIZE.x, BODY_SIZE.y)
+const SLIDE_BODY := Rect2(-BODY_SIZE.x / 2, -SMALL_HEIGHT, BODY_SIZE.x, SMALL_HEIGHT)
+const SPIN_BODY := Rect2(-BODY_SIZE.x / 2, -(BODY_SIZE.y + SMALL_HEIGHT) / 2, BODY_SIZE.x, SMALL_HEIGHT)
 
 ## Lightning shockline: fires straight ahead like a harpoon and drags Storm to
 ## whatever it hits, or to the end of the line. Rings hold him while the button
@@ -64,13 +89,10 @@ const INVULN_TIME := 1.0
 const HURT_LOCK_TIME := 0.25
 const HURT_KNOCKBACK := Vector2(160, -200)
 
-const COLOR_CLOAK := Color("2b2f45")
-const COLOR_FACE := Color("d9dde8")
-const COLOR_EYES := Color("0b0c12")
-const COLOR_HILT := Color("a08a5c")
-const COLOR_STEEL := Color("b8c2d6")
 const COLOR_SLASH := Color(0.85, 0.9, 1.0)
 const COLOR_ICE := Color(0.6, 0.88, 1.0)
+const COLOR_FIRE := Color(1.0, 0.45, 0.12)
+const COLOR_FIRE_CORE := Color(1.0, 0.85, 0.4)
 const COLOR_BOLT := Color("fff3a8")
 const COLOR_BOLT_GLOW := Color(0.65, 0.55, 1.0, 0.45)
 
@@ -111,6 +133,51 @@ var _shock_time := 0.0
 var _shock_cd := 0.0
 var _carry := 0.0
 
+var _air_jump := true
+var _spin_time := 0.0
+## Enemies already struck by the current spin, so each is hit once.
+var _spin_hit: Array[Object] = []
+## Fire sparks thrown off by the spin: [{pos, vel, age}] in global coordinates.
+var _embers: Array[Dictionary] = []
+
+var _col: CollisionShape2D
+## Storm's collision box in local coordinates: FULL_BODY, SLIDE_BODY or SPIN_BODY.
+var _body := FULL_BODY
+
+## Sprite strips in res://art/storm/<blade stage>/<anim>.png: square frames side by side,
+## facing right. Each blade stage has its own set, since the blade in Storm's hand grows;
+## an animation a stage doesn't have falls back to the bare-hilt one. [fps, loop]
+const ANIMS := {
+	"idle": [6.0, true],
+	"run": [14.0, true],
+	"attack": [26.0, false],
+	"attack2": [26.0, false],
+	"attack_up": [26.0, false],
+	"attack_down": [26.0, false],
+	"jump": [0.0, false],
+	"slide": [40.0, false],
+	"spin": [26.0, false],
+}
+## Where Storm's body sits across each frame size, in art pixels. Larger frames leave
+## room for the blade ahead of him, so he's off-centre and the flip has to account for it.
+const BODY_X_BY_FRAME := {80: 33.0, 96: 37.0}
+## Jump strip frames used while rising, near the apex, and falling.
+const JUMP_FRAME_RISE := 4
+const JUMP_FRAME_APEX := 6
+const JUMP_FRAME_FALL := 8
+## The dash is short, so the slide starts partway into its drop-down.
+const SLIDE_FIRST_FRAME := 4
+
+var _sprite: AnimatedSprite2D
+## SpriteFrames per blade stage, built on first use.
+var _stage_frames := {}
+## Keeps the attack animation playing after the (much shorter) hitbox is gone.
+var _attack_anim := 0.0
+## Forward swings alternate between a rising slash and a backhand return, so a string
+## of attacks swings back and forth. Pausing longer than COMBO_WINDOW starts over.
+var _backswing := false
+var _last_swing := -INF
+
 
 func _ready() -> void:
 	collision_layer = LAYER_PLAYER
@@ -118,11 +185,12 @@ func _ready() -> void:
 	floor_snap_length = 4.0
 	var shape := RectangleShape2D.new()
 	shape.size = BODY_SIZE
-	var col := CollisionShape2D.new()
-	col.shape = shape
-	col.position = Vector2(0, -BODY_SIZE.y / 2)
-	add_child(col)
+	_col = CollisionShape2D.new()
+	_col.shape = shape
+	_col.position = Vector2(0, -BODY_SIZE.y / 2)
+	add_child(_col)
 	hp = Game.max_hp
+	_build_sprite()
 
 
 func place_at(pos: Vector2) -> void:
@@ -152,6 +220,9 @@ func heal_full() -> void:
 func _reset_moves() -> void:
 	_dash_time = 0.0
 	_air_dash = true
+	_air_jump = true
+	_spin_time = 0.0
+	_embers.clear()
 	_trail.clear()
 	_shock = Shock.NONE
 	_shock_target = null
@@ -174,6 +245,7 @@ func _physics_process(delta: float) -> void:
 		_coyote = COYOTE_TIME
 		_no_jump_cut = false
 		_air_dash = true
+		_air_jump = true
 		if not controls_locked and _on_safe_ground():
 			safe_position = global_position
 
@@ -203,13 +275,19 @@ func _physics_process(delta: float) -> void:
 			_jump_buffer = 0.0
 			_coyote = 0.0
 			_no_jump_cut = false
-		if not controls_locked and Input.is_action_just_pressed("attack") and _attack_cd <= 0.0:
+		elif _jump_buffer > 0.0 and _can_double_jump():
+			_start_spin()
+		if _spin_time > 0.0:
+			_update_spin()
+		elif not controls_locked and Input.is_action_just_pressed("attack") and _attack_cd <= 0.0:
 			_attack()
 
+	_update_height()
 	move_and_slide()
 	if _shock == Shock.PULLING:
 		_check_shock_arrival()
 	_check_damage()
+	_update_sprite()
 	queue_redraw()
 
 
@@ -218,16 +296,47 @@ func _tick_timers(delta: float) -> void:
 	_jump_buffer -= delta
 	_attack_cd -= delta
 	_slash_time -= delta
+	_attack_anim -= delta
 	_invuln -= delta
 	_hurt_lock -= delta
 	_recoil -= delta
 	_dash_cd -= delta
 	_shock_cd -= delta
 	_carry -= delta
+	_spin_time -= delta
 	for point in _trail:
 		point.age += delta
 	while not _trail.is_empty() and _trail[0].age > TRAIL_LIFE:
 		_trail.pop_front()
+	for ember in _embers:
+		ember.age += delta
+		ember.pos += ember.vel * delta
+		ember.vel.y -= 60.0 * delta  # sparks drift upward
+	while not _embers.is_empty() and _embers[0].age > EMBER_LIFE:
+		_embers.pop_front()
+
+
+# --- Body height ---
+
+func _is_small() -> bool:
+	return _body != FULL_BODY
+
+
+## Tucks down to half height while sliding or spinning, and stands back up once
+## there's headroom (so a slide under a low ceiling doesn't wedge Storm into it).
+func _update_height() -> void:
+	var want := FULL_BODY
+	if _spin_time > 0.0:
+		want = SPIN_BODY
+	elif _dash_time > 0.0:
+		want = SLIDE_BODY
+	if want == _body:
+		return
+	if want == FULL_BODY and not _query(FULL_BODY.grow(-0.5), LAYER_WORLD).is_empty():
+		return  # still under (or over) something; stay tucked
+	_body = want
+	(_col.shape as RectangleShape2D).size = _body.size
+	_col.position = _body.get_center()
 
 
 ## True when there's solid ground well past both feet, so a spike respawn
@@ -270,6 +379,7 @@ func _can_dash() -> bool:
 
 
 func _start_dash(input_x: float) -> void:
+	_spin_time = 0.0
 	if input_x != 0.0:
 		facing = 1 if input_x > 0.0 else -1
 	_dash_dir = facing
@@ -282,6 +392,8 @@ func _start_dash(input_x: float) -> void:
 
 func _update_dash(delta: float) -> void:
 	_dash_time -= delta
+	if _slide_strike():
+		return
 	velocity = Vector2(_dash_dir * DASH_SPEED, 0.0)
 	_trail.append({"pos": global_position, "age": 0.0})
 	if _dash_time <= 0.0 or is_on_wall():
@@ -289,10 +401,81 @@ func _update_dash(delta: float) -> void:
 		velocity.x = _dash_dir * RUN_SPEED
 
 
+func _slide_strike() -> bool:
+	var width := BODY_SIZE.x / 2 + SLIDE_REACH
+	var rect := Rect2(0.0 if _dash_dir > 0 else -width, -SMALL_HEIGHT, width, SMALL_HEIGHT)
+	for hit in _query(rect, LAYER_ENEMY):
+		var target: Object = hit.collider
+		if not target.has_method("take_hit"):
+			continue
+		target.take_hit(1, Vector2(_dash_dir, 0))
+		_dash_time = 0.0
+		velocity = Vector2(-_dash_dir * SLIDE_BOUNCE.x, SLIDE_BOUNCE.y)
+		_no_jump_cut = true
+		_recoil = SLIDE_BOUNCE_TIME
+		_invuln = maxf(_invuln, 0.3)
+		_hitstop()
+		return true
+	return false
+
+
+# --- Fire double jump ---
+
+func _can_double_jump() -> bool:
+	return Game.has_ability("double_jump") and _air_jump and not controls_locked \
+		and not is_on_floor() and _hurt_lock <= 0.0
+
+
+func _start_spin() -> void:
+	velocity.y = DOUBLE_JUMP_VELOCITY
+	_jump_buffer = 0.0
+	_air_jump = false
+	_no_jump_cut = true  # the spin always has the same arc
+	_carry = 0.0
+	_spin_time = SPIN_TIME
+	_spin_hit.clear()
+	_attack_anim = 0.0
+	_sprite.play("spin")
+	_sprite.frame = 0
+	for i in 10:
+		var dir := Vector2.from_angle(TAU * i / 10.0)
+		_embers.append({"pos": _center() + dir * 6.0, "vel": dir * 90.0, "age": 0.0})
+
+
+## The ring of fire sweeps outward; every enemy it reaches is struck once, and it
+## throws sparks off its edge as it goes.
+func _update_spin() -> void:
+	var radius := _spin_ring_radius()
+	var center := _center()
+	var reach := Vector2(SPIN_RANGE, SPIN_RANGE)
+	var struck := false
+	for hit in _query(Rect2(center - global_position - reach, reach * 2), LAYER_ENEMY):
+		var target: Node2D = hit.collider
+		if not target.has_method("take_hit") or _spin_hit.has(target):
+			continue
+		var to := target.global_position - center
+		if to.length() > radius + SPIN_HIT_SLACK:
+			continue
+		_spin_hit.append(target)
+		target.take_hit(1, to.normalized() if to != Vector2.ZERO else Vector2(facing, 0))
+		struck = true
+	if struck:
+		_hitstop()
+	for i in (3 if _embers.size() < MAX_EMBERS else 0):
+		var dir := Vector2.from_angle(randf() * TAU)
+		_embers.append({"pos": center + dir * radius, "vel": dir * 40.0, "age": 0.0})
+
+
+## The ring grows quickly at first and slows as it reaches full size.
+func _spin_ring_radius() -> float:
+	var t := 1.0 - clampf(_spin_time / SPIN_TIME, 0.0, 1.0)
+	return lerpf(SPIN_RING_START, SPIN_RANGE, 1.0 - pow(1.0 - t, 2.0))
+
+
 # --- Lightning shockline ---
 
 func _center() -> Vector2:
-	return global_position + Vector2(0, -BODY_SIZE.y / 2)
+	return global_position + _body.get_center()
 
 
 func _can_shock() -> bool:
@@ -300,6 +483,7 @@ func _can_shock() -> bool:
 
 
 func _fire_shockline(input_x: float) -> void:
+	_spin_time = 0.0
 	if input_x != 0.0:
 		facing = 1 if input_x > 0.0 else -1
 	_shock = Shock.FIRING
@@ -419,6 +603,7 @@ func _check_shock_arrival() -> void:
 func _start_shock_hang() -> void:
 	_shock = Shock.HANGING
 	_air_dash = true
+	_air_jump = true
 	_no_jump_cut = false
 	_snap_to_ring()
 
@@ -465,12 +650,23 @@ func _end_shockline(cooldown := SHOCK_COOLDOWN) -> void:
 func _attack() -> void:
 	_attack_cd = ATTACK_COOLDOWN
 	_slash_time = SLASH_TIME
+	_attack_anim = ATTACK_COOLDOWN
+	var anim := "attack"
 	if Input.is_action_pressed("look_up"):
 		_slash_dir = Vector2.UP
+		anim = "attack_up"
 	elif Input.is_action_pressed("look_down") and not is_on_floor():
 		_slash_dir = Vector2.DOWN
+		anim = "attack_down"
 	else:
 		_slash_dir = Vector2(facing, 0)
+		var now := Time.get_ticks_msec() / 1000.0
+		_backswing = not _backswing if now - _last_swing < COMBO_WINDOW else false
+		_last_swing = now
+		if _backswing:
+			anim = "attack2"
+	_sprite.play(anim)
+	_sprite.frame = 0
 
 	var hit_enemy := false
 	var hit_hazard_tile := false
@@ -499,12 +695,12 @@ func _slash_rect() -> Rect2:
 	var reach := Game.blade_reach()
 	match _slash_dir:
 		Vector2.UP:
-			return Rect2(-11, -BODY_SIZE.y - reach, 22, reach + 4)
+			return Rect2(-11, _body.position.y - reach, 22, reach + 4)
 		Vector2.DOWN:
 			return Rect2(-11, -4, 22, reach + 4)
 	var width := reach + BODY_SIZE.x / 2
 	var x := 0.0 if _slash_dir.x > 0.0 else -width
-	return Rect2(x, -BODY_SIZE.y + 1, width, 20)
+	return Rect2(x, _body.position.y + 1, width, _body.size.y - 2)
 
 
 func _hitstop() -> void:
@@ -516,7 +712,7 @@ func _hitstop() -> void:
 func _check_damage() -> void:
 	if hp <= 0:
 		return
-	var hurtbox := Rect2(-BODY_SIZE.x / 2 + 1, -BODY_SIZE.y + 2, BODY_SIZE.x - 2, BODY_SIZE.y - 3)
+	var hurtbox := Rect2(_body.position + Vector2(1, 2), _body.size - Vector2(2, 3))
 	for hit in _query(hurtbox, LAYER_ENEMY | LAYER_HAZARD):
 		var source: Node2D = hit.collider
 		if source.is_in_group("hazard"):
@@ -574,28 +770,114 @@ func _query(local_rect: Rect2, mask: int) -> Array[Dictionary]:
 	return get_world_2d().direct_space_state.intersect_shape(q, 16)
 
 
-# --- Placeholder art ---
+# --- Art ---
+
+func _build_sprite() -> void:
+	_sprite = AnimatedSprite2D.new()
+	# Drawn at 2x detail, so shown at half scale.
+	_sprite.scale = Vector2.ONE / Game.ART_SCALE
+	# Behind the trail, shockline and slash, which are drawn by this node.
+	_sprite.show_behind_parent = true
+	add_child(_sprite)
+	_apply_blade_stage()
+	_sprite.play("idle")
+	Game.pieces_changed.connect(func(_count: int) -> void: _apply_blade_stage())
+
+
+## Swaps in the animation set for however much of the blade Storm now holds,
+## carrying on from the same animation and frame.
+func _apply_blade_stage() -> void:
+	var stage := Game.blade_stage()
+	if not _stage_frames.has(stage):
+		_stage_frames[stage] = _load_stage_frames(stage)
+	var anim := _sprite.animation
+	var frame := _sprite.frame
+	var playing := _sprite.is_playing()
+	_sprite.sprite_frames = _stage_frames[stage]
+	if _sprite.sprite_frames.has_animation(anim):
+		_sprite.animation = anim
+		_sprite.frame = mini(frame, _sprite.sprite_frames.get_frame_count(anim) - 1)
+		if playing:
+			_sprite.play()
+
+
+func _load_stage_frames(stage: String) -> SpriteFrames:
+	var frames := SpriteFrames.new()
+	frames.remove_animation("default")
+	for anim: String in ANIMS:
+		var path := "res://art/storm/%s/%s.png" % [stage, anim]
+		if not ResourceLoader.exists(path):
+			path = "res://art/storm/hilt/%s.png" % anim
+		var sheet: Texture2D = load(path)
+		var size := sheet.get_height()
+		frames.add_animation(anim)
+		frames.set_animation_speed(anim, ANIMS[anim][0])
+		frames.set_animation_loop(anim, ANIMS[anim][1])
+		for i in sheet.get_width() / size:
+			var atlas := AtlasTexture.new()
+			atlas.atlas = sheet
+			atlas.region = Rect2(i * size, 0, size, size)
+			frames.add_frame(anim, atlas)
+	return frames
+
+
+func _update_sprite() -> void:
+	_sprite.flip_h = facing < 0
+	# Keep Storm's body on the node's origin, and his feet on the bottom edge of the frame.
+	var size := int(_sprite.sprite_frames.get_frame_texture(_sprite.animation, 0).get_height())
+	var body_x: float = BODY_X_BY_FRAME.get(size, size / 2.0)
+	_sprite.offset = Vector2((size / 2.0 - body_x) * facing, -size / 2.0)
+	_sprite.visible = not (_invuln > 0.0 and fmod(_invuln, 0.16) < 0.08)
+	# The spin art whirls around the middle of its frame (half a frame above the feet, in
+	# world units a quarter of the art size); drop it so that lines up with the spin body.
+	_sprite.position.y = size / 4.0 + SPIN_BODY.get_center().y if _spin_time > 0.0 else 0.0
+	if _spin_time > 0.0:
+		return  # started in _start_spin, plays through once
+	if _is_small():
+		# Sliding, or still tucked under a low ceiling: hold the low slide pose.
+		if _sprite.animation != "slide":
+			_sprite.play("slide")
+			_sprite.frame = SLIDE_FIRST_FRAME
+		return
+	if _attack_anim > 0.0:
+		return
+	if not is_on_floor() and _shock != Shock.HANGING:
+		_sprite.animation = "jump"
+		_sprite.pause()
+		if velocity.y < -80.0:
+			_sprite.frame = JUMP_FRAME_RISE
+		elif velocity.y < 80.0:
+			_sprite.frame = JUMP_FRAME_APEX
+		else:
+			_sprite.frame = JUMP_FRAME_FALL
+	elif absf(velocity.x) > 10.0 and _shock == Shock.NONE:
+		_sprite.play("run")
+	else:
+		_sprite.play("idle")
+
 
 func _draw() -> void:
 	for point in _trail:
 		var fade: float = 1.0 - point.age / TRAIL_LIFE
 		var o: Vector2 = point.pos - global_position
-		draw_rect(Rect2(o + Vector2(-5, -22), Vector2(10, 22)), Color(COLOR_ICE, 0.35 * fade))
+		draw_rect(Rect2(o + Vector2(-5, -SMALL_HEIGHT), Vector2(10, SMALL_HEIGHT)), Color(COLOR_ICE, 0.35 * fade))
+
+	if _spin_time > 0.0:
+		var center := _center() - global_position
+		var radius := _spin_ring_radius()
+		var fade := clampf(_spin_time / SPIN_TIME * 1.5, 0.0, 1.0)
+		draw_arc(center, radius, 0.0, TAU, 48, Color(COLOR_FIRE, 0.35 * fade), 7.0)
+		draw_arc(center, radius, 0.0, TAU, 48, Color(COLOR_FIRE, 0.9 * fade), 3.0)
+		draw_arc(center, radius - 1.0, 0.0, TAU, 48, Color(COLOR_FIRE_CORE, fade), 1.0)
+
+	for ember in _embers:
+		var life: float = 1.0 - ember.age / EMBER_LIFE
+		var color := COLOR_FIRE_CORE.lerp(COLOR_FIRE, 1.0 - life)
+		draw_circle(ember.pos - global_position, 0.6 + life, Color(color, life))
+
 
 	if _shock != Shock.NONE:
 		_draw_shockline(_center() - global_position, _shock_tip - global_position)
-
-	var blinking := _invuln > 0.0 and fmod(_invuln, 0.16) < 0.08
-	if not blinking:
-		draw_rect(Rect2(-5, -15, 10, 15), COLOR_CLOAK)
-		draw_rect(Rect2(-4, -22, 8, 8), COLOR_FACE)
-		draw_rect(Rect2(-3 + facing, -19, 2, 3), COLOR_EYES)
-		draw_rect(Rect2(1 + facing, -19, 2, 3), COLOR_EYES)
-		if _slash_time <= 0.0:
-			# The broken blade, held low. It visibly lengthens with each piece.
-			var hand := Vector2(facing * 5, -8)
-			draw_line(hand, hand + Vector2(facing * (3 + Game.pieces * 4), 3), COLOR_STEEL, 2.0)
-			draw_rect(Rect2(hand.x - 1, hand.y - 1, 3, 3), COLOR_HILT)
 
 	if _slash_time > 0.0:
 		var center := Vector2(0, -11)
