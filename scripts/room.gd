@@ -37,6 +37,9 @@ const STONE_SHEET := preload("res://art/world/ruins_tileset.png")
 const ICE_SHEET := preload("res://art/world/ice_tileset.png")
 ## A spike trap seen from the side, drawn at 2x detail over one tile.
 const SPIKE_TEX := preload("res://art/world/spikes.png")
+## The Foothills forest floor: earth, roots and moss; same corner layout as STONE_SHEET.
+const FOREST_SHEET := preload("res://art/world/forest_tileset.png")
+const Forest := preload("res://scripts/forest.gd")
 const SHEET_TILE := 32
 ## Solid-corner mask (NW 8, NE 4, SW 2, SE 1) -> tile in the sheet.
 const STONE_TILES := {
@@ -60,11 +63,16 @@ var _gate: StaticBody2D
 var _boss_spawn := Vector2.ZERO
 var _sign_count := 0
 var _ice := false
+var _forest := false
+## Trees and light behind and in front of the tiles (forest and overgrown rooms).
+var _woods := false
 
 
 func build(name_: String) -> void:
 	room_name = name_
 	_ice = room_name in Rooms.ICE_ROOMS
+	_forest = room_name in Rooms.FOREST_ROOMS
+	_woods = _forest or room_name in Rooms.OVERGROWN_ROOMS
 	_grid = PackedStringArray(Rooms.LAYOUTS[name_])
 	size_tiles = Vector2i(_grid[0].length(), _grid.size())
 	size_px = Vector2(size_tiles) * TILE
@@ -74,6 +82,14 @@ func build(name_: String) -> void:
 	_scan_cells()
 	_build_doors()
 	_setup_boss()
+	if _woods:
+		for is_front in [false, true]:
+			var woods := Forest.new()
+			woods.front = is_front
+			woods.size_px = size_px
+			woods.solid = _grid
+			woods.seed_text = room_name
+			add_child(woods)
 
 
 ## Feet position for a player arriving through the given door.
@@ -275,11 +291,12 @@ func _on_boss_defeated(info: Dictionary, where: Vector2) -> void:
 
 
 func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size_px), COLOR_BG_ICE if _ice else COLOR_BG)
-	# Faint pillars in the background for a sense of ruined architecture.
-	for i in range(3, size_tiles.x, 9):
-		draw_rect(Rect2(i * TILE, 0, TILE * 2, size_px.y), COLOR_PILLAR_ICE if _ice else COLOR_PILLAR)
-	var sheet: Texture2D = ICE_SHEET if _ice else STONE_SHEET
+	if not _woods:
+		draw_rect(Rect2(Vector2.ZERO, size_px), COLOR_BG_ICE if _ice else COLOR_BG)
+		# Faint pillars in the background for a sense of ruined architecture.
+		for i in range(3, size_tiles.x, 9):
+			draw_rect(Rect2(i * TILE, 0, TILE * 2, size_px.y), COLOR_PILLAR_ICE if _ice else COLOR_PILLAR)
+	var sheet: Texture2D = ICE_SHEET if _ice else (FOREST_SHEET if _forest else STONE_SHEET)
 
 	for vy in size_tiles.y + 1:
 		for vx in size_tiles.x + 1:

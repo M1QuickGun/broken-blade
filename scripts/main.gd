@@ -117,6 +117,7 @@ func _on_player_died() -> void:
 	await get_tree().create_timer(0.4).timeout
 	await hud.fade_out(0.6)
 	player.heal_full()
+	Game.refill_flasks()
 	# Wake at the last rest shrine, or back at the start if Storm hasn't rested yet.
 	if Game.rest_room != "":
 		_load_room(Game.rest_room, "", Game.rest_point)

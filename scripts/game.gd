@@ -5,6 +5,7 @@ signal pieces_changed(count: int)
 signal ability_unlocked(ability: String)
 signal rested
 signal max_hp_changed(max_hp: int)
+signal flasks_changed(count: int, max_count: int)
 
 ## Art is drawn at 2x the world's pixel density: the world uses 16 px tiles, sprites use 32.
 ## Sprites are placed at 1 / ART_SCALE and the camera zooms by ART_SCALE.
@@ -21,6 +22,11 @@ const BLADE_ABILITIES := ["dash", "double_jump", "shockline"]
 var abilities := {}
 var pieces := 0
 var max_hp := 5
+## Healing flasks, filled with a shrine's pale flame: a few sips carried at a time, each
+## mending FLASK_HEAL masks, all refilled whenever Storm rests at a shrine (or wakes at one).
+const FLASK_HEAL := 2
+var max_flasks := 3
+var flasks := 3
 
 ## Where Storm wakes after falling: the last rest shrine he touched ("" = the start).
 var rest_room := ""
@@ -58,7 +64,22 @@ func blade_stage() -> String:
 func rest_at(room: String, point: Vector2) -> void:
 	rest_room = room
 	rest_point = point
+	refill_flasks()
 	rested.emit()
+
+
+func refill_flasks() -> void:
+	flasks = max_flasks
+	flasks_changed.emit(flasks, max_flasks)
+
+
+## Spends one flask; false if they're all empty.
+func use_flask() -> bool:
+	if flasks <= 0:
+		return false
+	flasks -= 1
+	flasks_changed.emit(flasks, max_flasks)
+	return true
 
 
 ## A mask shard: one more point of health, for good.
@@ -100,6 +121,7 @@ func _setup_input() -> void:
 	_bind("attack", [], [JOY_BUTTON_X], [], [MOUSE_BUTTON_LEFT])
 	_bind("dash", [KEY_SHIFT, KEY_L, KEY_C], [JOY_BUTTON_RIGHT_SHOULDER], [])
 	_bind("shockline", [], [JOY_BUTTON_Y], [], [MOUSE_BUTTON_RIGHT])
+	_bind("heal", [KEY_F, KEY_Q], [JOY_BUTTON_B], [])
 	_bind("toggle_fullscreen", [KEY_F11], [], [])
 	_bind("debug_unlock_dash", [KEY_1], [], [])
 	_bind("debug_unlock_shockline", [KEY_2], [], [])

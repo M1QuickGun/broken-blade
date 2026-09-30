@@ -113,6 +113,12 @@ const SHOCK_STRIKE_BOUNCE := Vector2(140, -240)
 const CARRY_TIME := 0.25
 
 const INVULN_TIME := 1.0
+## Drinking a flask roots Storm in place; the healing lands partway through, and a hit
+## before then spills it (the flask is spent either way).
+const DRINK_TIME := 0.8
+const DRINK_HEAL_AT := 0.35
+const COLOR_FLASK := Color("9fe6ff")
+const COLOR_FLASK_CORE := Color("f2fbff")
 const HURT_LOCK_TIME := 0.25
 const HURT_KNOCKBACK := Vector2(160, -200)
 
@@ -160,6 +166,9 @@ var _wave_time := 0.0
 var _invuln := 0.0
 var _strike_guard := 0.0
 var _hurt_lock := 0.0
+## Counts down while drinking a flask; _drink_healed is set once the sip has mended him.
+var _drink_time := 0.0
+var _drink_healed := false
 var _recoil := 0.0
 ## True while rising from a pogo or knockback, so releasing jump doesn't cut the arc.
 var _no_jump_cut := false
@@ -212,6 +221,7 @@ const ANIMS := {
 	"slide": [40.0, false],
 	"spin": [26.0, false],
 	"wall": [6.0, true],
+	"drink": [10.0, false],
 	"point": [24.0, false],
 }
 ## Where Storm's body sits across each frame size, in art pixels. Larger frames leave
@@ -333,6 +343,10 @@ func _physics_process(delta: float) -> void:
 		_update_shock_hang()
 	elif _dash_time > 0.0:
 		_update_dash(delta)
+	elif _drink_time > 0.0:
+		_update_drink(delta)
+	elif not controls_locked and Input.is_action_just_pressed("heal") and _can_drink():
+		_start_drink()
 	else:
 		_move_horizontal(input_x, delta)
 		_apply_gravity(delta)
@@ -370,6 +384,7 @@ func _tick_timers(delta: float) -> void:
 	_invuln -= delta
 	_strike_guard -= delta
 	_hurt_lock -= delta
+	_drink_time -= delta
 	_recoil -= delta
 	_dash_cd -= delta
 	_shock_cd -= delta
@@ -862,7 +877,59 @@ func _check_damage() -> void:
 			return
 
 
+# --- Healing flask ---
+
+func _can_drink() -> bool:
+	return is_on_floor() and hp < Game.max_hp and Game.flasks > 0 and _shock == Shock.NONE 			and _spin_time <= 0.0 and _hurt_lock <= 0.0 and not _is_small()
+
+
+func _start_drink() -> void:
+	Game.use_flask()
+	_drink_time = DRINK_TIME
+	_drink_healed = false
+	_attack_anim = 0.0
+	_jump_buffer = 0.0
+
+
+func _update_drink(delta: float) -> void:
+	velocity.x = move_toward(velocity.x, 0.0, 1200.0 * delta)
+	_apply_gravity(delta)
+	if not _drink_healed and DRINK_TIME - _drink_time >= DRINK_HEAL_AT:
+		_drink_healed = true
+		hp = mini(hp + Game.FLASK_HEAL, Game.max_hp)
+		hp_changed.emit(hp, Game.max_hp)
+		# The shrine's flame flares up around him.
+		for i in 16:
+			if _embers.size() >= MAX_EMBERS:
+				break
+			var dir := Vector2.from_angle(randf() * TAU)
+			_embers.append({"pos": _center() + dir * 5.0, "vel": dir * 45.0 + Vector2(0, -20),
+				"age": 0.0, "color": COLOR_FLASK_CORE if i % 3 == 0 else COLOR_FLASK})
+
+
+## A soft glow of shrine flame around the flask; a plain vial too if there's no drinking art.
+func _draw_flask() -> void:
+	var at := _flask_point() - global_position
+	var pulse := 0.5 + 0.5 * sin(_drink_time * 30.0)
+	draw_circle(at, 5.0 + pulse, Color(COLOR_FLASK, 0.18))
+	draw_circle(at, 2.5, Color(COLOR_FLASK, 0.3))
+	if _sprite.sprite_frames.has_animation("drink"):
+		return
+	draw_rect(Rect2(at + Vector2(-1.5, -1), Vector2(3, 3.5)), COLOR_FLASK)
+	draw_rect(Rect2(at + Vector2(-0.75, -2.5), Vector2(1.5, 1.5)), COLOR_FLASK_CORE)
+	draw_rect(Rect2(at + Vector2(-0.75, -3.25), Vector2(1.5, 0.75)), Color("7a6049"))
+
+
+## Where the flask sits in Storm's hand while he drinks.
+func _flask_point() -> Vector2:
+	# Up to his lips by the time the sip lands, then back down to his belt.
+	var elapsed := DRINK_TIME - _drink_time
+	var t := clampf(elapsed / DRINK_HEAL_AT, 0.0, 1.0) if elapsed < DRINK_HEAL_AT 			else clampf(_drink_time / (DRINK_TIME - DRINK_HEAL_AT), 0.0, 1.0)
+	return _center() + Vector2(facing * lerpf(5.0, 3.0, t), lerpf(0.0, -8.0, t))
+
+
 func _hurt_by_enemy(source_x: float) -> void:
+	_drink_time = 0.0
 	_take_damage()
 	if hp <= 0:
 		return
@@ -879,6 +946,7 @@ func _hurt_by_enemy(source_x: float) -> void:
 
 
 func _hurt_by_hazard() -> void:
+	_drink_time = 0.0
 	_take_damage()
 	if hp <= 0:
 		return
@@ -999,6 +1067,9 @@ func _update_sprite() -> void:
 			_sprite.play("slide")
 			_sprite.frame = SLIDE_FIRST_FRAME
 		return
+	if _drink_time > 0.0:
+		_sprite.play("drink" if _sprite.sprite_frames.has_animation("drink") else "idle")
+		return
 	if _attack_anim > 0.0:
 		return
 	if _wall_dir != 0:
@@ -1020,6 +1091,8 @@ func _update_sprite() -> void:
 
 
 func _draw() -> void:
+	if _drink_time > 0.0:
+		_draw_flask()
 	for i in _trail.size():
 		var point: Dictionary = _trail[i]
 		var fade: float = 1.0 - point.age / TRAIL_LIFE

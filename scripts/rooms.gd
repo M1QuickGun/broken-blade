@@ -21,6 +21,11 @@ const MUSIC := {
 	"frozen_cellar": "frozen_land",
 }
 
+## The Foothills forest at the mountain's foot: forest tiles, trees and falling light.
+const FOREST_ROOMS := ["landing", "rockfall", "catcher_shaft", "gate_fight"]
+## Old ruins swallowed by the same forest: stone tiles, but the trees and light show through.
+const OVERGROWN_ROOMS := ["great_hall", "undercroft"]
+
 ## Rooms of the Frozen village: drawn with the ice tileset and frost-crawlers.
 const ICE_ROOMS := [
 	"village_square", "ice_caverns", "frost_arena", "frozen_depths", "frost_throne", "ice_climb",

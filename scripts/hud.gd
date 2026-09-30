@@ -4,6 +4,12 @@ extends CanvasLayer
 const COLOR_MASK_FULL := Color("e6e9f0")
 const COLOR_MASK_EMPTY := Color("2a2e3a")
 const COLOR_TEXT := Color("c9ced9")
+const COLOR_FLASK := Color("9fe6ff")
+const COLOR_FLASK_GLASS := Color("5a6275")
+const COLOR_FLASK_EMPTY := Color("1c2029")
+const COLOR_CORK := Color("7a6049")
+## The healing flasks sit in a row under the masks.
+const FLASKS_POS := Vector2(32, 34)
 
 const ABILITY_NAMES := {"dash": "Ice", "double_jump": "Fire", "shockline": "Lightning"}
 ## The blade as it's been reforged so far (see Game.blade_stage): ice is the right half
@@ -38,6 +44,7 @@ const UNLOCK_MESSAGES := {
 var _hp := 0
 var _max_hp := 0
 var _masks: Control
+var _flasks: Control
 var _pieces_label: Label
 var _blade_icon: Sprite2D
 var _message: Label
@@ -65,7 +72,11 @@ func _ready() -> void:
 	_masks.position = MASKS_POS
 	_masks.draw.connect(_draw_masks)
 	add_child(_masks)
-	_pieces_label = _make_label(Vector2(12, 36))
+	_flasks = Control.new()
+	_flasks.position = FLASKS_POS
+	_flasks.draw.connect(_draw_flasks)
+	add_child(_flasks)
+	_pieces_label = _make_label(Vector2(12, 46))
 	_message = _make_label(Vector2(0, 200))
 	_message.size = Vector2(480, 20)
 	_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -88,7 +99,8 @@ func _ready() -> void:
 
 	Game.pieces_changed.connect(func(_count: int) -> void: _update_pieces())
 	Game.ability_unlocked.connect(_on_ability_unlocked)
-	Game.rested.connect(func() -> void: show_message("You rest. Your wounds are mended."))
+	Game.rested.connect(func() -> void: show_message("You rest. Your wounds are mended and your flasks refilled."))
+	Game.flasks_changed.connect(func(_count: int, _max: int) -> void: _flasks.queue_redraw())
 	Game.max_hp_changed.connect(func(_max: int) -> void: show_message(MASK_MESSAGE))
 	_update_pieces()
 
@@ -159,6 +171,19 @@ func _update_pieces() -> void:
 	_pieces_label.text = "Blade  %d / %d" % [Game.pieces, Game.MAX_PIECES]
 	if not names.is_empty():
 		_pieces_label.text += "   " + "  ".join(names)
+
+
+func _draw_flasks() -> void:
+	for i in Game.max_flasks:
+		var o := Vector2(i * 9, 0)
+		var full := i < Game.flasks
+		# Glass body, neck and cork; the pale flame fills the full ones.
+		_flasks.draw_rect(Rect2(o + Vector2(0, 3), Vector2(7, 6)), COLOR_FLASK_GLASS)
+		_flasks.draw_rect(Rect2(o + Vector2(1, 4), Vector2(5, 4)), COLOR_FLASK if full else COLOR_FLASK_EMPTY)
+		_flasks.draw_rect(Rect2(o + Vector2(2, 1), Vector2(3, 2)), COLOR_FLASK_GLASS)
+		_flasks.draw_rect(Rect2(o + Vector2(2, 0), Vector2(3, 1)), COLOR_CORK)
+		if full:
+			_flasks.draw_rect(Rect2(o + Vector2(2, 5), Vector2(1, 2)), Color(1, 1, 1, 0.7))
 
 
 func _draw_masks() -> void:

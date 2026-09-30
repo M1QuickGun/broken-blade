@@ -113,6 +113,41 @@ Every region's boss is fought twice. The first fight, partway through, wins the 
 upgrade (the blade piece). The second half of the region then works as the tutorial for that
 new ability, building up to the rematch at the end with the boss at full strength.
 
+### The bosses: each one is held back by a blade piece
+Every boss is a part of the evil with a piece of the blade lodged in it. The piece is what
+holds it back: while it's there the boss is bound, weakened or trapped. Winning the first
+fight means prying the piece loose, which frees the boss at full strength for the rematch.
+
+- **Foothills: the Rockfall Wyrm.** A huge stone centipede that burrows through the walls and
+  floor. First fight: it bursts from the walls of a collapsed pass; beating it teaches the
+  hilt's sword catcher (the wall jump). Rematch: armored in rubble, it floods the floor, so
+  Storm fights from the walls and strikes when it surfaces. (The Gate Warden is its
+  placeholder for now.)
+- **Frozen village: the Frost Colossus.** An ice golem frozen into the cavern wall by the ice
+  piece. First fight: only its arms reach out of the wall; its slams leave ice lodged in its
+  fists as footholds. Pulling the ice piece free breaks it out of the wall. Rematch: whole
+  and bigger, it rolls into a ball (slide under it), freezes the floor, and raises ice pillars
+  to wall jump between; a glowing core opens after its big slams. (The Frost Warden is its
+  placeholder for now.)
+- **Fire slopes: the Ashen Drake.** A dragon in a collapsed forge, then on a crumbling bridge.
+  Breath sweeps and wing gusts; its dives are answered with the double jump spin.
+- **Lightning peaks: the Thunderbird.** The first fight is against its bound form, something
+  small and wrong with the lightning tip driven through it. Pulling the tip out sets it free
+  and it becomes the Thunderbird, a huge storm bird, for the rematch: Storm shocklines onto its
+  glowing feathers to reach it.
+
+### Healing: flasks
+Storm carries flasks of a shrine's pale flame (3 to start). Drinking one (F or Q, or B on a
+controller) roots him in place for a moment and mends 2 masks; a hit before it lands spills
+it. Every flask refills when he rests at a shrine or wakes at one after dying. More flasks
+could be found later, like mask shards.
+
+### The Foothills are a forest
+Storm is thrown off the summit and lands at the very bottom of the mountain, in the dense
+forest at its foot. The tutorial rooms are forest: earth and roots underfoot, trunks behind,
+a leaf canopy overhead with shafts of light breaking through. The Great hall and Undercroft
+are old ruins the forest has swallowed.
+
 ### Music
 Tracks live in `audio/music/` and are set per room in `scripts/rooms.gd` (`MUSIC`).
 - `exploration`: the default for the Foothills and general travel.
