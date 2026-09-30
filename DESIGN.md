@@ -118,11 +118,9 @@ Every boss is a part of the evil with a piece of the blade lodged in it. The pie
 holds it back: while it's there the boss is bound, weakened or trapped. Winning the first
 fight means prying the piece loose, which frees the boss at full strength for the rematch.
 
-- **Foothills: the Rockfall Wyrm.** A huge stone centipede that burrows through the walls and
-  floor. First fight: it bursts from the walls of a collapsed pass; beating it teaches the
-  hilt's sword catcher (the wall jump). Rematch: armored in rubble, it floods the floor, so
-  Storm fights from the walls and strikes when it surfaces. (The Gate Warden is its
-  placeholder for now.)
+- **Foothills: the Guardian Centipede.** The forest's old guardian, a giant armored
+  centipede, pinned to the forest floor by the hilt's lost sword catcher (the hook that lets
+  Storm climb walls). See the fight plan below. (The Gate Warden is its placeholder for now.)
 - **Frozen village: the Frost Colossus.** An ice golem frozen into the cavern wall by the ice
   piece. First fight: only its arms reach out of the wall; its slams leave ice lodged in its
   fists as footholds. Pulling the ice piece free breaks it out of the wall. Rematch: whole
@@ -135,6 +133,30 @@ fight means prying the piece loose, which frees the boss at full strength for th
   small and wrong with the lightning tip driven through it. Pulling the tip out sets it free
   and it becomes the Thunderbird, a huge storm bird, for the rematch: Storm shocklines onto its
   glowing feathers to reach it.
+
+### Fight plan: the Guardian Centipede (proposed)
+**Fight 1: pinned (Great hall).** The sword catcher is driven through its tail into the
+ground, so it can only reach a circle around the pin: a tethered boss.
+- *Rearing lunge:* it rears up (the telegraph), then bites along the floor and sticks in the
+  earth for a moment: the opening to hit its head.
+- *Body sweep:* the long body swings across the arena at knee height; jump it.
+- *Canopy slam:* it rams a trunk and clods of earth and branches rain down.
+- At half health it coils up tight, and its coils become platforms: Storm climbs them to the
+  pin and pulls the sword catcher free. That's the wall jump. The centipede tears loose,
+  bursts into the wall, and the floor gives way beneath Storm, dropping him into the Catcher
+  shaft he now has to climb.
+
+**Fight 2: free (Gate fight).** It tunnels through the walls and floor of the arena.
+- *Burrow crossings:* holes crack open in one wall, it bursts out and dives into the other;
+  its body arcs across the room and can be used as a bridge.
+- *Floor eruptions:* it tunnels under the floor and bursts up where Storm stands; clinging to
+  the walls is safe, which is the test of the wall jump.
+- *Armored segments:* each body segment is plated; hitting a segment cracks the plate off and
+  its glow shows where it's been hurt. Breaking enough segments exposes the head.
+- *Phase 2:* at half health it circles the whole arena, walls and ceiling, closing in. Storm
+  wall-jumps up the middle to hit the head as it passes overhead. Hatchlings (crawlers) spill
+  from the holes.
+- Beaten, it crashes through the village gate, opening the way to the Frozen village.
 
 ### Healing: flasks
 Storm carries flasks of a shrine's pale flame (3 to start). Drinking one (F or Q, or B on a

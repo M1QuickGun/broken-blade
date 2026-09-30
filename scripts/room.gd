@@ -89,6 +89,8 @@ func build(name_: String) -> void:
 			woods.size_px = size_px
 			woods.solid = _grid
 			woods.seed_text = room_name
+			if not _forest:
+				woods.backdrop_tint = Color(0.4, 0.43, 0.42)  # glimpsed through ruined walls
 			add_child(woods)
 
 

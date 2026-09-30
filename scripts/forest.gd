@@ -1,10 +1,17 @@
 extends Node2D
 ## The Foothills forest at the foot of the mountain, drawn in two layers around a room's
-## tiles: a backdrop of trunks and hanging vines behind them, and in front a leaf canopy
-## over the ceiling with shafts of light breaking through it and dust drifting in the light.
+## tiles: behind them a painted forest (art/world/forest_bg.png) that drifts slowly as the
+## camera moves, and in front a leaf canopy over the ceiling with shafts of light breaking
+## through it and dust drifting in the light.
 ## The room adds one of each (front = false / true) and hands over its size and cells.
 
 const TILE := 16
+const BACKDROP := preload("res://art/world/forest_bg.png")
+## How much the backdrop follows the camera's movement across the room: 0 would pin it
+## to the screen, 1 to the room.
+const PARALLAX := 0.3
+## A room's viewport in world units (480x270, see Game.ART_SCALE).
+const VIEW := Vector2(480, 270)
 
 const COLOR_SKY := Color("0b120e")
 const COLOR_TRUNK_FAR := Color("111a14")
@@ -22,6 +29,8 @@ var size_px := Vector2.ZERO
 ## ceiling cells to cover.
 var solid := PackedStringArray()
 var seed_text := ""
+## How bright the backdrop is: the open forest, or dim through the walls of the ruins.
+var backdrop_tint := Color(0.72, 0.76, 0.74)
 
 var _time := 0.0
 var _shafts: Array[Dictionary] = []
@@ -29,10 +38,22 @@ var _motes: Array[Dictionary] = []
 var _trunks: Array[Dictionary] = []
 var _vines: Array[Dictionary] = []
 var _leaves: Array[Dictionary] = []
+var _backdrop: Sprite2D
 
 
 func _ready() -> void:
-	z_index = 1 if front else -1
+	z_index = 1 if front else -2  # -1 is left for Storm tucked behind the tiles
+	if not front:
+		_backdrop = Sprite2D.new()
+		_backdrop.texture = BACKDROP
+		_backdrop.modulate = backdrop_tint
+		# Big enough to cover the view wherever the camera goes in this room.
+		var travel := (size_px - VIEW).max(Vector2.ZERO) * PARALLAX
+		var need := VIEW + travel + Vector2(8, 8)
+		var tex := Vector2(BACKDROP.get_size())
+		_backdrop.scale = Vector2.ONE * maxf(1.0, maxf(need.x / tex.x, need.y / tex.y))
+		add_child(_backdrop)
+		_update_backdrop()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(seed_text)
 	var cols := int(size_px.x / TILE)
@@ -76,6 +97,17 @@ func _process(delta: float) -> void:
 	if front:
 		_time += delta
 		queue_redraw()
+	else:
+		_update_backdrop()
+
+
+func _update_backdrop() -> void:
+	var camera := get_viewport().get_camera_2d()
+	var room_center := size_px / 2.0
+	var view_center := room_center
+	if camera:
+		view_center = to_local(camera.get_screen_center_position())
+	_backdrop.position = view_center - (view_center - room_center) * PARALLAX
 
 
 func _draw() -> void:
@@ -87,6 +119,8 @@ func _draw() -> void:
 
 func _draw_back() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size_px), COLOR_SKY)
+	if _backdrop:
+		return  # the painted forest covers it
 	for t in _trunks:
 		var color := COLOR_TRUNK_FAR if t.layer == 0 else COLOR_TRUNK_MID
 		var base_w: float = t.w

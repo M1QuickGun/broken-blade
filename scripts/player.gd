@@ -92,9 +92,12 @@ const SPIN_BODY := Rect2(-BODY_SIZE.x / 2, -(BODY_SIZE.y + SMALL_HEIGHT) / 2, BO
 ## is held; enemies get struck.
 const SHOCK_RANGE := 160.0
 const SHOCK_FIRE_SPEED := 1300.0
-## How close to the line a ring or enemy must be to get caught.
+## How close to the line a ring must be to get caught.
 const SHOCK_CATCH_RADIUS := 14.0
-## Aim assist: a ring or enemy within this angle (radians) of straight ahead
+## Enemies aren't aimed at (landing the line on one is up to the player), so the line
+## catches them from further off to make up for it.
+const SHOCK_ENEMY_CATCH_RADIUS := 26.0
+## Aim assist, for rings only: a ring within this angle (radians) of straight ahead
 ## gets the line fired directly at it.
 const SHOCK_ASSIST_ANGLE := 0.6
 const SHOCK_PULL_SPEED := 600.0
@@ -104,7 +107,7 @@ const SHOCK_COOLDOWN := 0.2
 ## while lightning gathers at the tip.
 const SHOCK_AIM_TIME := 0.16
 const SHOCK_ARRIVE_DIST := 10.0
-const SHOCK_STRIKE_DIST := 14.0
+const SHOCK_STRIKE_DIST := 24.0
 ## Where Storm's feet sit relative to a ring he's hanging from, so the ring is
 ## just above his head and he can fire level at the next one.
 const SHOCK_HANG_OFFSET := Vector2(0, 19)
@@ -131,6 +134,7 @@ const COLOR_WAVE_STEEL := Color(0.8, 0.84, 0.92)
 const COLOR_WAVE_ICE := Color(0.62, 0.9, 1.0)
 const COLOR_WAVE_BOLT := Color(0.72, 0.56, 1.0)
 const COLOR_ICE := Color(0.6, 0.88, 1.0)
+const COLOR_DUST := Color(0.55, 0.5, 0.45)
 const COLOR_FIRE := Color(1.0, 0.45, 0.12)
 const COLOR_FIRE_CORE := Color(1.0, 0.85, 0.4)
 const COLOR_BOLT := Color("fff3a8")
@@ -218,7 +222,7 @@ const ANIMS := {
 	"attack_up": [26.0, false],
 	"attack_down": [26.0, false],
 	"jump": [0.0, false],
-	"slide": [40.0, false],
+	"slide": [20.0, true],
 	"spin": [26.0, false],
 	"wall": [6.0, true],
 	"drink": [10.0, false],
@@ -232,7 +236,8 @@ const JUMP_FRAME_RISE := 4
 const JUMP_FRAME_APEX := 6
 const JUMP_FRAME_FALL := 8
 ## The dash is short, so the slide starts partway into its drop-down.
-const SLIDE_FIRST_FRAME := 4
+const SLIDE_FIRST_FRAME := 1
+const SLIDE_LOOP_FROM := 3
 
 var _sprite: AnimatedSprite2D
 ## SpriteFrames per blade stage, built on first use.
@@ -520,6 +525,17 @@ func _update_dash(delta: float) -> void:
 		return
 	velocity = Vector2(_dash_dir * DASH_SPEED, 0.0)
 	_trail.append({"pos": global_position, "age": 0.0})
+	# Ice sprays up off the dragging blade behind him, dust off his leading heel.
+	for i in 2:
+		if _embers.size() >= MAX_EMBERS:
+			break
+		_embers.append({"pos": global_position + Vector2(-_dash_dir * randf_range(8.0, 14.0), -1.0),
+			"vel": Vector2(-_dash_dir * randf_range(40.0, 110.0), randf_range(-90.0, -30.0)),
+			"age": randf() * 0.1, "color": Color.WHITE if i == 0 else COLOR_ICE})
+	if _embers.size() < MAX_EMBERS:
+		_embers.append({"pos": global_position + Vector2(_dash_dir * 10.0, -1.0),
+			"vel": Vector2(-_dash_dir * randf_range(10.0, 40.0), randf_range(-40.0, -10.0)),
+			"age": 0.15, "color": COLOR_DUST})
 	# Sliding off a ledge ends the slide: there's no ground left to freeze.
 	if _dash_time <= 0.0 or is_on_wall() or not is_on_floor():
 		_dash_time = 0.0
@@ -619,13 +635,15 @@ func _fire_shockline(input_x: float) -> void:
 	_carry = 0.0
 
 
-## Straight ahead, or straight at the nearest ring or enemy roughly ahead.
+## Straight ahead, or straight at the nearest ring roughly ahead. Enemies get no help.
 func _shock_aim() -> Vector2:
 	var ahead := Vector2(facing, 0)
-	var center := _center()
+	var center := _sword_point()
 	var best := ahead
 	var best_dist := INF
 	for target: Node2D in get_tree().get_nodes_in_group("shock_target"):
+		if _is_enemy(target):
+			continue
 		var to: Vector2 = target.shock_point() - center
 		var dist := to.length()
 		if dist > SHOCK_RANGE or dist >= best_dist or absf(ahead.angle_to(to)) > SHOCK_ASSIST_ANGLE:
@@ -657,10 +675,12 @@ func _update_shock_aiming(delta: float) -> void:
 func _update_shock_firing(delta: float) -> void:
 	velocity = Vector2.ZERO
 	var from := _shock_tip
+	# Storm holds still while it flies, so the line runs straight out from the blade.
+	var origin := _sword_point()
 	var to := from + _shock_dir * SHOCK_FIRE_SPEED * delta
-	var out_of_range := _center().distance_to(to) >= SHOCK_RANGE
+	var out_of_range := origin.distance_to(to) >= SHOCK_RANGE
 	if out_of_range:
-		to = _center() + _shock_dir * SHOCK_RANGE
+		to = origin + _shock_dir * SHOCK_RANGE
 
 	var wall := get_world_2d().direct_space_state.intersect_ray(
 		PhysicsRayQueryParameters2D.create(from, to, LAYER_WORLD))
@@ -676,6 +696,10 @@ func _update_shock_firing(delta: float) -> void:
 		_shock_tip = to
 
 
+func _is_enemy(target: Node) -> bool:
+	return target.has_method("take_hit")
+
+
 ## The first ring or enemy the line passes over between two points.
 func _shock_target_between(from: Vector2, to: Vector2) -> Node2D:
 	var best: Node2D = null
@@ -683,7 +707,8 @@ func _shock_target_between(from: Vector2, to: Vector2) -> Node2D:
 	for target: Node2D in get_tree().get_nodes_in_group("shock_target"):
 		var point: Vector2 = target.shock_point()
 		var closest := Geometry2D.get_closest_point_to_segment(point, from, to)
-		if closest.distance_to(point) > SHOCK_CATCH_RADIUS:
+		var radius := SHOCK_ENEMY_CATCH_RADIUS if _is_enemy(target) else SHOCK_CATCH_RADIUS
+		if closest.distance_to(point) > radius:
 			continue
 		var along := from.distance_to(closest)
 		if along < best_dist:
@@ -734,7 +759,10 @@ func _check_shock_arrival() -> void:
 			velocity = _shock_dir * RUN_SPEED
 			_carry = CARRY_TIME
 	elif _shock_time > 0.05 and get_real_velocity().length() < 20.0:
-		_end_shockline()  # reached a wall, or snagged on a ledge
+		if is_enemy and dist <= SHOCK_STRIKE_DIST * 2.0:
+			_shock_strike(_shock_target)  # snagged just short of it: still close enough to land
+		else:
+			_end_shockline()  # reached a wall, or snagged on a ledge
 
 
 # Hanging from a ring: held for as long as the shockline button is held.
@@ -978,6 +1006,12 @@ func _query(local_rect: Rect2, mask: int) -> Array[Dictionary]:
 
 # --- Art ---
 
+## The slide's drop-in frames play once; after that only the sliding frames loop.
+func _on_sprite_looped() -> void:
+	if _sprite.animation == "slide":
+		_sprite.frame = SLIDE_LOOP_FROM
+
+
 func _build_sprite() -> void:
 	_sprite = AnimatedSprite2D.new()
 	# Drawn at 2x detail, so shown at half scale.
@@ -985,6 +1019,7 @@ func _build_sprite() -> void:
 	# Behind the trail, shockline and slash, which are drawn by this node.
 	_sprite.show_behind_parent = true
 	add_child(_sprite)
+	_sprite.animation_looped.connect(_on_sprite_looped)
 	_apply_blade_stage()
 	_sprite.play("idle")
 	Game.pieces_changed.connect(func(_count: int) -> void: _apply_blade_stage())
@@ -1042,6 +1077,7 @@ func _load_stage_frames(stage: String) -> SpriteFrames:
 
 func _update_sprite() -> void:
 	_apply_blade_stage()
+	_sprite.z_index = 0
 	_sprite.flip_h = facing < 0
 	# Keep Storm's body on the node's origin, and his feet on the bottom edge of the frame.
 	var size := int(_sprite.sprite_frames.get_frame_texture(_sprite.animation, 0).get_height())
@@ -1061,11 +1097,19 @@ func _update_sprite() -> void:
 		# Aim, then hold the blade level while the tip flies and drags him along.
 		_sprite.play("point" if _sprite.sprite_frames.has_animation("point") else "idle")
 		return
+	# The slide pose sits taller than the slide body; in a crawlspace it would poke up
+	# through the ceiling, so there Storm is drawn behind the tiles instead.
+	var crawling := _is_small() and _spin_time <= 0.0 			and not _query(FULL_BODY.grow(-0.5), LAYER_WORLD).is_empty()
+	_sprite.z_index = -1 if crawling else 0
 	if _is_small():
 		# Sliding, or still tucked under a low ceiling: hold the low slide pose.
 		if _sprite.animation != "slide":
 			_sprite.play("slide")
 			_sprite.frame = SLIDE_FIRST_FRAME
+		elif _dash_time <= 0.0:
+			_sprite.pause()  # tucked under a ceiling after the slide: hold still
+		elif not _sprite.is_playing():
+			_sprite.play()
 		return
 	if _drink_time > 0.0:
 		_sprite.play("drink" if _sprite.sprite_frames.has_animation("drink") else "idle")
