@@ -9,6 +9,7 @@ const Hud := preload("res://scripts/hud.gd")
 const Title := preload("res://scripts/title.gd")
 const PauseMenu := preload("res://scripts/pause_menu.gd")
 const MapScreen := preload("res://scripts/map_screen.gd")
+const Intro := preload("res://scripts/intro.gd")
 
 const START_ROOM := "landing"
 ## Debug warps (keys 6-8): action -> [room, the door to arrive by].
@@ -46,6 +47,9 @@ func _on_title_chosen(choice: String) -> void:
 	if choice == "new":
 		Game.new_game()
 		Game.save_game()
+		var intro := Intro.new()
+		add_child(intro)
+		await intro.finished
 		_start_world()
 		_load_room(START_ROOM, "")
 		hud.show_message("Broken Blade")
