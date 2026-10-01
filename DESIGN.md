@@ -196,6 +196,16 @@ the slide.
 - *Core:* after its big slams the armor on its chest cracks open, showing a glowing core.
 - Beaten, it shatters into blocks of ice.
 
+### Enemies
+- **Mossback beetle** (Foothills): as big as Storm. Patrols; spotting him ahead, it braces
+  and charges, and running into a wall stuns it.
+- **Burrow grub** (Foothills): a centipede larva waiting in the earth. The ground rumbles
+  when Storm comes near, then it bursts out at him, crawls about, and burrows again: a small
+  lesson in the Guardian Centipede's warning signs.
+- **Frozen thrall** (Frozen village): a villager the cold turned into a husk. It shambles
+  after Storm when he's near and lunges when he's close.
+- **Hatchlings**: the centipede's young, dropped into its second fight.
+
 ### Healing: flasks
 Storm carries flasks of a shrine's pale flame (3 to start). Drinking one (F or Q, or B on a
 controller) roots him in place for a moment and mends 2 masks; a hit before it lands spills
