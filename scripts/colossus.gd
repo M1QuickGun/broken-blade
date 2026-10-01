@@ -38,9 +38,11 @@ const ARM := preload("res://art/bosses/colossus_arm.png")
 ## Its near arm, drawn with the back of the hand toward the viewer (the far arm, ARM, shows
 ## the other side of its fist).
 const ARM_LEFT := preload("res://art/bosses/colossus_arm_left.png")
+## The near arm's art is drawn smaller in its frame: its shoulder joint, and how much it's
+## scaled up to match the far arm's length.
+const ARM_LEFT_PIVOT := Vector2(24, 28)
+const ARM_LEFT_SCALE := 128.0 / 94.0
 const LEG := preload("res://art/bosses/colossus_leg.png")
-## Its other leg, seen from the inside, so the two don't look like the same leg twice.
-const LEG_FAR := preload("res://art/bosses/colossus_leg_far.png")
 
 const TILE := 16
 const LAYER_WORLD := 1
@@ -837,11 +839,14 @@ func _draw_phase_2(tint: Color) -> void:
 	var flip := _dir < 0  # the art faces right
 	var hips := _hip_points()
 	var angles := _leg_angles()
-	# Back leg and arm behind; body; front leg and arm in front. The arms hang down and a
-	# little forward, knuckles toward where it faces.
+	# Both legs go behind the body, so its waist covers their tops and they join it: the far
+	# leg (on the side it faces) first and darker, then the near leg (on the same side as its
+	# near arm, the big shoulder stump). Then the far arm, the body, and the near arm in front.
+	# The arms hang down and a little forward, knuckles toward where it faces.
 	var swing := sin(_stride) * 0.15
 	if _legs_out:
-		_draw_leg(hips[1], angles[1], tint.darkened(0.3), LEG_FAR)
+		_draw_leg(hips[0], angles[0], tint.darkened(0.3))
+		_draw_leg(hips[1], angles[1], tint)
 	var c := _torso_center() - position
 	_draw_arm(_back_shoulder(), PI / 2.0 - _dir * (0.2 + swing), 0.95, 1.0,
 		tint.darkened(0.3), _dir < 0, ARM)
@@ -849,8 +854,6 @@ func _draw_phase_2(tint: Color) -> void:
 	draw_texture(TORSO, -Vector2(64, 64), tint)
 	draw_set_transform(Vector2.ZERO)
 	_draw_eyes(c)
-	if _legs_out:
-		_draw_leg(hips[0], angles[0], tint)
 	_draw_arm(_shoulder(), PI / 2.0 - _dir * (0.3 - swing), 1.0, 1.0,
 		tint, _dir < 0, ARM_LEFT)
 	_draw_pieces()
@@ -861,7 +864,12 @@ func _draw_phase_2(tint: Color) -> void:
 func _draw_arm(shoulder: Vector2, angle: float, scale_: float, stretch: float, tint: Color, flip_y: bool,
 		art: Texture2D = ARM) -> void:
 	draw_set_transform(shoulder - position, angle, Vector2(scale_ * stretch, -scale_ if flip_y else scale_))
-	draw_texture(art, -ARM_PIVOT, tint)
+	if art == ARM_LEFT:
+		draw_set_transform(shoulder - position, angle,
+			Vector2(scale_ * stretch, -scale_ if flip_y else scale_) * ARM_LEFT_SCALE)
+		draw_texture(art, -ARM_LEFT_PIVOT, tint)
+	else:
+		draw_texture(art, -ARM_PIVOT, tint)
 	draw_set_transform(Vector2.ZERO)
 
 
