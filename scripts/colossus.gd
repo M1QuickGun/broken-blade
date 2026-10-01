@@ -39,6 +39,8 @@ const ARM := preload("res://art/bosses/colossus_arm.png")
 ## the other side of its fist).
 const ARM_LEFT := preload("res://art/bosses/colossus_arm_left.png")
 const LEG := preload("res://art/bosses/colossus_leg.png")
+## Its other leg, seen from the inside, so the two don't look like the same leg twice.
+const LEG_FAR := preload("res://art/bosses/colossus_leg_far.png")
 
 const TILE := 16
 const LAYER_WORLD := 1
@@ -839,7 +841,7 @@ func _draw_phase_2(tint: Color) -> void:
 	# little forward, knuckles toward where it faces.
 	var swing := sin(_stride) * 0.15
 	if _legs_out:
-		_draw_leg(hips[1], angles[1], tint.darkened(0.3))
+		_draw_leg(hips[1], angles[1], tint.darkened(0.3), LEG_FAR)
 	var c := _torso_center() - position
 	_draw_arm(_back_shoulder(), PI / 2.0 - _dir * (0.2 + swing), 0.95, 1.0,
 		tint.darkened(0.3), _dir < 0, ARM)
@@ -863,10 +865,10 @@ func _draw_arm(shoulder: Vector2, angle: float, scale_: float, stretch: float, t
 	draw_set_transform(Vector2.ZERO)
 
 
-func _draw_leg(hip: Vector2, angle: float, tint: Color) -> void:
+func _draw_leg(hip: Vector2, angle: float, tint: Color, art: Texture2D = LEG) -> void:
 	# The art's toes point right: mirrored when it faces left.
 	draw_set_transform(hip - position, -angle, Vector2(1 if _dir > 0 else -1, 1))
-	draw_texture(LEG, -LEG_PIVOT, tint)
+	draw_texture(art, -LEG_PIVOT, tint)
 	draw_set_transform(Vector2.ZERO)
 
 
