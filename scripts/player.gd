@@ -89,8 +89,9 @@ const SLIDE_BODY := Rect2(-BODY_SIZE.x / 2, -SMALL_HEIGHT, BODY_SIZE.x, SMALL_HE
 const SPIN_BODY := Rect2(-BODY_SIZE.x / 2, -(BODY_SIZE.y + SMALL_HEIGHT) / 2, BODY_SIZE.x, SMALL_HEIGHT)
 
 ## Lightning shockline: fires straight ahead like a harpoon and drags Storm to
-## whatever it hits, or to the end of the line. Rings hold him while the button
-## is held; enemies get struck.
+## whatever it hits, or to the end of the line. Enemies get struck. At a ring, Storm hooks
+## his sword through it and hangs there until he moves on: jump to leap off, down to drop,
+## or cast again at the next ring.
 const SHOCK_RANGE := 160.0
 const SHOCK_FIRE_SPEED := 1300.0
 ## How close to the line a ring must be to get caught.
@@ -153,6 +154,9 @@ const SWORD_POINT := Vector2(19.75, -13.75)
 ## from the end of the (tipless) blade.
 const PULL_POSE_DROP := 14.5
 const SWORD_POINT_PULL := Vector2(27, 1)
+## Hanging from a ring (art/storm/<stage>/hang.png): where the art sits so its blade passes
+## through the ring (measured from the art).
+const HANG_POSE_OFFSET := Vector2(-5.5, 22)
 ## While the tip is out on the shockline, Storm's sword is shown without it: the stages
 ## that hold the tip look exactly like these once it's gone.
 const TIPLESS_STAGE := {"ice_lightning": "ice", "full": "ice_fire"}
@@ -233,6 +237,7 @@ const ANIMS := {
 	"wall": [6.0, true],
 	"drink": [10.0, false],
 	"pull": [10.0, true],
+	"hang": [5.0, true],
 	"point": [24.0, false],
 }
 ## Where Storm's body sits across each frame size, in art pixels. Larger frames leave
@@ -820,8 +825,10 @@ func _update_shock_hang() -> void:
 	if not controls_locked and Input.is_action_just_pressed("jump"):
 		_end_shockline(0.0)
 		velocity.y = JUMP_VELOCITY
+		_no_jump_cut = false
+		Sfx.play("jump", -6.0)
 		return
-	if controls_locked or not Input.is_action_pressed("shockline"):
+	if not controls_locked and Input.is_action_just_pressed("look_down"):
 		_end_shockline(0.0)  # let go and drop
 		return
 	_snap_to_ring()
@@ -1072,8 +1079,8 @@ func _build_sprite() -> void:
 ## The blade stage to draw right now: the real one, minus the tip while it's flying.
 func _display_stage() -> String:
 	var stage := Game.blade_stage()
-	if _shock != Shock.NONE and _shock != Shock.AIMING:
-		return TIPLESS_STAGE.get(stage, stage)
+	if _shock == Shock.FIRING or _shock == Shock.PULLING:
+		return TIPLESS_STAGE.get(stage, stage)  # the tip is out on the line
 	return stage
 
 
@@ -1166,6 +1173,12 @@ func _update_sprite() -> void:
 	if _wall_dir != 0:
 		_sprite.play("wall")
 		return
+	if _shock == Shock.HANGING and _sprite.sprite_frames.has_animation("hang"):
+		# Hanging from the ring by the sword hooked through it; the art is placed so the
+		# blade passes through the ring.
+		_sprite.play("hang")
+		_sprite.position = HANG_POSE_OFFSET * Vector2(facing, 1)
+		return
 	if not is_on_floor() and _shock != Shock.HANGING:
 		_sprite.animation = "jump"
 		_sprite.pause()
@@ -1216,7 +1229,7 @@ func _draw() -> void:
 		for i in 3:
 			var spark := Vector2.from_angle(randf() * TAU) * (3.0 + charge * 4.0)
 			draw_line(tip, tip + spark, COLOR_BOLT, 1.0)
-	elif _shock != Shock.NONE:
+	elif _shock == Shock.FIRING or _shock == Shock.PULLING:
 		_draw_shockline(_sword_point() - global_position, _shock_tip - global_position)
 
 	if _wave_time > 0.0 and _shown_stage != "bare":

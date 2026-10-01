@@ -207,6 +207,17 @@ func _add_props() -> void:
 
 ## Forest in the Foothills; in the ice, the snowy village wherever the room is open to the
 ## sky, the frozen cavern wherever it has a roof.
+## Which ring skin this room's shockline rings use.
+func _ring_style() -> String:
+	if _ice:
+		return "ice"
+	if room_name in Rooms.FIRE_ROOMS:
+		return "fire"
+	if _forest or _cave:
+		return "forest"
+	return "storm"
+
+
 func _atmosphere_style() -> String:
 	if not _ice:
 		return "forest"
@@ -360,6 +371,7 @@ func _scan_cells() -> void:
 					add_child(post)
 				"*":
 					var anchor := Anchor.new()
+					anchor.style = _ring_style()
 					anchor.position = Vector2((x + 0.5) * TILE, (y + 0.5) * TILE)
 					add_child(anchor)
 				"^":

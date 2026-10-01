@@ -18,6 +18,7 @@ A dark fantasy metroidvania made with Godot 4. See [DESIGN.md](DESIGN.md) for th
 | Dash / slide (ice piece) | Shift, L or C | RB |
 | Double jump spin (fire piece) | Jump again in midair | A |
 | Shockline (lightning piece) | Right click | Y |
+| On a ring: leap off / drop / swing on | Jump / S or ↓ / right click | A / down / Y |
 | Drink a flask (heal; refills at shrines) | F or Q | B |
 | Pause menu (map, volume, fullscreen, quit) | Esc or P | Start |
 | Map | M or Tab | Back |
