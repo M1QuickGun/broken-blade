@@ -1,10 +1,14 @@
 extends Node2D
-## Owns the player, camera and HUD, and swaps rooms as Storm walks through doors.
+## Opens on the title screen; then owns the player, camera, HUD, pause menu and map, and
+## swaps rooms as Storm walks through doors. Progress saves itself along the way.
 
 const Rooms := preload("res://scripts/rooms.gd")
 const Room := preload("res://scripts/room.gd")
 const Player := preload("res://scripts/player.gd")
 const Hud := preload("res://scripts/hud.gd")
+const Title := preload("res://scripts/title.gd")
+const PauseMenu := preload("res://scripts/pause_menu.gd")
+const MapScreen := preload("res://scripts/map_screen.gd")
 
 const START_ROOM := "landing"
 ## Debug warps (keys 6-8): action -> [room, the door to arrive by].
@@ -23,6 +27,8 @@ var room: Node2D
 var player: CharacterBody2D
 var camera: Camera2D
 var hud: CanvasLayer
+var pause_menu: CanvasLayer
+var map_screen: CanvasLayer
 
 var _transitioning := false
 
@@ -30,7 +36,31 @@ var _transitioning := false
 func _ready() -> void:
 	# Hide the cursor while playing and keep clicks inside the window.
 	Input.mouse_mode = Input.MOUSE_MODE_CONFINED_HIDDEN
+	get_tree().paused = false
+	var title := Title.new()
+	title.chosen.connect(_on_title_chosen)
+	add_child(title)
 
+
+func _on_title_chosen(choice: String) -> void:
+	if choice == "new":
+		Game.new_game()
+		Game.save_game()
+		_start_world()
+		_load_room(START_ROOM, "")
+		hud.show_message("Broken Blade")
+	else:
+		Game.load_game()
+		_start_world()
+		if Game.rest_room != "":
+			_load_room(Game.rest_room, "", Game.rest_point)
+		else:
+			_load_room(START_ROOM, "")
+	await hud.fade_in(0.8)
+
+
+## Builds everything that lasts from room to room: Storm, the camera, the HUD and menus.
+func _start_world() -> void:
 	player = Player.new()
 	add_child(player)
 
@@ -51,12 +81,29 @@ func _ready() -> void:
 	player.hit_hazard.connect(_on_player_hit_hazard)
 	player.died.connect(_on_player_died)
 
-	_load_room(START_ROOM, "")
-	hud.show_message("Broken Blade")
+	pause_menu = PauseMenu.new()
+	pause_menu.map_requested.connect(func() -> void: map_screen.open())
+	pause_menu.quit_to_title.connect(_quit_to_title)
+	add_child(pause_menu)
+	map_screen = MapScreen.new()
+	add_child(map_screen)
+	hud.set_black()
+
+
+func _process(_delta: float) -> void:
+	if map_screen and room:
+		map_screen.current_room = room.room_name
+		map_screen.storm_at = player.position
+
+
+func _quit_to_title() -> void:
+	Game.save_game()
+	get_tree().paused = false
+	get_tree().reload_current_scene()
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not OS.is_debug_build():
+	if not OS.is_debug_build() or player == null:
 		return
 	if event.is_action_pressed("debug_unlock_dash"):
 		Game.unlock("dash")
@@ -103,8 +150,13 @@ func _load_room(room_name: String, door: String, at := Vector2.INF) -> void:
 	move_child(room, 0)
 	room.door_entered.connect(_on_door_entered)
 	room.sign_read.connect(hud.show_message)
-	room.boss_defeated.connect(func(title: String) -> void: hud.show_message("%s falls." % title))
+	room.boss_defeated.connect(func(title: String) -> void:
+		hud.show_message("%s falls." % title)
+		Game.save_game())
 	Music.play(Rooms.MUSIC.get(room_name, Rooms.DEFAULT_MUSIC))
+	if not Game.visited.has(room_name):
+		Game.visited[room_name] = true
+		Game.save_game()
 
 	if at != Vector2.INF:
 		player.place_at(at)

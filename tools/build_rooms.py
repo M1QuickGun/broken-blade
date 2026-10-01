@@ -337,11 +337,91 @@ def check():
                 "%s.%s -> %s.%s doesn't link back" % (name, door, dest, dest_door)
 
 
+def door_cells(room, letter):
+    rows = room.rows()
+    return [(x, y) for y, row in enumerate(rows) for x, c in enumerate(row) if c == letter]
+
+
+def door_side(room, cells):
+    xs = [c[0] for c in cells]
+    ys = [c[1] for c in cells]
+    if min(xs) == 0:
+        return "left"
+    if max(xs) == room.w - 1:
+        return "right"
+    if min(ys) == 0:
+        return "top"
+    return "bottom"
+
+
+def map_layout():
+    """Where each room sits on the world map (top-left, in tiles): laid out from the start by
+    following the doors, each room placed so its door meets the door it links to. The
+    mountain loops back on itself in places, so a spot that would overlap a room already
+    placed is skipped in favour of reaching that room another way (or, failing that, the
+    room is nudged clear)."""
+    def candidate(name, pos, door, dest, dest_door):
+        room = ROOMS[name]
+        ax, ay = pos[name]
+        a_cells = door_cells(room, door)
+        b_room = ROOMS[dest]
+        b_cells = door_cells(b_room, dest_door)
+        side = door_side(room, a_cells)
+        a_x, a_y = min(c[0] for c in a_cells), min(c[1] for c in a_cells)
+        b_x, b_y = min(c[0] for c in b_cells), min(c[1] for c in b_cells)
+        if side == "right":
+            return (ax + room.w, ay + a_y - b_y)
+        if side == "left":
+            return (ax - b_room.w, ay + a_y - b_y)
+        if side == "top":
+            return (ax + a_x - b_x, ay - b_room.h)
+        return (ax + a_x - b_x, ay + room.h)
+
+    def overlaps(name, at, pos):
+        w, h = ROOMS[name].w, ROOMS[name].h
+        for other, (ox, oy) in pos.items():
+            ow, oh = ROOMS[other].w, ROOMS[other].h
+            if at[0] < ox + ow and ox < at[0] + w and at[1] < oy + oh and oy < at[1] + h:
+                return True
+        return False
+
+    pos = {"landing": (0, 0)}
+    fallback = {}
+    queue = ["landing"]
+    while queue:
+        name = queue.pop(0)
+        for door, (dest, dest_door) in LINKS[name].items():
+            if dest in pos:
+                continue
+            at = candidate(name, pos, door, dest, dest_door)
+            if overlaps(dest, at, pos):
+                fallback.setdefault(dest, at)
+                continue
+            pos[dest] = at
+            queue.append(dest)
+        if not queue:
+            for dest, at in list(fallback.items()):
+                if dest in pos:
+                    continue
+                while overlaps(dest, at, pos):
+                    at = (at[0], at[1] + 2)
+                pos[dest] = at
+                queue.append(dest)
+                break
+    return pos
+
+
 def gd_block():
     out = ["const LINKS := {"]
     for name, doors in LINKS.items():
         parts = ", ".join('"%s": ["%s", "%s"]' % (d, dest, dd) for d, (dest, dd) in doors.items())
         out.append('\t"%s": {%s},' % (name, parts))
+    out.append("}")
+    out.append("")
+    out.append("## Each room's place on the world map (its top-left corner, in tiles).")
+    out.append("const MAP := {")
+    for name, (x, y) in map_layout().items():
+        out.append('	"%s": Vector2i(%d, %d),' % (name, x, y))
     out.append("}")
     out.append("")
     out.append("const LAYOUTS := {")

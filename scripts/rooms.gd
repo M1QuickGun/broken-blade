@@ -119,6 +119,26 @@ const LINKS := {
 	"cliff_road": {"r": ["crossroads", "r"]},
 }
 
+## Each room's place on the world map (its top-left corner, in tiles).
+const MAP := {
+	"landing": Vector2i(0, 0),
+	"rockfall": Vector2i(40, 0),
+	"ring": Vector2i(96, 3),
+	"cliff": Vector2i(142, -39),
+	"gate_cavern": Vector2i(172, -47),
+	"village_square": Vector2i(212, -48),
+	"ice_caverns": Vector2i(272, -37),
+	"frost_arena": Vector2i(322, -31),
+	"frozen_cellar": Vector2i(248, -26),
+	"frozen_depths": Vector2i(352, -42),
+	"frost_throne": Vector2i(416, -42),
+	"ice_climb": Vector2i(460, -56),
+	"frozen_bridge": Vector2i(488, -65),
+	"crossroads": Vector2i(552, -73),
+	"cliff_road": Vector2i(608, -64),
+	"ashen_road": Vector2i(504, -47),
+}
+
 const LAYOUTS := {
 	"landing": [
 		"#......................................#",

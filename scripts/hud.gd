@@ -138,6 +138,11 @@ func show_message(text: String) -> void:
 	_message_tween.tween_property(_message, "modulate:a", 0.0, 0.8)
 
 
+## Straight to black (the world starts hidden and fades in).
+func set_black() -> void:
+	_fade.color.a = 1.0
+
+
 func fade_out(duration: float) -> void:
 	var tween := create_tween()
 	tween.tween_property(_fade, "color:a", 1.0, duration)

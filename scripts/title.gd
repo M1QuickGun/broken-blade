@@ -1,0 +1,95 @@
+extends CanvasLayer
+## The title screen: the painted forest at the mountain's foot, the name over the reforged
+## blade, motes of light drifting down, and the menu: Continue (if there's a save),
+## New game, Quit.
+
+signal chosen(choice: String)
+
+const MenuList := preload("res://scripts/menu_list.gd")
+const BACKDROP := preload("res://art/world/forest_bg.png")
+const BLADE := preload("res://art/blade/blade_3_full.png")
+const SIZE := Vector2(960, 540)
+const COLOR_TITLE := Color("e8ecf4")
+const COLOR_SUB := Color("8f9bb0")
+const COLOR_LIGHT := Color(1.0, 0.93, 0.7)
+
+var _canvas: Control
+var _menu: Control
+var _time := 0.0
+var _motes: Array[Dictionary] = []
+var _fade := 1.0
+var _leaving := false
+
+
+func _ready() -> void:
+	layer = 50
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	_canvas = Control.new()
+	_canvas.size = SIZE
+	_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_canvas.draw.connect(_draw_title)
+	add_child(_canvas)
+	for i in 70:
+		_motes.append({"x": randf() * SIZE.x, "y": randf() * SIZE.y, "speed": randf_range(8, 22),
+			"phase": randf() * TAU})
+	_menu = MenuList.new()
+	_menu.position = Vector2(0, 340)
+	_menu.size = Vector2(SIZE.x, 160)
+	_menu.options = [
+		{"text": "Continue", "pick": func() -> void: _choose("continue"),
+			"visible": func() -> bool: return Game.has_save()},
+		{"text": "New game", "pick": func() -> void: _choose("new")},
+		{"text": "Quit", "pick": func() -> void: get_tree().quit()},
+	]
+	add_child(_menu)
+	Music.play("exploration")
+
+
+func _process(delta: float) -> void:
+	_time += delta
+	_fade = move_toward(_fade, 1.0 if _leaving else 0.0, delta * 1.5)
+	if _leaving and _fade >= 1.0:
+		chosen.emit(_choice)
+		queue_free()
+	_canvas.queue_redraw()
+
+
+var _choice := ""
+
+
+func _choose(choice: String) -> void:
+	if _leaving:
+		return
+	_choice = choice
+	_leaving = true
+	_menu.active = false
+	_menu.visible = false
+
+
+func _draw_title() -> void:
+	# The forest, drifting slowly, dimmed.
+	var scale := maxf(SIZE.x / BACKDROP.get_width(), SIZE.y / BACKDROP.get_height()) * 1.06
+	var drift := Vector2(sin(_time * 0.05) * 12.0, cos(_time * 0.04) * 6.0)
+	var tex_size := Vector2(BACKDROP.get_size()) * scale
+	_canvas.draw_texture_rect(BACKDROP, Rect2((SIZE - tex_size) / 2.0 + drift, tex_size), false, Color(0.55, 0.6, 0.6))
+	_canvas.draw_rect(Rect2(Vector2.ZERO, SIZE), Color(0.02, 0.03, 0.04, 0.35))
+	for m in _motes:
+		var y := fmod(m.y + _time * m.speed, SIZE.y)
+		var x: float = m.x + sin(_time * 0.6 + m.phase) * 10.0
+		var glint := 0.3 + 0.3 * sin(_time * 1.7 + m.phase * 2.0)
+		_canvas.draw_circle(Vector2(x, y), 1.5, Color(COLOR_LIGHT, glint))
+	# The reforged blade lying behind the name.
+	_canvas.draw_set_transform(Vector2(SIZE.x / 2.0, 205), PI / 2.0, Vector2(3.0, 3.0))
+	_canvas.draw_texture(BLADE, -Vector2(BLADE.get_size()) / 2.0, Color(1, 1, 1, 0.55))
+	_canvas.draw_set_transform(Vector2.ZERO)
+	var font := ThemeDB.fallback_font
+	_centered(font, "BROKEN BLADE", 150, 64, COLOR_TITLE)
+	_centered(font, "a shard, a hilt, and a mountain to climb", 268, 16, COLOR_SUB)
+	_canvas.draw_rect(Rect2(Vector2.ZERO, SIZE), Color(0, 0, 0, _fade))
+
+
+func _centered(font: Font, text: String, y: float, font_size: int, color: Color) -> void:
+	var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	var at := Vector2((SIZE.x - width) / 2.0, y)
+	_canvas.draw_string(font, at + Vector2(2, 2), text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(0, 0, 0, 0.7))
+	_canvas.draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, color)

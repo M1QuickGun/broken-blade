@@ -19,6 +19,8 @@ A dark fantasy metroidvania made with Godot 4. See [DESIGN.md](DESIGN.md) for th
 | Double jump spin (fire piece) | Jump again in midair | A |
 | Shockline (lightning piece) | Right click | Y |
 | Drink a flask (heal; refills at shrines) | F or Q | B |
+| Pause menu (map, volume, fullscreen, quit) | Esc or P | Start |
+| Map | M or Tab | Back |
 | Toggle fullscreen | F11 | — |
 | Interact (pull the hilt) | W, E or ↑ | D-pad up |
 | Debug: unlock dash / shockline / double jump / wall jump | 1 / 2 / 3 / 4 | — |
