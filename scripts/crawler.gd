@@ -37,17 +37,22 @@ func _ready() -> void:
 	collision_layer = LAYER_ENEMY
 	collision_mask = LAYER_WORLD
 	var shape := RectangleShape2D.new()
-	shape.size = SIZE
+	shape.size = _size()
 	var col := CollisionShape2D.new()
 	col.shape = shape
-	col.position = Vector2(0, -SIZE.y / 2)
+	col.position = Vector2(0, -_size().y / 2)
 	add_child(col)
 	add_to_group("shock_target")
 
 
+## Hatchlings are drawn (and hit) at twice the size, so they read clearly.
+func _size() -> Vector2:
+	return SIZE * 2.0 if hatchling else SIZE
+
+
 ## Where the shockline latches on.
 func shock_point() -> Vector2:
-	return global_position + Vector2(0, -SIZE.y / 2)
+	return global_position + Vector2(0, -_size().y / 2)
 
 
 func _physics_process(delta: float) -> void:
@@ -82,7 +87,7 @@ func _facing_wall() -> bool:
 
 func _ground_ahead() -> bool:
 	var q := PhysicsPointQueryParameters2D.new()
-	q.position = global_position + Vector2(dir * (SIZE.x / 2 + 2), 4)
+	q.position = global_position + Vector2(dir * (_size().x / 2 + 2), 4)
 	q.collision_mask = LAYER_WORLD
 	return not get_world_2d().direct_space_state.intersect_point(q, 1).is_empty()
 
@@ -93,7 +98,7 @@ func _draw() -> void:
 		var frames := TEX_HATCHLING.get_width() / 32
 		var frame := int(_anim * HATCHLING_FPS) % frames
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2(1 if dir > 0 else -1, 1))
-		draw_texture_rect_region(TEX_HATCHLING, Rect2(-8, -16, 16, 16), Rect2(frame * 32, 0, 32, 32), tint)
+		draw_texture_rect_region(TEX_HATCHLING, Rect2(-16, -32, 32, 32), Rect2(frame * 32, 0, 32, 32), tint)
 		draw_set_transform(Vector2.ZERO)
 		return
 	var tex: Texture2D = TEX_FROST if frost else TEX

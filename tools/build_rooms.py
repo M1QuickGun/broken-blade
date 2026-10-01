@@ -88,25 +88,24 @@ r.fill(41, 15, 44, 15, "^")
 r.box(46, 14, 48, 14)
 r.put(52, 14, "E")
 
-# The stone ring. The golden hilt glints in the middle, but the ring's floor (=) is a thin
-# lid over a pit: stepping onto it drops Storm into the Guardian Centipede's lair. The
-# pit's own walls are the arena. Beaten, the centipede leaves the hilt (the wall jump),
-# which is also the only way back up. A side tunnel the centipede dug hides a mask shard.
+# The stone ring. The golden hilt glints in the middle of solid ground; pulling at it wakes the
+# Guardian Centipede it's stuck in, and the earth under the ring (=) caves in: Storm drops into
+# the pit with it. The pit's own walls are the arena. Beaten, the centipede flees and leaves
+# the hilt (the wall jump), which is also the only way back up.
 r = Room("ring", 46, 40)
 r.open_sky()
 r.floor(12)
 r.fill(0, 9, 0, 11, "b")
 r.put(4, 11, "R")
 r.put(8, 11, "?")
-r.fill(13, 12, 32, 12, "=")
-r.air(13, 13, 32, 36)
+r.fill(13, 12, 32, 36, "=")
 r.put(22, 36, "B")
 # Notches cut into the pit walls for catching a breath on the way up (nothing sticks out).
 r.air(11, 25, 12, 27)
 r.air(33, 19, 34, 21)
-# The side tunnel, dug through the left pit wall.
-r.air(5, 32, 12, 34)
-r.put(6, 34, "H")
+# (the notches stay earth, like the rest of the pit, until it caves in)
+r.fill(11, 25, 12, 27, "=")
+r.fill(33, 19, 34, 21, "=")
 r.put(39, 11, "?")
 r.fill(45, 9, 45, 11, "d")
 

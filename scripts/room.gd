@@ -204,11 +204,16 @@ func shatter_gate() -> void:
 
 
 func _clear_cells(kind: String, debris_color: Color) -> void:
+	var count := 0
+	for row in _grid:
+		count += row.count(kind)
+	# A big cave-in throws up a share of its cells as chunks, not every one.
+	var share := minf(1.0, 60.0 / maxf(1.0, count))
 	for y in _grid.size():
 		if kind not in _grid[y]:
 			continue
 		for x in _grid[y].length():
-			if _grid[y][x] == kind:
+			if _grid[y][x] == kind and randf() < share:
 				_spawn_debris(Vector2((x + 0.5) * TILE, (y + 0.5) * TILE), debris_color)
 		_grid[y] = _grid[y].replace(kind, ".")
 	queue_redraw()
