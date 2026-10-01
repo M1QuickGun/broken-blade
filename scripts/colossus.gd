@@ -12,10 +12,12 @@ extends Node2D
 ## - Frost breath: a freezing wave runs out along the floor; jump it.
 ## And if Storm crowds it (up on the ice it's frozen into), frost gathers at its base and ice
 ## spikes burst up there: back off.
-## Beaten, cracks run through it, its arms break off and shatter, chunks fall away, and it
-## slumps dead in the wall; the ice piece comes free of its chest.
+## Beaten, the ice piece bursts out of its chest and floats free, cracks run through it, its
+## arms break off and shatter, chunks fall away, and it slumps dead in the wall with an empty
+## hole where the piece was.
 ##
-## Phase 2, the Frost throne: broken out of the wall. It rises out of the floor body-first,
+## Phase 2, the Frost throne: broken out of the wall, the hole the piece left still in its
+## chest. It rises out of the floor body-first,
 ## then its legs burst out and it stands. Then, in a fixed order:
 ## - Charge: it crouches low and charges across the arena. Its belly clears the floor by less
 ##   than Storm's height: the way past is to slide between its legs. Hitting the far wall
@@ -34,6 +36,11 @@ signal engaged
 const Effects := preload("res://scripts/effects.gd")
 const Projectile := preload("res://scripts/projectile.gd")
 const TORSO := preload("res://art/bosses/colossus_torso.png")
+## Its chest once the ice piece is out of it: an empty, cracked hole where the shard was.
+const TORSO_HOLLOW := preload("res://art/bosses/colossus_torso_hollow.png")
+## How far its chest sits above its hips (phase 2); its waist hangs between the two.
+const HIP_DROP := 80.0
+const COLOR_PIECE := Color("bfe9ff")
 const ARM := preload("res://art/bosses/colossus_arm.png")
 ## Its near arm, drawn with the back of the hand toward the viewer (the far arm, ARM, shows
 ## the other side of its fist).
@@ -125,6 +132,10 @@ var _legs_out := false
 var _turn_wait := 0.0
 ## Phase 1's death: which arms have broken off.
 var _arms_off := [false, false]
+## Phase 1's end: the ice piece flying out of its chest to where it'll wait (0 to 1, or -1
+## before it's out).
+var _piece_t := -1.0
+var _piece_from := Vector2.ZERO
 
 var _chest: Hitbox
 var _fist: Hitbox
@@ -173,6 +184,7 @@ func _ready() -> void:
 	for foot in _feet:
 		_set_box(foot, false)
 	if dead:
+		_piece_t = 1.0
 		_slump = 1.0
 		_arms_off = [true, true]
 		_state = St.SLUMPED
@@ -253,8 +265,8 @@ func _torso_center() -> Vector2:
 	if not _legs_out:
 		# Rising out of the floor, legs still buried.
 		return Vector2(_x, lerpf(_floor + 80.0, _floor - 46.0, _rise))
-	var hip_y := _floor - LEG_LENGTH + 46.0 * _crouch + 34.0 * _kneel
-	return Vector2(_x, hip_y - 46.0)
+	var hip_y := _floor - LEG_LENGTH + 46.0 * _crouch + 60.0 * _kneel
+	return Vector2(_x, hip_y - HIP_DROP)
 
 
 ## Which way it faces: -1 left, 1 right. Frozen in the right-hand wall it faces left.
@@ -420,6 +432,15 @@ func _phase_1(p: Vector2, delta: float) -> void:
 			# floor; chunks fall away as it slumps dead into the wall.
 			_slump = minf(_slump + delta / 2.2, 1.0)
 			_shake = maxf(_shake, 0.06)
+			if _piece_t < 0.0:
+				# The ice piece bursts out of its chest.
+				_piece_t = 0.0
+				_piece_from = _chest_point()
+				_shake = 0.5
+				for i in 8:
+					_frost(_piece_from + Vector2(randf_range(-8, 8), randf_range(-8, 8)))
+				Sfx.play("shatter", -2.0)
+			_piece_t = minf(_piece_t + delta / 1.4, 1.0)
 			_arm_angle = lerp_angle(_arm_angle, deg_to_rad(125.0), 2.0 * delta)
 			_arm_stretch = move_toward(_arm_stretch, 1.0, delta)
 			if not _arms_off[0] and _timer < 2.0:
@@ -600,7 +621,7 @@ func _face_toward(p: Vector2, delta: float) -> void:
 
 
 func _hip_points() -> Array:
-	var c := _torso_center() + Vector2(0, 46)
+	var c := _torso_center() + Vector2(0, HIP_DROP)
 	return [c + Vector2(_dir * 18.0, 0), c + Vector2(-_dir * 18.0, 0)]
 
 
@@ -753,7 +774,12 @@ func _exit_tree() -> void:
 func reward_point() -> Vector2:
 	if phase >= 2:
 		return Vector2(_x, _floor - TILE)  # shattered: it drops where it stood
-	return _chest_point() + Vector2(-10, 4)
+	return _piece_rest()
+
+
+## Where the ice piece floats down to wait when phase 1 ends: out in front of it, in reach.
+func _piece_rest() -> Vector2:
+	return Vector2(_face - 150.0, _floor - TILE)
 
 
 # --- Art ---
@@ -783,13 +809,21 @@ func _draw_phase_1(tint: Color) -> void:
 			body_tint.darkened(0.3), true, ARM)
 	var c := _torso_center() - position
 	draw_set_transform(c, 0.0, Vector2(-1, 1))  # the art faces right; it faces left, out of the wall
-	draw_texture(TORSO, -Vector2(64, 64), body_tint)
+	draw_texture(TORSO_HOLLOW if _piece_t >= 0.0 else TORSO, -Vector2(64, 64), body_tint)
 	draw_set_transform(Vector2.ZERO)
 	if _state in [St.SLUMP, St.SLUMPED]:
 		_draw_cracks(c, 1.0 if _state == St.SLUMPED else _slump)
 	_draw_eyes(c)
 	if not _arms_off[0]:
 		_draw_arm(_shoulder(), _arm_angle, ARM_SCALE_1, _arm_stretch, body_tint, true, ARM_LEFT)
+	if _piece_t >= 0.0 and _piece_t < 1.0:
+		# Arcing out and spinning, then settling where it'll wait.
+		var at := _piece_from.lerp(_piece_rest(), ease(_piece_t, -1.8)) - Vector2(0, sin(_piece_t * PI) * 50.0) - position
+		var spin := _piece_t * TAU * 3.0
+		draw_circle(at, 9.0, Color(COLOR_PIECE, 0.3))
+		draw_set_transform(at, spin)
+		draw_colored_polygon(PackedVector2Array([Vector2(0, -8), Vector2(3, 0), Vector2(0, 8), Vector2(-3, 0)]), COLOR_PIECE)
+		draw_set_transform(Vector2.ZERO)
 	if _state == St.BURST:
 		var up := clampf(1.0 - (_timer - 0.35) / 0.15, 0.0, 1.0)
 		for i in 9:
@@ -853,12 +887,12 @@ func _draw_phase_2(tint: Color) -> void:
 	_draw_arm(_back_shoulder(), PI / 2.0 - _dir * (0.2 + swing), 0.95, 1.0,
 		tint.darkened(0.3), _dir < 0, ARM)
 	draw_set_transform(c, 0.0, Vector2(-1 if flip else 1, 1))
-	draw_texture(TORSO, -Vector2(64, 64), tint)
+	draw_texture(TORSO_HOLLOW, -Vector2(64, 64), tint)
 	draw_set_transform(Vector2.ZERO)
 	_draw_eyes(c)
 	if _legs_out:
 		# The waist, worn over the bottom of the chest like a belt, the legs hanging from it.
-		draw_set_transform(c + Vector2(0, 52), 0.0, Vector2(-1 if flip else 1, 1))
+		draw_set_transform(c + Vector2(0, HIP_DROP - 14.0), 0.0, Vector2(-1 if flip else 1, 1))
 		draw_texture(PELVIS, -Vector2(48, 30), tint)
 		draw_set_transform(Vector2.ZERO)
 	_draw_arm(_shoulder(), PI / 2.0 - _dir * (0.3 - swing), 1.0, 1.0,
