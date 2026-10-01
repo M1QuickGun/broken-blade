@@ -54,6 +54,17 @@ const BOSSES := {
 		"hp": 26, "reward": "H"},
 }
 
+## Scenery standing on the ground, drawn behind Storm: [kind, x tile, row it stands on].
+## Kinds are art/world/props/<kind>.png at 2x detail.
+const PROPS := {
+	"village_square": [
+		["house_gable", 6, 17], ["frozen_villager", 12, 17], ["frozen_villager_b", 21, 17],
+		["house_drift", 35, 17], ["frozen_villager_c", 44, 17], ["house", 54, 17], ["frozen_villager_b", 52, 6],
+	],
+	"frozen_bridge": [["frozen_villager_c", 10, 15], ["frozen_villager", 45, 15]],
+	"crossroads": [["house_ruined", 47, 23], ["frozen_villager_b", 36, 23]],
+}
+
 ## Sign text for each "?" in a room, in reading order (top to bottom, left to right).
 const SIGNS := {
 	"landing": [
@@ -267,7 +278,7 @@ const LAYOUTS := {
 		"########################################",
 	],
 	"village_square": [
-		"############################################################",
+		"#...........................................#######........#",
 		"#...........................................#######........#",
 		"#...........................................#######........#",
 		"#...........................................#######........j",

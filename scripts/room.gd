@@ -104,6 +104,7 @@ func build(name_: String) -> void:
 	_scan_cells()
 	_build_doors()
 	_setup_boss()
+	_add_props()
 	if _woods:
 		for is_front in [false, true]:
 			var woods := Atmosphere.new()
@@ -174,6 +175,22 @@ func _build_solids() -> void:
 	_add_rect(body, Rect2(size_px.x, -TILE * 4, TILE * 2, size_px.y + TILE * 4))
 	_lid = _cells_body("=")
 	_ice_gate = _cells_body("G")
+
+
+## Scenery from Rooms.PROPS, on one layer behind Storm (and in front of the backdrop).
+func _add_props() -> void:
+	var list: Array = Rooms.PROPS.get(room_name, [])
+	if list.is_empty():
+		return
+	var layer := Node2D.new()
+	layer.z_index = -1
+	layer.draw.connect(func() -> void:
+		for prop: Array in list:
+			var tex: Texture2D = load("res://art/world/props/%s.png" % prop[0])
+			var size := Vector2(tex.get_size()) / 2.0
+			var foot := Vector2((prop[1] + 0.5) * TILE, prop[2] * TILE)
+			layer.draw_texture_rect(tex, Rect2(foot - Vector2(size.x / 2.0, size.y), size), false))
+	add_child(layer)
 
 
 func _atmosphere_style() -> String:
