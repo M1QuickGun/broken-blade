@@ -744,7 +744,7 @@ func _draw_phase_2(tint: Color) -> void:
 		var top := _torso_center().y + 40.0 - position.y
 		var bx := _x - position.x
 		var fy := _floor - position.y
-		if top < fy:
+		if top < fy - 12.0:
 			draw_colored_polygon(PackedVector2Array([
 				Vector2(bx - 38, fy), Vector2(bx - 34, top + 4), Vector2(bx - 16, top),
 				Vector2(bx + 18, top + 2), Vector2(bx + 36, top + 6), Vector2(bx + 40, fy),
