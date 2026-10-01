@@ -849,11 +849,6 @@ func _draw_phase_2(tint: Color) -> void:
 	if _legs_out:
 		_draw_leg(hips[0], angles[0], tint.darkened(0.3))
 		_draw_leg(hips[1], angles[1], tint)
-		# The waist over the tops of both legs, under the chest.
-		var waist := _torso_center() + Vector2(0, 40) - position
-		draw_set_transform(waist, 0.0, Vector2(-1 if flip else 1, 1))
-		draw_texture(PELVIS, -Vector2(48, 30), tint)
-		draw_set_transform(Vector2.ZERO)
 	var c := _torso_center() - position
 	_draw_arm(_back_shoulder(), PI / 2.0 - _dir * (0.2 + swing), 0.95, 1.0,
 		tint.darkened(0.3), _dir < 0, ARM)
@@ -861,6 +856,11 @@ func _draw_phase_2(tint: Color) -> void:
 	draw_texture(TORSO, -Vector2(64, 64), tint)
 	draw_set_transform(Vector2.ZERO)
 	_draw_eyes(c)
+	if _legs_out:
+		# The waist, worn over the bottom of the chest like a belt, the legs hanging from it.
+		draw_set_transform(c + Vector2(0, 52), 0.0, Vector2(-1 if flip else 1, 1))
+		draw_texture(PELVIS, -Vector2(48, 30), tint)
+		draw_set_transform(Vector2.ZERO)
 	_draw_arm(_shoulder(), PI / 2.0 - _dir * (0.3 - swing), 1.0, 1.0,
 		tint, _dir < 0, ARM_LEFT)
 	_draw_pieces()
