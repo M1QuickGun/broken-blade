@@ -237,9 +237,56 @@ r.box(15, 11, 22, 11)
 r.put(4, 11, "H")
 r.put(10, 11, "?")
 
-r = Room("broken_bridge", 56, 17)
+# The frozen bridge: what's left of the stone bridge to the high mountain, over a chasm.
+# Jump the gaps (frozen spikes below); slide under the fallen ice walls.
+r = Room("frozen_bridge", 64, 18)
+r.open_sky()
 r.floor(15)
-r.fill(0, 11, 0, 14, "o")
+r.fill(0, 12, 0, 14, "o")
+r.put(6, 14, "?")
+r.air(14, 15, 17, 16)
+r.fill(14, 17, 17, 17, "^")
+r.box(24, 0, 30, 13)
+r.put(33, 14, "E")
+r.air(37, 15, 41, 16)
+r.fill(37, 17, 41, 17, "^")
+r.put(46, 14, "E")
+r.box(50, 0, 54, 13)
+r.put(58, 14, "E")
+r.fill(63, 12, 63, 14, "p")
+
+# The crossroads: a rest shrine where the mountain road splits. West (up the ledges) is the
+# road to the fire slopes; east, the cliff road to the lightning peaks. High above the shrine
+# a hidden ledge holds a mask shard: the double jump or the shockline reaches it.
+r = Room("crossroads", 56, 24)
+r.open_sky()
+r.floor(23)
+r.fill(0, 20, 0, 22, "p")
+r.put(28, 22, "R")
+r.put(24, 22, "?")
+r.box(8, 20, 11, 20)
+r.box(1, 17, 6, 17)
+r.fill(0, 14, 0, 16, "q")
+r.box(14, 20, 17, 20)
+r.put(19, 16, "*")
+r.box(21, 14, 27, 14)
+r.put(24, 13, "H")
+r.box(40, 20, 44, 20)
+r.fill(55, 20, 55, 22, "r")
+
+# Placeholders for the two roads on, until their regions are built: each holds its region's
+# blade piece so both routes can be played.
+r = Room("ashen_road", 48, 17)
+r.floor(15)
+r.fill(47, 12, 47, 14, "q")
+r.put(40, 14, "?")
+r.box(26, 12, 30, 12)
+r.put(28, 11, "F")
+
+r = Room("cliff_road", 56, 17)
+r.floor(15)
+r.fill(0, 11, 0, 14, "r")
+r.put(5, 14, "?")
 r.fill(9, 15, 13, 15, "^")
 r.fill(31, 15, 51, 15, "^")
 r.put(36, 12, "*")
@@ -258,9 +305,12 @@ LINKS = {
     "frost_arena": {"k": ("ice_caverns", "k"), "l": ("frozen_depths", "l")},
     "frozen_depths": {"l": ("frost_arena", "l"), "m": ("frost_throne", "m")},
     "frost_throne": {"m": ("frozen_depths", "m"), "n": ("ice_climb", "n")},
-    "ice_climb": {"n": ("frost_throne", "n"), "j": ("village_square", "j"), "o": ("broken_bridge", "o")},
+    "ice_climb": {"n": ("frost_throne", "n"), "j": ("village_square", "j"), "o": ("frozen_bridge", "o")},
     "frozen_cellar": {"i": ("ice_caverns", "i")},
-    "broken_bridge": {"o": ("ice_climb", "o")},
+    "frozen_bridge": {"o": ("ice_climb", "o"), "p": ("crossroads", "p")},
+    "crossroads": {"p": ("frozen_bridge", "p"), "q": ("ashen_road", "q"), "r": ("cliff_road", "r")},
+    "ashen_road": {"q": ("crossroads", "q")},
+    "cliff_road": {"r": ("crossroads", "r")},
 }
 
 

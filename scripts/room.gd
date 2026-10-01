@@ -43,7 +43,7 @@ const ICE_SHEET := preload("res://art/world/ice_tileset.png")
 const SPIKE_TEX := preload("res://art/world/spikes.png")
 ## The Foothills forest floor: earth, roots and moss; same corner layout as STONE_SHEET.
 const FOREST_SHEET := preload("res://art/world/forest_tileset.png")
-const Forest := preload("res://scripts/forest.gd")
+const Atmosphere := preload("res://scripts/atmosphere.gd")
 const ICE_GATE_TEX := preload("res://art/world/frozen_gate.png")
 ## The part of the gate's art that isn't empty margin, so it can fill its doorway exactly.
 const ICE_GATE_ART := Rect2(0, 8, 64, 169)
@@ -84,7 +84,8 @@ func build(name_: String) -> void:
 	room_name = name_
 	_ice = room_name in Rooms.ICE_ROOMS
 	_forest = room_name in Rooms.FOREST_ROOMS
-	_woods = _forest or room_name in Rooms.OVERGROWN_ROOMS
+	# Ice rooms get their painted backdrop, snow or frost too.
+	_woods = _forest or room_name in Rooms.OVERGROWN_ROOMS or _ice
 	_cave = room_name in Rooms.CAVE_ROOMS
 	_grid = PackedStringArray(Rooms.LAYOUTS[name_])
 	# Once the room's boss is beaten, its lid has fallen in and its frozen gate is broken.
@@ -105,12 +106,16 @@ func build(name_: String) -> void:
 	_setup_boss()
 	if _woods:
 		for is_front in [false, true]:
-			var woods := Forest.new()
+			var woods := Atmosphere.new()
+			woods.style = _atmosphere_style()
 			woods.front = is_front
 			woods.size_px = size_px
 			woods.solid = _grid
 			woods.seed_text = room_name
-			if not _forest:
+			if _ice:
+				# The cave painting is bright: dimmed and cooled more, to sit behind the ice.
+				woods.backdrop_tint = Color(0.66, 0.7, 0.76) if woods.style == "snow" else Color(0.42, 0.5, 0.58)
+			elif not _forest:
 				woods.backdrop_tint = Color(0.4, 0.43, 0.42)  # glimpsed through ruined walls
 			add_child(woods)
 
@@ -169,6 +174,12 @@ func _build_solids() -> void:
 	_add_rect(body, Rect2(size_px.x, -TILE * 4, TILE * 2, size_px.y + TILE * 4))
 	_lid = _cells_body("=")
 	_ice_gate = _cells_body("G")
+
+
+func _atmosphere_style() -> String:
+	if not _ice:
+		return "forest"
+	return "snow" if room_name in Rooms.ICE_OUTDOOR_ROOMS else "cave"
 
 
 ## A separate solid body for every cell of one kind, so it can be taken away whole.

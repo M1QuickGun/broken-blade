@@ -112,8 +112,14 @@ Landing (rest) → Rockfall → Ring (rest; the pit and the first centipede figh
 → Cliff (rest at the top) → Gate cavern (the risen centipede; the frozen gate) → Village
 square (rest hub) → Ice caverns (the Frozen cellar hides off it, shockline only) → Frost
 arena (Frost Warden, first fight: the ice shard) → Frozen depths (slide tutorial) → Frost
-throne (the rematch: a mask shard) → Ice climb (crawlspace exit) → Broken bridge
-(placeholder for the Crossroads, with the lightning shard).
+throne (the rematch: a mask shard) → Ice climb (crawlspace exit) → Frozen bridge (gaps
+over frozen spikes, slides under fallen ice walls) → Crossroads (rest; a hidden ledge with a
+mask shard reached by the double jump or the shockline) → Ashen road (west, placeholder with
+the fire shard) and Cliff road (east, placeholder with the lightning shard).
+
+Every region has its own painted backdrop and weather: the Foothills forest (light through
+the canopy), the Frozen village outdoors (snow falling over the terraced houses, icicles),
+and its caverns (frost drifting in the cold, icicles).
 
 ### Bosses: two fights per region
 Every region's boss is fought twice. The first fight, partway through, wins the region's

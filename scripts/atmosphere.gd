@@ -1,12 +1,20 @@
 extends Node2D
-## The Foothills forest at the foot of the mountain, drawn in two layers around a room's
-## tiles: behind them a painted forest (art/world/forest_bg.png) that drifts slowly as the
-## camera moves, and in front a leaf canopy over the ceiling with shafts of light breaking
-## through it and dust drifting in the light.
+## A region's atmosphere, drawn in two layers around a room's tiles: behind them a painted
+## backdrop that drifts slowly as the camera moves, and in front the weather and light.
+## - "forest" (the Foothills): a leaf canopy over any ceiling, shafts of light breaking
+##   through, dust drifting in the light.
+## - "snow" (the Frozen village, outdoors): snow falling and blowing across the room, and
+##   icicles under every overhang.
+## - "cave" (the frozen caverns): frost glinting as it drifts up through the cold air, a faint
+##   glow off the ice, and icicles under every overhang.
 ## The room adds one of each (front = false / true) and hands over its size and cells.
 
 const TILE := 16
-const BACKDROP := preload("res://art/world/forest_bg.png")
+const BACKDROPS := {
+	"forest": preload("res://art/world/forest_bg.png"),
+	"snow": preload("res://art/world/ice_village_bg.png"),
+	"cave": preload("res://art/world/ice_cave_bg.png"),
+}
 ## How much the backdrop follows the camera's movement across the room: 0 would pin it
 ## to the screen, 1 to the room.
 const PARALLAX := 0.3
@@ -22,7 +30,13 @@ const COLOR_LEAF_DARK := Color("0f1d13")
 const COLOR_LEAF := Color("18301d")
 const COLOR_LEAF_LIGHT := Color("24452a")
 const COLOR_LIGHT := Color(1.0, 0.93, 0.7)
+const COLOR_SNOW := Color(0.9, 0.95, 1.0)
+const COLOR_FROST := Color(0.7, 0.92, 1.0)
+const COLOR_ICICLE := Color(0.72, 0.88, 1.0, 0.85)
+const COLOR_ICICLE_SHINE := Color(0.95, 1.0, 1.0, 0.9)
 
+## "forest", "snow" or "cave".
+var style := "forest"
 var front := false
 var size_px := Vector2.ZERO
 ## Solid cells ("#"), row by row, so shafts know where they land and the canopy which
@@ -39,24 +53,29 @@ var _trunks: Array[Dictionary] = []
 var _vines: Array[Dictionary] = []
 var _leaves: Array[Dictionary] = []
 var _backdrop: Sprite2D
+var _flakes: Array[Dictionary] = []
+var _icicles: Array[Dictionary] = []
 
 
 func _ready() -> void:
 	z_index = 1 if front else -2  # the centipede burrows at -1, between it and the tiles
 	if not front:
 		_backdrop = Sprite2D.new()
-		_backdrop.texture = BACKDROP
+		_backdrop.texture = BACKDROPS[style]
 		_backdrop.modulate = backdrop_tint
 		# Big enough to cover the view wherever the camera goes in this room.
 		var travel := (size_px - VIEW).max(Vector2.ZERO) * PARALLAX
 		var need := VIEW + travel + Vector2(8, 8)
-		var tex := Vector2(BACKDROP.get_size())
+		var tex := Vector2(_backdrop.texture.get_size())
 		_backdrop.scale = Vector2.ONE * maxf(1.0, maxf(need.x / tex.x, need.y / tex.y))
 		add_child(_backdrop)
 		_update_backdrop()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(seed_text)
 	var cols := int(size_px.x / TILE)
+	if style != "forest":
+		_setup_frost(rng, cols)
+		return
 	# Light: a shaft every dozen tiles or so, slanting the same way, landing on the ground.
 	var x := rng.randf_range(2.0, 8.0) * TILE
 	while x < size_px.x - TILE:
@@ -91,6 +110,27 @@ func _ready() -> void:
 					if _near_shaft(p.x):
 						continue
 					_leaves.append({"pos": p, "r": rng.randf_range(4.0, 8.0), "shade": rng.randi_range(0, 2)})
+
+
+## Snowflakes or frost motes scattered through the room, and icicles under the overhangs.
+func _setup_frost(rng: RandomNumberGenerator, cols: int) -> void:
+	var count := int(size_px.x * size_px.y / (1400.0 if style == "snow" else 2600.0))
+	for i in count:
+		_flakes.append({
+			"x": rng.randf() * size_px.x, "y": rng.randf() * size_px.y,
+			"speed": rng.randf_range(14.0, 34.0) if style == "snow" else rng.randf_range(3.0, 9.0),
+			"sway": rng.randf_range(4.0, 12.0), "phase": rng.randf() * TAU,
+			"size": 1.0 if rng.randf() < 0.75 else 2.0,
+		})
+	# An icicle or two under most cells that hang over open air.
+	for cy in solid.size():
+		for cx in cols:
+			if _solid(cx, cy) and not _solid(cx, cy + 1) and cy + 1 < solid.size() and rng.randf() < 0.55:
+				for n in rng.randi_range(1, 2):
+					_icicles.append({
+						"x": (cx + rng.randf_range(0.15, 0.85)) * TILE, "y": (cy + 1) * TILE,
+						"len": rng.randf_range(4.0, 13.0), "w": rng.randf_range(1.5, 3.0),
+					})
 
 
 func _process(delta: float) -> void:
@@ -146,6 +186,9 @@ func _draw_back() -> void:
 
 
 func _draw_front() -> void:
+	if style != "forest":
+		_draw_frost()
+		return
 	for s in _shafts:
 		var pulse := 0.8 + 0.2 * sin(_time * 0.7 + s.phase)
 		var top_x: float = s.x
@@ -175,6 +218,33 @@ func _draw_front() -> void:
 	for leaf in _leaves:
 		var color: Color = [COLOR_LEAF_DARK, COLOR_LEAF, COLOR_LEAF_LIGHT][leaf.shade]
 		draw_circle(leaf.pos, leaf.r, color)
+
+
+func _draw_frost() -> void:
+	for ice in _icicles:
+		var x: float = ice.x
+		var y: float = ice.y
+		draw_colored_polygon(PackedVector2Array([
+			Vector2(x - ice.w, y), Vector2(x + ice.w, y), Vector2(x, y + ice.len),
+		]), COLOR_ICICLE)
+		draw_line(Vector2(x - ice.w * 0.4, y), Vector2(x - 0.2, y + ice.len * 0.7), COLOR_ICICLE_SHINE, 1.0)
+	for f in _flakes:
+		var x: float
+		var y: float
+		var alpha := 0.75
+		if style == "snow":
+			# Falling and blowing a little sideways, wrapping round the room.
+			y = fmod(f.y + _time * f.speed, size_px.y)
+			x = fmod(f.x + _time * f.speed * 0.35 + sin(_time * 0.9 + f.phase) * f.sway, size_px.x)
+		else:
+			# Frost drifting slowly up through the cold, glinting on and off.
+			y = fmod(f.y - _time * f.speed + size_px.y * 4.0, size_px.y)
+			x = f.x + sin(_time * 0.5 + f.phase) * f.sway
+			alpha = 0.25 + 0.5 * maxf(0.0, sin(_time * 1.3 + f.phase * 3.0))
+		if x < 0.0:
+			x += size_px.x
+		var color := COLOR_SNOW if style == "snow" else COLOR_FROST
+		draw_rect(Rect2(x, y, f.size, f.size), Color(color, alpha))
 
 
 func _draw_ellipse(center: Vector2, radii: Vector2, color: Color) -> void:
