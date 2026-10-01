@@ -7,6 +7,12 @@ const Player := preload("res://scripts/player.gd")
 const Hud := preload("res://scripts/hud.gd")
 
 const START_ROOM := "landing"
+## Debug warps (keys 6-8): action -> [room, the door to arrive by].
+const DEBUG_WARPS := {
+	"debug_warp_village": ["village_square", "g"],
+	"debug_warp_frost_arena": ["frost_arena", "k"],
+	"debug_warp_frost_throne": ["frost_throne", "m"],
+}
 const DOOR_FADE := 0.15
 ## The view in world units (see Game.ART_SCALE).
 const VIEW_HEIGHT := 270
@@ -60,12 +66,29 @@ func _unhandled_input(event: InputEvent) -> void:
 		Game.unlock("double_jump")
 	elif event.is_action_pressed("debug_unlock_wall_jump"):
 		Game.unlock("wall_jump")
-	elif event.is_action_pressed("debug_defeat_boss"):
+	for action in DEBUG_WARPS:
+		if event.is_action_pressed(action) and not _transitioning:
+			_debug_warp(DEBUG_WARPS[action][0], DEBUG_WARPS[action][1])
+			return
+	if event.is_action_pressed("debug_defeat_boss"):
 		# Finish off whatever boss is fighting (for testing what comes after it).
 		var boss = get_tree().get_first_node_in_group("boss")
 		if boss:
 			boss.hp = 1
 			boss.take_hit(1, Vector2.RIGHT)
+
+
+func _debug_warp(room_name: String, door: String) -> void:
+	_transitioning = true
+	player.controls_locked = true
+	await hud.fade_out(DOOR_FADE)
+	player.heal_full()
+	_load_room(room_name, door)
+	await get_tree().physics_frame
+	camera.reset_smoothing()
+	await hud.fade_in(DOOR_FADE)
+	player.controls_locked = false
+	_transitioning = false
 
 
 ## Loads a room and puts Storm at a door (or at the room's start with door ""), or at

@@ -130,6 +130,9 @@ func _setup_input() -> void:
 	_bind("debug_unlock_double_jump", [KEY_3], [], [])
 	_bind("debug_unlock_wall_jump", [KEY_4], [], [])
 	_bind("debug_defeat_boss", [KEY_5], [], [])
+	_bind("debug_warp_village", [KEY_6], [], [])
+	_bind("debug_warp_frost_arena", [KEY_7], [], [])
+	_bind("debug_warp_frost_throne", [KEY_8], [], [])
 
 
 ## Adds an action with default bindings, unless it's already defined in Project Settings.
