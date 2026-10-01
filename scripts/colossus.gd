@@ -232,10 +232,15 @@ func _torso_center() -> Vector2:
 	return Vector2(_x, hip_y - 46.0)
 
 
+## Which way it faces: -1 left, 1 right. Frozen in the right-hand wall it faces left.
+func _facing() -> int:
+	return -1 if phase == 1 else _dir
+
+
 func _chest_point() -> Vector2:
 	var off := CRACK - Vector2(64, 64)
-	if phase >= 2 and _dir > 0:
-		off.x = -off.x
+	if _facing() < 0:
+		off.x = -off.x  # the art faces right
 	return _torso_center() + off
 
 
@@ -430,6 +435,14 @@ func _phase_2(p: Vector2, delta: float) -> void:
 				_legs_out = true
 				_kneel = 1.0
 				_shake = 0.7
+				# The block of ice it rose on bursts apart as its legs come out.
+				var top := _torso_center().y + 40.0
+				for i in 16:
+					_pieces.append({
+						"pos": Vector2(_x + randf_range(-36, 36), randf_range(top, _floor)),
+						"vel": Vector2(randf_range(-140, 140), randf_range(-220, -40)),
+						"size": randf_range(6, 14), "rot": randf() * TAU, "spin": randf_range(-8, 8),
+					})
 				for i in 10:
 					_frost(Vector2(_x + randf_range(-40, 40), _floor - randf_range(0, 30)))
 			if _legs_out:
@@ -502,6 +515,8 @@ func _phase_2(p: Vector2, delta: float) -> void:
 				defeated.emit()
 				queue_free()
 	_update_pillars(delta)
+	if _state != St.SHATTER:
+		_update_pieces(delta)
 	var feet := _foot_points()
 	for i in 2:
 		_set_box(_feet[i], feet_on, feet[i] + Vector2(0, -8))
@@ -707,7 +722,9 @@ func _draw_phase_1(tint: Color) -> void:
 		_draw_arm(_shoulder() + Vector2(34, -8), _arm_angle - 0.25, ARM_SCALE_1 * 0.9, 1.0,
 			body_tint.darkened(0.3), true)
 	var c := _torso_center() - position
-	draw_texture(TORSO, c - Vector2(64, 64), body_tint)
+	draw_set_transform(c, 0.0, Vector2(-1, 1))  # the art faces right; it faces left, out of the wall
+	draw_texture(TORSO, -Vector2(64, 64), body_tint)
+	draw_set_transform(Vector2.ZERO)
 	if _state in [St.SLUMP, St.SLUMPED]:
 		_draw_cracks(c, 1.0 if _state == St.SLUMPED else _slump)
 	_draw_eyes(c)
@@ -722,6 +739,22 @@ func _draw_phase_2(tint: Color) -> void:
 	if _state == St.SHATTER:
 		_draw_pieces()
 		return
+	if not _legs_out:
+		# Rising out of the floor on a block of ice and frozen earth.
+		var top := _torso_center().y + 40.0 - position.y
+		var bx := _x - position.x
+		var fy := _floor - position.y
+		if top < fy:
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(bx - 38, fy), Vector2(bx - 34, top + 4), Vector2(bx - 16, top),
+				Vector2(bx + 18, top + 2), Vector2(bx + 36, top + 6), Vector2(bx + 40, fy),
+			]), Color(0.42, 0.6, 0.74))
+			draw_line(Vector2(bx - 30, fy - 4), Vector2(bx - 24, top + 8), COLOR_FROST, 2.0)
+			draw_line(Vector2(bx + 10, top + 4), Vector2(bx + 22, fy - 6), Color(0.25, 0.38, 0.5), 1.5)
+	else:
+		# Its weight on the floor: a shadow under each foot.
+		for foot in _foot_points():
+			_draw_ellipse(Vector2(foot.x, _floor) - position, Vector2(18, 3), COLOR_SHADOW)
 	for pillar in _pillars:
 		if pillar.wait > 0.0:
 			var grow := clampf(1.0 - pillar.wait / 0.8, 0.0, 1.0)
@@ -736,7 +769,7 @@ func _draw_phase_2(tint: Color) -> void:
 				base + Vector2(9, -h + 6), base + Vector2(11, 0),
 			]), Color(0.6, 0.84, 0.98, 0.95))
 			draw_line(base + Vector2(-5, -4), base + Vector2(-3, -h + 10), COLOR_FROST, 2.0)
-	var flip := _dir > 0  # the art faces left
+	var flip := _dir < 0  # the art faces right
 	var hips := _hip_points()
 	var angles := _leg_angles()
 	# Back leg and arm behind; body; front leg and arm in front. The arms hang down and a
@@ -755,6 +788,7 @@ func _draw_phase_2(tint: Color) -> void:
 		_draw_leg(hips[0], angles[0], tint)
 	_draw_arm(_torso_center() + Vector2(_dir * 30.0, -30.0), PI / 2.0 - _dir * (0.3 - swing), 1.0, 1.0,
 		tint, _dir < 0)
+	_draw_pieces()
 
 
 ## An arm from its shoulder, pointing along `angle` (fist at the far end). The art points
@@ -776,7 +810,7 @@ func _draw_eyes(c: Vector2) -> void:
 	if _state in [St.DORMANT, St.SLUMPED] or (_state == St.SLUMP and _slump > 0.6):
 		return
 	var glow := 0.6 + 0.4 * sin(_time * 4.0)
-	draw_circle(c + Vector2(-34, -44), 5.0, Color(COLOR_EYES, 0.25 * glow))
+	draw_circle(c + Vector2(34 * _facing(), -44), 5.0, Color(COLOR_EYES, 0.25 * glow))
 
 
 func _draw_pieces() -> void:

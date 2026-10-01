@@ -107,7 +107,6 @@ r.air(33, 19, 34, 21)
 r.fill(11, 25, 12, 27, "=")
 r.fill(33, 19, 34, 21, "=")
 r.put(39, 11, "?")
-r.put(36, 11, "U")
 r.fill(45, 9, 45, 11, "d")
 
 # The cliff. A narrow chimney first, where the wall jump is easy to learn, then the left wall
