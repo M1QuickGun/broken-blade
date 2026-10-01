@@ -278,25 +278,185 @@ r.put(24, 13, "H")
 r.box(40, 20, 44, 20)
 r.fill(55, 20, 55, 22, "r")
 
-# Placeholders for the two roads on, until their regions are built: each holds its region's
-# blade piece so both routes can be played.
-r = Room("ashen_road", 48, 17)
-r.floor(15)
-r.fill(47, 12, 47, 14, "q")
-r.put(40, 14, "?")
-r.box(26, 12, 30, 12)
-r.put(28, 11, "F")
+# ---------------------------------------------------------------- Fire slopes (west)
+# The west face of the mountain, where the fire evil burned the homes and took the forge.
+# Road in (slide) -> Burning homes (rest; a secret only the shockline reaches) -> the Forge
+# (the Ashen Drake, first fight: the fire piece) -> Cinder steps (double jump tutorial) ->
+# the Drake's roost (the rematch) -> the Fire shaft, climbed with the double jump, out onto
+# the High pass. The climbs' walls are lined with spikes so the wall jump can't skip them.
 
-r = Room("cliff_road", 56, 17)
+r = Room("ashen_road", 60, 18)
+r.open_sky()
 r.floor(15)
-r.fill(0, 11, 0, 14, "r")
+r.fill(59, 12, 59, 14, "q")
+r.fill(0, 12, 0, 14, "s")
+r.put(54, 14, "?")
+# A burnt beam fallen across the road: slide under it.
+r.box(44, 0, 47, 13)
+r.put(35, 14, "E")
+r.air(26, 15, 29, 16)
+r.fill(26, 17, 29, 17, "^")
+r.box(18, 12, 21, 12)
+r.put(10, 14, "E")
+
+r = Room("burning_homes", 64, 22)
+r.open_sky()
+r.floor(19)
+r.fill(63, 16, 63, 18, "s")
+r.fill(0, 16, 0, 18, "t")
+r.put(32, 18, "R")
+r.put(28, 18, "?")
+r.box(10, 16, 16, 18)
+r.box(44, 16, 52, 18)
+r.put(48, 15, "E")
+# The secret: two rings from the first roof lead up to a ledge with a mask shard. Only the
+# shockline gets there (too high for the double jump, too far from the walls to climb).
+r.put(24, 12, "*")
+r.put(32, 8, "*")
+r.box(35, 7, 41, 7)
+r.put(38, 6, "H")
+
+r = Room("forge", 44, 18)
+r.floor(16)
+r.fill(43, 13, 43, 15, "t")
+r.fill(0, 13, 0, 15, "v")
+r.put(30, 15, "?")
+# Until the Ashen Drake's fight is built, its piece waits on the anvil.
+r.box(20, 14, 23, 15)
+r.put(21, 13, "F")
+
+r = Room("cinder_steps", 44, 40)
+r.floor(37)
+r.fill(43, 33, 43, 35, "v")
+r.box(37, 36, 42, 36)
+r.put(39, 35, "?")
+r.fill(2, 36, 36, 36, "^")
+r.fill(1, 6, 1, 35, "^")
+r.fill(42, 2, 42, 32, "^")
+r.box(29, 31, 32, 31)
+r.box(21, 26, 24, 26)
+r.box(13, 21, 16, 21)
+r.box(21, 16, 24, 16)
+r.box(13, 11, 16, 11)
+r.box(8, 8, 11, 8)
+r.box(1, 5, 5, 5)
+r.fill(0, 2, 0, 4, "w")
+
+r = Room("drake_roost", 44, 18)
+r.floor(16)
+r.fill(43, 13, 43, 15, "w")
+r.fill(0, 13, 0, 15, "x")
+r.put(30, 15, "?")
+# Until the rematch is built, its reward waits here.
+r.box(20, 14, 23, 15)
+r.put(21, 13, "H")
+
+r = Room("fire_shaft", 24, 56)
+r.floor(54)
+r.fill(23, 51, 23, 53, "x")
+r.put(19, 53, "?")
+r.fill(1, 2, 1, 53, "^")
+r.fill(22, 6, 22, 50, "^")
+for i, y in enumerate(range(49, 8, -5)):
+    x = 14 if i % 2 == 0 else 6
+    r.box(x, y, x + 3, y)
+r.box(18, 5, 22, 5)
+r.fill(23, 2, 23, 4, "y")
+
+# ---------------------------------------------------------------- Lightning peaks (east)
+# The east face, under the storm. Road in (slide) -> Storm bridges (rest; a secret only the
+# double jump reaches) -> the Spire (the bound thing, first fight: the lightning tip) ->
+# Anchor gorge (shockline tutorial) -> the Thunderbird's eyrie (the rematch) -> the Storm
+# tower, climbed ring to ring with the shockline, out onto the High pass.
+
+r = Room("cliff_road", 60, 18)
+r.open_sky()
+r.floor(15)
+r.fill(0, 12, 0, 14, "r")
+r.fill(59, 12, 59, 14, "s")
 r.put(5, 14, "?")
-r.fill(9, 15, 13, 15, "^")
-r.fill(31, 15, 51, 15, "^")
-r.put(36, 12, "*")
-r.put(43, 12, "*")
-r.put(50, 12, "*")
-r.put(26, 13, "L")
+# Rockfall across the road: slide under it.
+r.box(14, 0, 17, 13)
+r.put(24, 14, "E")
+r.air(30, 15, 33, 16)
+r.fill(30, 17, 33, 17, "^")
+r.box(38, 12, 41, 12)
+r.put(46, 14, "E")
+
+r = Room("storm_bridges", 64, 22)
+r.open_sky()
+r.floor(19)
+r.fill(0, 16, 0, 18, "s")
+r.fill(63, 16, 63, 18, "t")
+r.put(32, 18, "R")
+r.put(36, 18, "?")
+# A rope bridge over a chasm, with a gap torn in it.
+r.air(20, 19, 27, 21)
+r.box(20, 19, 23, 19)
+r.box(26, 19, 27, 19)
+r.fill(20, 21, 27, 21, "^")
+r.put(12, 18, "E")
+r.put(54, 18, "E")
+# The secret: a ledge only the double jump reaches, from the rock beside it.
+r.box(40, 16, 43, 18)
+r.box(46, 11, 50, 11)
+r.put(48, 10, "H")
+
+r = Room("spire", 44, 18)
+r.floor(16)
+r.fill(0, 13, 0, 15, "t")
+r.fill(43, 13, 43, 15, "u")
+r.put(12, 15, "?")
+# Until the Spire's fight is built, the lightning tip waits on its plinth.
+r.box(20, 14, 23, 15)
+r.put(21, 13, "L")
+
+r = Room("anchor_gorge", 64, 20)
+r.open_sky()
+r.box(0, 13, 7, 19)
+r.box(56, 13, 63, 19)
+r.fill(8, 19, 55, 19, "^")
+r.fill(0, 10, 0, 12, "u")
+r.fill(63, 10, 63, 12, "v")
+r.put(3, 12, "?")
+for x in range(12, 56, 8):
+    r.put(x, 9, "*")
+
+r = Room("thunder_eyrie", 44, 18)
+r.open_sky()
+r.floor(16)
+r.fill(0, 13, 0, 15, "v")
+r.fill(43, 13, 43, 15, "w")
+r.put(12, 15, "?")
+# Until the rematch is built, its reward waits here.
+r.box(20, 14, 23, 15)
+r.put(21, 13, "H")
+
+r = Room("storm_tower", 26, 56)
+r.floor(54)
+r.fill(0, 51, 0, 53, "w")
+r.put(4, 53, "?")
+r.fill(1, 10, 1, 50, "^")
+r.fill(24, 2, 24, 53, "^")
+for i, y in enumerate(range(48, 7, -4)):
+    r.put(8 if i % 2 == 0 else 16, y, "*")
+r.box(1, 9, 5, 9)
+r.fill(0, 6, 0, 8, "z")
+
+# ---------------------------------------------------------------- High pass
+# The pass joining the tops of both faces. The castle gate above it needs the double jump
+# and the shockline together (still to come).
+
+r = Room("high_pass", 80, 20)
+r.open_sky()
+r.floor(17)
+r.fill(0, 14, 0, 16, "y")
+r.fill(79, 14, 79, 16, "z")
+r.put(40, 16, "?")
+r.box(18, 15, 22, 16)
+r.box(57, 15, 61, 16)
+r.put(28, 16, "E")
+r.put(52, 16, "E")
 
 LINKS = {
     "landing": {"a": ("rockfall", "a")},
@@ -313,8 +473,19 @@ LINKS = {
     "frozen_cellar": {"i": ("ice_caverns", "i")},
     "frozen_bridge": {"o": ("ice_climb", "o"), "p": ("crossroads", "p")},
     "crossroads": {"p": ("frozen_bridge", "p"), "q": ("ashen_road", "q"), "r": ("cliff_road", "r")},
-    "ashen_road": {"q": ("crossroads", "q")},
-    "cliff_road": {"r": ("crossroads", "r")},
+    "ashen_road": {"q": ("crossroads", "q"), "s": ("burning_homes", "s")},
+    "burning_homes": {"s": ("ashen_road", "s"), "t": ("forge", "t")},
+    "forge": {"t": ("burning_homes", "t"), "v": ("cinder_steps", "v")},
+    "cinder_steps": {"v": ("forge", "v"), "w": ("drake_roost", "w")},
+    "drake_roost": {"w": ("cinder_steps", "w"), "x": ("fire_shaft", "x")},
+    "fire_shaft": {"x": ("drake_roost", "x"), "y": ("high_pass", "y")},
+    "cliff_road": {"r": ("crossroads", "r"), "s": ("storm_bridges", "s")},
+    "storm_bridges": {"s": ("cliff_road", "s"), "t": ("spire", "t")},
+    "spire": {"t": ("storm_bridges", "t"), "u": ("anchor_gorge", "u")},
+    "anchor_gorge": {"u": ("spire", "u"), "v": ("thunder_eyrie", "v")},
+    "thunder_eyrie": {"v": ("anchor_gorge", "v"), "w": ("storm_tower", "w")},
+    "storm_tower": {"w": ("thunder_eyrie", "w"), "z": ("high_pass", "z")},
+    "high_pass": {"y": ("fire_shaft", "y"), "z": ("storm_tower", "z")},
 }
 
 
@@ -352,6 +523,12 @@ def door_side(room, cells):
     if min(ys) == 0:
         return "top"
     return "bottom"
+
+
+# Rooms nudged on the map from where their door would put them (in tiles), where the
+# mountain's shape matters more than the doors lining up: the fire road climbs up the west
+# face, above the ice.
+MAP_NUDGE = {"ashen_road": (0, -26)}
 
 
 def map_layout():
@@ -394,6 +571,8 @@ def map_layout():
             if dest in pos:
                 continue
             at = candidate(name, pos, door, dest, dest_door)
+            nudge = MAP_NUDGE.get(dest, (0, 0))
+            at = (at[0] + nudge[0], at[1] + nudge[1])
             if overlaps(dest, at, pos):
                 fallback.setdefault(dest, at)
                 continue

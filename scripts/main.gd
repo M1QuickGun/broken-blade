@@ -17,6 +17,7 @@ const DEBUG_WARPS := {
 	"debug_warp_village": ["village_square", "g"],
 	"debug_warp_frost_arena": ["frost_arena", "k"],
 	"debug_warp_frost_throne": ["frost_throne", "m"],
+	"debug_warp_crossroads": ["crossroads", "p"],
 }
 const DOOR_FADE := 0.15
 ## The view in world units (see Game.ART_SCALE).

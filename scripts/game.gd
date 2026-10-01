@@ -249,6 +249,7 @@ func _setup_input() -> void:
 	_bind("debug_warp_village", [KEY_6], [], [])
 	_bind("debug_warp_frost_arena", [KEY_7], [], [])
 	_bind("debug_warp_frost_throne", [KEY_8], [], [])
+	_bind("debug_warp_crossroads", [KEY_9], [], [])
 
 
 ## Adds an action with default bindings, unless it's already defined in Project Settings.

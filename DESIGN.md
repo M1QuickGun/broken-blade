@@ -114,8 +114,27 @@ square (rest hub) → Ice caverns (the Frozen cellar hides off it, shockline onl
 arena (Frost Warden, first fight: the ice shard) → Frozen depths (slide tutorial) → Frost
 throne (the rematch: a mask shard) → Ice climb (crawlspace exit) → Frozen bridge (gaps
 over frozen spikes, slides under fallen ice walls) → Crossroads (rest; a hidden ledge with a
-mask shard reached by the double jump or the shockline) → Ashen road (west, placeholder with
-the fire shard) and Cliff road (east, placeholder with the lightning shard).
+mask shard reached by the double jump or the shockline).
+
+**Fire slopes (west), laid out, art and bosses still to come:** Ashen road (slide under a
+fallen beam) → Burning homes (rest; a secret ledge only the shockline reaches) → Forge (the
+Ashen Drake's first fight; for now the fire piece waits on the anvil) → Cinder steps (the
+double jump tutorial: platforms five tiles apart over spikes, walls spiked so the wall jump
+can't skip it) → Drake's roost (the rematch; a mask shard waits for now) → Fire shaft (climbed
+with the double jump) → High pass.
+
+**Lightning peaks (east), laid out, art and bosses still to come:** Cliff road (slide under a
+rockfall) → Storm bridges (rest; a secret ledge only the double jump reaches) → Spire (the
+bound thing's first fight; for now the lightning tip waits on its plinth) → Anchor gorge (the
+shockline tutorial: a spiked chasm crossed ring to ring) → Thunderbird's eyrie (the rematch; a
+mask shard waits for now) → Storm tower (climbed ring to ring with the shockline, walls
+spiked) → High pass.
+
+**High pass:** joins the tops of both faces; the castle gate above it (double jump and
+shockline together) is still to come.
+
+`tools/check_reach.py` checks the layouts: that each room can be crossed with the abilities
+it needs, and that every ability gate and secret really needs its ability.
 
 Every region has its own painted backdrop and weather: the Foothills forest (light through
 the canopy), the Frozen village outdoors (snow falling over the terraced houses, icicles),
