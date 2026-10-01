@@ -929,6 +929,8 @@ func _check_damage() -> void:
 			if not controls_locked:
 				_hurt_by_hazard()
 			return
+		if source.get("harmless") == true:
+			continue  # a weak point: there to be struck, not to hurt
 		if _invuln <= 0.0 and _strike_guard <= 0.0 and source.has_method("take_hit"):
 			_hurt_by_enemy(source.global_position.x)
 			return

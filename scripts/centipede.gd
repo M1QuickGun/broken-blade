@@ -642,7 +642,7 @@ func _update_walls(delta: float) -> void:
 			if get_tree().get_nodes_in_group("hatchling").size() < 2:
 				var crawler := Crawler.new()
 				crawler.position = Vector2(randf_range(_left + 20, _right - 20), _top + 8)
-				crawler.hatchling = true
+				crawler.kind = "hatchling"
 				crawler.add_to_group("hatchling")
 				room.add_child(crawler)
 	_walls.queue_redraw()

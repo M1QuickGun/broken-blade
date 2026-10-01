@@ -15,6 +15,7 @@ const MaskShard := preload("res://scripts/mask_shard.gd")
 const Sign := preload("res://scripts/sign.gd")
 const Boss := preload("res://scripts/boss.gd")
 const Centipede := preload("res://scripts/centipede.gd")
+const Colossus := preload("res://scripts/colossus.gd")
 
 const PIECE_ABILITIES := {"I": "dash", "F": "double_jump", "L": "shockline", "W": "wall_jump"}
 
@@ -318,9 +319,14 @@ func _scan_cells() -> void:
 					spawn_point = feet
 				"E":
 					var crawler := Crawler.new()
-					crawler.frost = _ice
+					crawler.kind = "thrall" if _ice else "beetle"
 					crawler.position = feet
 					add_child(crawler)
+				"U":
+					var grub := Crawler.new()
+					grub.kind = "grub"
+					grub.position = feet
+					add_child(grub)
 				"I", "F", "L", "W":
 					var ability: String = PIECE_ABILITIES[c]
 					if not Game.has_ability(ability):
@@ -403,8 +409,22 @@ func _setup_boss() -> void:
 		# Beaten already; its reward waits where it fell if it wasn't picked up.
 		if info.has("reward"):
 			_add_reward(info.reward, reward_pos)
+		# The colossus stays slumped in its wall until it breaks out for the rematch.
+		if info.kind == "colossus" and info.phase == 1 and not Game.defeated.has("colossus_2"):
+			var husk := Colossus.new()
+			husk.dead = true
+			husk.phase = 1
+			husk.position = _boss_spawn
+			add_child(husk)
 		return
-	var boss: Node2D = Centipede.new() if info.kind == "centipede" else Boss.new()
+	var boss: Node2D
+	match info.kind:
+		"centipede":
+			boss = Centipede.new()
+		"colossus":
+			boss = Colossus.new()
+		_:
+			boss = Boss.new()
 	boss.boss_id = info.id
 	boss.kind = info.kind
 	boss.phase = info.phase
@@ -412,7 +432,10 @@ func _setup_boss() -> void:
 	boss.max_hp = info.hp
 	boss.position = _boss_spawn
 	add_child(boss)
-	boss.defeated.connect(func() -> void: _on_boss_defeated(info, boss.global_position))
+	# Most rewards drop to the floor where the boss fell; some bosses say exactly where.
+	boss.defeated.connect(func() -> void:
+		var exact: bool = boss.has_method("reward_point")
+		_on_boss_defeated(info, boss.reward_point() if exact else boss.global_position, exact))
 	if boss.has_signal("engaged"):
 		boss.engaged.connect(_lock_doors)  # it lies in wait: the doors bar only once it wakes
 	else:
@@ -432,14 +455,14 @@ func _lock_doors() -> void:
 	queue_redraw()
 
 
-func _on_boss_defeated(info: Dictionary, where: Vector2) -> void:
+func _on_boss_defeated(info: Dictionary, where: Vector2, exact := false) -> void:
 	_locked = false
 	if _gate:
 		_gate.queue_free()
 		_gate = null
 	queue_redraw()
 	if info.has("reward"):
-		_add_reward(info.reward, Vector2(where.x, _boss_spawn.y - TILE))
+		_add_reward(info.reward, where if exact else Vector2(where.x, _boss_spawn.y - TILE))
 	boss_defeated.emit(info.title)
 
 
