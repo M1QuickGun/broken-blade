@@ -41,6 +41,8 @@ const TORSO_HOLLOW := preload("res://art/bosses/colossus_torso_hollow.png")
 ## How far its chest sits above its hips (phase 2); its waist hangs between the two.
 const HIP_DROP := 80.0
 const COLOR_PIECE := Color("bfe9ff")
+## Phase 2's ice pillars: tall enough to climb and get over it.
+const PILLAR_HEIGHT := 128.0
 const ARM := preload("res://art/bosses/colossus_arm.png")
 ## Its near arm, drawn with the back of the hand toward the viewer (the far arm, ARM, shows
 ## the other side of its fist).
@@ -142,6 +144,9 @@ var _fist: Hitbox
 var _charge_box: Hitbox
 var _burst_box: Hitbox
 var _feet: Array[Hitbox] = []
+## Phase 2: its body and legs hurt to touch (so Storm can't pass through it).
+var _body_box: Hitbox
+var _leg_boxes: Array[Hitbox] = []
 var _fist_ledge: StaticBody2D
 
 
@@ -167,6 +172,8 @@ func _ready() -> void:
 	_burst_box = _make_box(Vector2(130, 70), false)
 	for i in 2:
 		_feet.append(_make_box(Vector2(26, 16), false))
+		_leg_boxes.append(_make_box(Vector2(18, 66), false))
+	_body_box = _make_box(Vector2(64, 104), false)
 	_fist_ledge = StaticBody2D.new()
 	_fist_ledge.collision_layer = 0
 	_fist_ledge.collision_mask = 0
@@ -181,6 +188,9 @@ func _ready() -> void:
 	_set_box(_fist, false)
 	_set_box(_charge_box, false)
 	_set_box(_burst_box, false)
+	_set_box(_body_box, false)
+	for box in _leg_boxes:
+		_set_box(box, false)
 	for foot in _feet:
 		_set_box(foot, false)
 	if dead:
@@ -249,7 +259,7 @@ func take_hit(damage: int, _from_dir: Vector2) -> void:
 		hp = 0
 		remove_from_group("shock_target")
 		remove_from_group("boss")
-		for box in [_chest, _fist, _charge_box] + _feet:
+		for box in [_chest, _fist, _charge_box, _body_box] + _feet + _leg_boxes:
 			_set_box(box, false)
 		_fist_ledge.collision_layer = 0
 		_enter(St.SLUMP if phase == 1 else St.SHATTER, 2.6 if phase == 1 else 1.8)
@@ -599,8 +609,15 @@ func _phase_2(p: Vector2, delta: float) -> void:
 	if _state != St.SHATTER:
 		_update_pieces(delta)
 	var feet := _foot_points()
+	var hips := _hip_points()
 	for i in 2:
 		_set_box(_feet[i], feet_on, feet[i] + Vector2(0, -8))
+		# Along each leg, and its body (chest and waist). Off while it charges, so the gap
+		# between its legs, under its low belly, is clear to slide through.
+		var leg_mid: Vector2 = hips[i].lerp(feet[i], 0.45)
+		_set_box(_leg_boxes[i], feet_on and _legs_out, leg_mid)
+	var standing := _legs_out and _state not in [St.DORMANT, St.WAKE, St.SHATTER, St.CHARGE]
+	_set_box(_body_box, standing, _torso_center() + Vector2(0, 30))
 	# Charging, its body is low but clears the floor by less than Storm stands: slide under.
 	_set_box(_charge_box, charge_on, Vector2(_x, _floor - 14.0 - 40.0))
 	_set_box(_chest, _state not in [St.DORMANT, St.WAKE, St.SHATTER], _chest_point())
@@ -663,7 +680,7 @@ func _update_pillars(delta: float) -> void:
 			continue
 		pillar.life -= delta
 		pillar.rise = clampf(pillar.rise + delta / 0.25, 0.0, 1.0) if pillar.life > 0.5 else clampf(pillar.life / 0.5, 0.0, 1.0)
-		var height: float = 84.0 * pillar.rise
+		var height: float = PILLAR_HEIGHT * pillar.rise
 		if pillar.body == null:
 			var body := StaticBody2D.new()
 			body.collision_layer = LAYER_WORLD
@@ -863,7 +880,7 @@ func _draw_phase_2(tint: Color) -> void:
 			var grow := clampf(1.0 - pillar.wait / 0.8, 0.0, 1.0)
 			_draw_ellipse(Vector2(pillar.x, _floor) - position, Vector2(6.0 + 6.0 * grow, 2.0 + 3.0 * grow), Color(0.6, 0.85, 1.0, 0.6))
 		else:
-			var h: float = 84.0 * pillar.rise
+			var h: float = PILLAR_HEIGHT * pillar.rise
 			if h < 8.0:
 				continue
 			var base := Vector2(pillar.x, _floor) - position
