@@ -13,8 +13,9 @@ controls are in `README.md`.
   `--headless --path . --quit-after 3` (compile check), and throwaway headless scenes that
   build rooms or run boss fights with a stand-in player (delete them afterwards, and delete
   `%APPDATA%/Godot/app_userdata/Broken Blade/save.json` if a test wrote one).
-- `press/` and `tools/make_press_images.py` / `make_portfolio_images.py` belong to other
-  work; leave them alone.
+- `press/` (press and portfolio images) and `tools/make_press_images.py` /
+  `make_portfolio_images.py` come from other chats working on the same repo: commit them
+  along with everything else.
 
 ## Tools
 - `tools/build_rooms.py`: every room layout and door link; regenerates `LINKS`, `MAP` and
