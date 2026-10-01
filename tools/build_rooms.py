@@ -192,6 +192,8 @@ r.box(20, 0, 29, 15)
 r.air(20, 2, 28, 4)
 r.fill(29, 2, 29, 4, "l")
 r.box(2, 11, 4, 11)
+# The ice it's frozen into runs down to the floor under it: a pedestal it rests on.
+r.box(15, 13, 19, 15)
 r.put(13, 15, "B")
 
 r = Room("frozen_depths", 64, 18)
