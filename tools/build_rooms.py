@@ -132,8 +132,9 @@ r.fill(29, 5, 29, 7, "f")
 r = Room("gate_cavern", 40, 18)
 r.floor(16)
 r.fill(0, 13, 0, 15, "f")
+# The gate sits right at the cavern's end, against the way out, with rock above it.
 r.box(35, 1, 38, 9)
-r.fill(35, 10, 36, 15, "G")
+r.fill(37, 10, 38, 15, "G")
 r.fill(39, 13, 39, 15, "g")
 r.put(20, 15, "B")
 

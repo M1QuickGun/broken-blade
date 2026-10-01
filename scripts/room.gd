@@ -48,6 +48,8 @@ const ICE_GATE_TEX := preload("res://art/world/frozen_gate.png")
 ## The part of the gate's art that isn't empty margin, so it can fill its doorway exactly.
 const ICE_GATE_ART := Rect2(0, 8, 64, 169)
 const SHEET_TILE := 32
+## How many rows of rock are drawn above a room that has a ceiling.
+const ROOF_ROWS := 6
 ## Solid-corner mask (NW 8, NE 4, SW 2, SE 1) -> tile in the sheet.
 const STONE_TILES := {
 	0: Vector2i(0, 3), 1: Vector2i(1, 3), 2: Vector2i(0, 0), 3: Vector2i(3, 0),
@@ -60,6 +62,9 @@ var room_name := ""
 var size_tiles := Vector2i.ZERO
 var size_px := Vector2.ZERO
 var spawn_point := Vector2.ZERO
+## A room with a ceiling has this much more solid rock drawn above it (and the camera may
+## look up into it), so a jump never shows where the roof ends. 0 for rooms open to the sky.
+var roof_px := 0.0
 
 var _grid: PackedStringArray
 ## Door letter -> Rect2i of the door's cells.
@@ -94,6 +99,8 @@ func build(name_: String) -> void:
 			_grid[y] = _grid[y].replace("=", ".").replace("G", ".")
 	size_tiles = Vector2i(_grid[0].length(), _grid.size())
 	size_px = Vector2(size_tiles) * TILE
+	if "." not in _grid[0].substr(1, size_tiles.x - 2):
+		roof_px = ROOF_ROWS * TILE
 	for y in _grid.size():
 		assert(_grid[y].length() == size_tiles.x, "%s row %d has the wrong width" % [name_, y])
 	_backdrop = Node2D.new()
@@ -193,10 +200,12 @@ func _add_props() -> void:
 	add_child(layer)
 
 
+## Forest in the Foothills; in the ice, the snowy village wherever the room is open to the
+## sky, the frozen cavern wherever it has a roof.
 func _atmosphere_style() -> String:
 	if not _ice:
 		return "forest"
-	return "snow" if room_name in Rooms.ICE_OUTDOOR_ROOMS else "cave"
+	return "snow" if roof_px == 0.0 else "cave"
 
 
 ## A separate solid body for every cell of one kind, so it can be taken away whole.
@@ -447,7 +456,7 @@ func _draw_backdrop() -> void:
 func _draw() -> void:
 	var sheet: Texture2D = ICE_SHEET if _ice else (FOREST_SHEET if _forest or _cave else STONE_SHEET)
 
-	for vy in size_tiles.y + 1:
+	for vy in range(-int(roof_px / TILE), size_tiles.y + 1):
 		for vx in size_tiles.x + 1:
 			var mask := int(_earth(vx - 1, vy - 1)) * 8 + int(_earth(vx, vy - 1)) * 4 \
 				+ int(_earth(vx - 1, vy)) * 2 + int(_earth(vx, vy))

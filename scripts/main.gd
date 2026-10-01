@@ -86,7 +86,7 @@ func _load_room(room_name: String, door: String, at := Vector2.INF) -> void:
 	else:
 		player.place_at(room.spawn_point if door == "" else room.door_spawn(door))
 	camera.limit_left = 0
-	camera.limit_top = 0
+	camera.limit_top = -int(room.roof_px)
 	camera.limit_right = int(room.size_px.x)
 	camera.limit_bottom = int(room.size_px.y)
 	camera.reset_smoothing()

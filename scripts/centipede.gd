@@ -20,7 +20,9 @@ extends Node2D
 ## through the ceiling in front of the frozen gate, sealing that too. Those two living coils
 ## trap Storm between them (walls he can cling to). It adds a ceiling
 ## drop, where dust trickles from the spot it'll fall on. At half health the coils close in, it
-## moves faster, and hatchlings drop in. Its death throes smash the frozen gate.
+## moves faster, and hatchlings drop in. Beaten, its coils crumble apart; the ground rumbles
+## one last time by the frozen gate, and it bursts out and smashes into the gate, blowing it
+## open, then collapses and sinks away.
 ##
 ## The node's origin is the room's B marker, the middle of the arena's floor. The body follows
 ## the head's path like a train, so wherever the head went (into the earth, up a coil, along
@@ -48,7 +50,7 @@ const COLOR_DIRT_LIGHT := Color("5e5443")
 
 enum St {
 	DORMANT, EMERGE, TUNNEL, RUMBLE, FLEE, BREACH, STUCK, SUBMERGE, TO_WALL, WALL_RUMBLE, LUNGE,
-	TO_CEILING, DUST, DROP, DYING, CHARGE_GATE, GONE,
+	TO_CEILING, DUST, DROP, DYING, LAST_RUMBLE, CHARGE_GATE, GONE,
 	COIL_UP, COIL_ACROSS, COIL_DOWN,
 }
 
@@ -120,6 +122,11 @@ var _coil_top := [0.0, 0.0]
 var _coil_bottom := [0.0, 0.0]
 var _enraged := false
 var _hatch_timer := 4.0
+## Where the frozen gate stands (its left face), and pieces of coil falling as they crumble:
+## {pos, vel, rot, spin, coil}.
+var _gate_x := 0.0
+var _falling: Array[Dictionary] = []
+var _crumble := 0.0
 
 
 func _ready() -> void:
@@ -178,6 +185,11 @@ func _measure_arena() -> void:
 		_wall_x = [6.0 * TILE + 32.0, 32.0 * TILE]
 		_left = _wall_x[0]
 		_right = _wall_x[1]
+		_gate_x = room.size_px.x
+		for gy in room.size_tiles.y:
+			for gx in room.size_tiles.x:
+				if room._cell(gx, gy) == "G":
+					_gate_x = minf(_gate_x, gx * TILE)
 
 
 ## Rock for measuring the arena (the earth that caves in, =, is part of the pit).
@@ -233,7 +245,7 @@ func shock_point() -> Vector2:
 
 
 func take_hit(damage: int, _from_dir: Vector2) -> void:
-	if _state in [St.DORMANT, St.EMERGE, St.FLEE, St.DYING, St.CHARGE_GATE, St.GONE]:
+	if _state in [St.DORMANT, St.EMERGE, St.FLEE, St.DYING, St.LAST_RUMBLE, St.CHARGE_GATE, St.GONE]:
 		return
 	hp -= damage
 	_flash = 0.1
@@ -357,24 +369,47 @@ func _physics_process(delta: float) -> void:
 			if _head.y > _floor:
 				_rumble(Vector2(_head.x, _floor), 0.08)
 		St.DYING:
-			_head += Vector2(randf_range(-3, 3), randf_range(-3, 3))
-			_shake = maxf(_shake, 0.1)
+			# It pulls down into the earth and its coils crumble apart, piece by piece.
+			_steer_to(Vector2(_head.x, _floor + DEPTH * 2.0), 160.0, delta, 2.0)
+			_shake = maxf(_shake, 0.08)
+			_crumble_coils(delta)
+			if _coil_bottom[0] - _coil_top[0] < 1.0 and _coil_bottom[1] - _coil_top[1] < 1.0:
+				_spot = Vector2(_gate_x - 36.0, _floor)
+				_jump_head(Vector2(_spot.x, _floor + DEPTH))
+				_enter(St.LAST_RUMBLE, 1.3)
+		St.LAST_RUMBLE:
+			# One last swell of earth, right before the frozen gate.
+			_rumble(_spot, 0.04)
+			_shake = maxf(_shake, 0.12)
 			if _timer <= 0.0:
-				_enter(St.CHARGE_GATE, 1.6)
+				for i in 6:
+					_spray(_spot + Vector2(randf_range(-12, 12), 0), COLOR_DIRT)
+				_path = [Vector2(_spot.x - 6.0, _floor - 54.0), Vector2(_gate_x + 10.0, _floor - 40.0)]
+				_enter(St.CHARGE_GATE, 2.0)
 		St.CHARGE_GATE:
-			if _steer_to(Vector2(_right + 40, _floor - 30), 420.0, delta, 12.0) or _timer <= 0.0:
-				_shake = 0.8
+			# Up out of the ground and headlong into the gate.
+			if _path.is_empty() or _timer <= 0.0:
+				_shake = 1.0
 				get_parent().shatter_gate()
-				_enter(St.GONE, 1.4)
+				for i in 10:
+					_spray(Vector2(_gate_x + randf_range(0, 32), _floor - randf_range(0, 96)), Color(0.75, 0.9, 1.0))
+				_flash = 0.15
+				_enter(St.GONE, 2.2)
+			elif _steer_to(_path[0], 380.0, delta, 8.0):
+				_path.pop_front()
 		St.GONE:
-			for i in 2:
-				_coil_top[i] = move_toward(_coil_top[i], _floor, 220.0 * delta)
-				_coil_bottom[i] = maxf(_coil_bottom[i], _coil_top[i])
-			_head.y += 70.0 * delta
+			# It falls in the wreck of the gate and sinks away into the earth.
+			if _timer > 1.5:
+				_steer_to(Vector2(_gate_x - 8.0, _floor - 6.0), 200.0, delta, 2.0)
+			else:
+				for i in _trail.size():
+					_trail[i].y += 30.0 * delta
+				_head.y += 30.0 * delta
 			if _timer <= 0.0:
 				_finish()
 	if phase >= 2 and _state != St.DORMANT:
 		_update_walls(delta)
+		_update_falling(delta)
 	_follow_trail()
 	_place_boxes()
 	_update_shake(delta)
@@ -613,6 +648,39 @@ func _update_walls(delta: float) -> void:
 	_walls.queue_redraw()
 
 
+## Beaten, each coil breaks apart from the top down: its pieces tumble off and fall.
+func _crumble_coils(delta: float) -> void:
+	_crumble -= delta
+	if _crumble > 0.0:
+		return
+	_crumble = 0.05
+	for i in 2:
+		if _coil_bottom[i] - _coil_top[i] < 1.0:
+			continue
+		var face: float = _left if i == 0 else _right
+		var cx := face - 16.0 if i == 0 else face + 16.0
+		var y: float = _coil_top[i] + _spacing * 0.5
+		_coil_top[i] = minf(_coil_top[i] + _spacing, _coil_bottom[i])
+		_falling.append({
+			"pos": Vector2(cx + randf_range(-4, 4), y), "vel": Vector2(randf_range(-70, 70), randf_range(-90, -10)),
+			"rot": PI / 2.0, "spin": randf_range(-6.0, 6.0), "coil": i,
+		})
+		_spray(Vector2(cx, y), COLOR_DIRT)
+
+
+func _update_falling(delta: float) -> void:
+	var landed := []
+	for piece in _falling:
+		piece.vel.y += 600.0 * delta
+		piece.pos += piece.vel * delta
+		piece.rot += piece.spin * delta
+		if piece.pos.y > _floor + 10.0:
+			landed.append(piece)
+	for piece in landed:
+		_spray(Vector2(piece.pos.x, _floor), COLOR_DIRT)
+		_falling.erase(piece)
+
+
 ## The coils: segments stacked from the floor up, sliding as if it's circling Storm (up one
 ## side, down the other).
 func _draw_walls() -> void:
@@ -625,11 +693,13 @@ func _draw_walls() -> void:
 		var up := i == 0
 		# Segments only slide once the coil is whole (while forming, it's the body following
 		# the head).
-		var slide := scroll if _state not in [St.COIL_UP, St.COIL_ACROSS, St.COIL_DOWN] else 0.0
+		var slide := scroll if _state not in [St.COIL_UP, St.COIL_ACROSS, St.COIL_DOWN, St.DYING] else 0.0
 		var y: float = _coil_bottom[i] + _spacing - (slide if up else _spacing - slide)
 		while y > _coil_top[i] + _spacing * 0.3:
 			_draw_segment_on(_walls, Vector2(cx, y - position.y), -PI / 2.0 if up else PI / 2.0, not up)
 			y -= _spacing
+	for piece in _falling:
+		_draw_segment_on(_walls, piece.pos - position, piece.rot, piece.coil == 1)
 
 
 # --- The body ---
@@ -662,7 +732,7 @@ func _follow_trail() -> void:
 
 func _place_boxes() -> void:
 	var room := get_parent()
-	var alive := _state not in [St.DORMANT, St.FLEE, St.DYING, St.CHARGE_GATE, St.GONE]
+	var alive := _state not in [St.DORMANT, St.FLEE, St.DYING, St.LAST_RUMBLE, St.CHARGE_GATE, St.GONE]
 	_head_box.global_position = room.to_global(_head)
 	_head_box.collision_layer = LAYER_ENEMY if alive and _in_open(_head) else 0
 	for k in _body_boxes.size():

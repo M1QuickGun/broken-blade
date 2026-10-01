@@ -35,8 +35,6 @@ const ICE_ROOMS := [
 	"village_square", "ice_caverns", "frost_arena", "frozen_depths", "frost_throne", "ice_climb",
 	"frozen_cellar", "frozen_bridge", "crossroads",
 ]
-## Of those, the ones out in the open (snow falling over the village); the rest are frozen caves.
-const ICE_OUTDOOR_ROOMS := ["village_square", "ice_climb", "frozen_bridge", "crossroads"]
 
 ## Boss fights. The doors lock until the boss falls; `reward` (a map letter) appears where
 ## it died. Every region's boss is fought twice: the first fight wins the blade piece, the
@@ -268,12 +266,12 @@ const LAYOUTS := {
 		"#..................................#####",
 		"#..................................#####",
 		"#..................................#####",
-		"#..................................GG..#",
-		"#..................................GG..#",
-		"#..................................GG..#",
-		"f..................................GG..g",
-		"f..................................GG..g",
-		"f...................B..............GG..g",
+		"#....................................GG#",
+		"#....................................GG#",
+		"#....................................GG#",
+		"f....................................GGg",
+		"f....................................GGg",
+		"f...................B................GGg",
 		"########################################",
 		"########################################",
 	],
