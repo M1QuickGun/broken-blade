@@ -32,6 +32,7 @@ signal defeated
 ## Sent when it wakes: the room bars its doors then.
 signal engaged
 
+const Effects := preload("res://scripts/effects.gd")
 const Projectile := preload("res://scripts/projectile.gd")
 const Crawler := preload("res://scripts/crawler.gd")
 const Shard := preload("res://scripts/shard.gd")
@@ -249,6 +250,10 @@ func take_hit(damage: int, _from_dir: Vector2) -> void:
 		return
 	hp -= damage
 	_flash = 0.1
+	Sfx.play("hit_boss", -3.0)
+	Effects.sparks(get_parent(), _head, Color(0.95, 0.88, 0.7), 12)
+	if hp <= 0:
+		Effects.slow_motion(get_tree())
 	if phase >= 2 and not _enraged and hp <= max_hp / 2:
 		_enraged = true
 		_shake = 0.6
@@ -428,6 +433,15 @@ func _warn_time() -> float:
 func _enter(state: St, time := 0.0) -> void:
 	_state = state
 	_timer = time
+	match state:
+		St.RUMBLE, St.WALL_RUMBLE, St.DUST, St.LAST_RUMBLE:
+			Sfx.play("rumble", -3.0)
+		St.BREACH, St.COIL_UP, St.COIL_DOWN:
+			Sfx.play("burst", -2.0)
+		St.STUCK:
+			Sfx.play("slam", -8.0)
+		St.FLEE, St.CHARGE_GATE:
+			Sfx.play("roar", -2.0, 0.04)
 
 
 func _update_dormant(p: Vector2) -> void:
@@ -444,6 +458,7 @@ func _update_dormant(p: Vector2) -> void:
 
 
 func _wake() -> void:
+	Sfx.play("roar", 0.0, 0.03)
 	engaged.emit()
 	add_to_group("boss")
 	add_to_group("shock_target")

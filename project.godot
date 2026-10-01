@@ -19,6 +19,7 @@ config/features=PackedStringArray("4.7")
 
 Game="*res://scripts/game.gd"
 Music="*res://scripts/music.gd"
+Sfx="*res://scripts/sfx.gd"
 
 [display]
 

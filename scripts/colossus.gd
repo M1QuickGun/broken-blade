@@ -31,6 +31,7 @@ signal defeated
 ## Sent when it wakes: the room bars its doors then.
 signal engaged
 
+const Effects := preload("res://scripts/effects.gd")
 const Projectile := preload("res://scripts/projectile.gd")
 const TORSO := preload("res://art/bosses/colossus_torso.png")
 const ARM := preload("res://art/bosses/colossus_arm.png")
@@ -220,7 +221,10 @@ func take_hit(damage: int, _from_dir: Vector2) -> void:
 		return
 	hp -= damage
 	_flash = 0.1
+	Sfx.play("hit_boss", -3.0)
+	Effects.sparks(get_parent(), _chest_point(), Color(0.75, 0.95, 1.0), 14)
 	if hp <= 0:
+		Effects.slow_motion(get_tree())
 		hp = 0
 		remove_from_group("shock_target")
 		remove_from_group("boss")
@@ -295,6 +299,19 @@ func _physics_process(delta: float) -> void:
 func _enter(state: St, time := 0.0) -> void:
 	_state = state
 	_timer = time
+	match state:
+		St.WAKE, St.ROAR, St.SLUMP:
+			Sfx.play("roar", -1.0, 0.04)
+		St.WEDGED, St.STUNNED:
+			Sfx.play("slam", -2.0)
+		St.BREATH:
+			Sfx.play("spin", -2.0, 0.0)
+		St.BURST, St.SHATTER:
+			Sfx.play("shatter", -2.0)
+		St.PILLARS:
+			Sfx.play("burst", -3.0)
+		St.CROUCH:
+			Sfx.play("rumble", -4.0)
 
 
 func _wake() -> void:

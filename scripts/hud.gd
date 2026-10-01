@@ -55,6 +55,7 @@ var _boss_label: Label
 ## The boss being fought (a boss.gd node), or null. Untyped: read for its title and hp.
 var _boss = null
 var _message_tween: Tween
+var _hurt: ColorRect
 
 
 func _ready() -> void:
@@ -136,6 +137,20 @@ func show_message(text: String) -> void:
 	_message_tween.tween_property(_message, "modulate:a", 1.0, 0.3)
 	_message_tween.tween_interval(2.0)
 	_message_tween.tween_property(_message, "modulate:a", 0.0, 0.8)
+
+
+## A red flash at the screen's edges when Storm is hurt.
+func flash_hurt() -> void:
+	if _hurt == null:
+		_hurt = ColorRect.new()
+		_hurt.size = Vector2(480, 270)
+		_hurt.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_hurt.color = Color(0.7, 0.05, 0.08, 0.0)
+		add_child(_hurt)
+		move_child(_hurt, 0)
+	_hurt.color.a = 0.32
+	var tween := create_tween()
+	tween.tween_property(_hurt, "color:a", 0.0, 0.35)
 
 
 ## Straight to black (the world starts hidden and fades in).

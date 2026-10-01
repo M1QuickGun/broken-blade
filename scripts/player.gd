@@ -365,6 +365,7 @@ func _physics_process(delta: float) -> void:
 		_update_wall(input_x)
 		if _jump_buffer > 0.0 and _coyote > 0.0:
 			velocity.y = JUMP_VELOCITY
+			Sfx.play("jump", -6.0)
 			_jump_buffer = 0.0
 			_coyote = 0.0
 			_no_jump_cut = false
@@ -378,7 +379,11 @@ func _physics_process(delta: float) -> void:
 			_attack()
 
 	_update_height()
+	var falling := velocity.y
+	var was_on_floor := is_on_floor()
 	move_and_slide()
+	if is_on_floor() and not was_on_floor and falling > 180.0:
+		Sfx.play("land", -8.0)
 	if _shock == Shock.PULLING:
 		_check_shock_arrival()
 	_check_damage()
@@ -509,6 +514,7 @@ func _update_wall(input_x: float) -> void:
 
 
 func _wall_jump() -> void:
+	Sfx.play("jump", -6.0)
 	var toward_wall := signf(Input.get_axis("move_left", "move_right")) == _wall_coyote_dir
 	if toward_wall:
 		velocity = Vector2(-_wall_coyote_dir * WALL_CLIMB_PUSH, WALL_CLIMB_VELOCITY)
@@ -536,6 +542,7 @@ func _start_dash(input_x: float) -> void:
 		facing = 1 if input_x > 0.0 else -1
 	_dash_dir = facing
 	_dash_time = DASH_TIME
+	Sfx.play("slide", -4.0)
 	_dash_cd = DASH_COOLDOWN
 	_carry = 0.0
 
@@ -593,6 +600,7 @@ func _can_double_jump() -> bool:
 
 
 func _start_spin() -> void:
+	Sfx.play("spin", -3.0)
 	velocity.y = DOUBLE_JUMP_VELOCITY
 	_jump_buffer = 0.0
 	_air_jump = false
@@ -649,6 +657,7 @@ func _can_shock() -> bool:
 
 
 func _fire_shockline(input_x: float) -> void:
+	Sfx.play("shock_charge", -6.0, 0.0)
 	_spin_time = 0.0
 	if input_x != 0.0:
 		facing = 1 if input_x > 0.0 else -1
@@ -697,6 +706,7 @@ func _update_shock_aiming(delta: float) -> void:
 	if _shock_time >= SHOCK_AIM_TIME:
 		_shock = Shock.FIRING
 		_shock_tip = _sword_point()
+		Sfx.play("shock_fire", -4.0)
 
 
 ## The line flies straight out while Storm braces. Whatever it hits, or wherever
@@ -856,6 +866,7 @@ func _end_shockline(cooldown := SHOCK_COOLDOWN) -> void:
 # --- Combat ---
 
 func _attack() -> void:
+	Sfx.play("swing", -5.0, 0.12)
 	_attack_cd = ATTACK_COOLDOWN
 	_slash_time = SLASH_TIME
 	_attack_anim = ATTACK_COOLDOWN
@@ -943,6 +954,7 @@ func _can_drink() -> bool:
 
 
 func _start_drink() -> void:
+	Sfx.play("flask", -3.0, 0.02)
 	Game.use_flask()
 	_drink_time = DRINK_TIME
 	_drink_healed = false
@@ -1017,6 +1029,7 @@ func _hurt_by_hazard() -> void:
 
 
 func _take_damage() -> void:
+	Sfx.play("hurt", -2.0)
 	hp -= 1
 	hp_changed.emit(hp, Game.max_hp)
 	if hp <= 0:

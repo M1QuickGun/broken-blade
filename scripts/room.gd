@@ -231,6 +231,8 @@ func _cells_body(kind: String) -> StaticBody2D:
 
 ## The earth lid gives way (the centipede bursting up under Storm's feet).
 func break_lid() -> void:
+	Sfx.play("burst")
+	Sfx.play("rumble")
 	_clear_cells("=", COLOR_DIRT)
 	if _lid:
 		_lid.queue_free()
@@ -239,6 +241,7 @@ func break_lid() -> void:
 
 ## The frozen gate shatters.
 func shatter_gate() -> void:
+	Sfx.play("shatter", 2.0, 0.0)
 	_clear_cells("G", COLOR_ICE_GATE)
 	if _ice_gate:
 		_ice_gate.queue_free()

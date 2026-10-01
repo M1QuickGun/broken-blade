@@ -57,11 +57,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		moved.emit()
 	elif _pressed(event, ["ui_accept", "jump", "attack"]) and shown[selected].has("pick"):
 		get_viewport().set_input_as_handled()
+		Sfx.play("menu_pick", -4.0, 0.0)
 		shown[selected].pick.call()
 		return
 	else:
 		return
 	get_viewport().set_input_as_handled()
+	Sfx.play("menu_move", -6.0, 0.0)
 	queue_redraw()
 
 

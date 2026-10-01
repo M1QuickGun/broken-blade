@@ -33,6 +33,7 @@ func _process(delta: float) -> void:
 
 
 func _on_body_entered(body: Node2D) -> void:
+	Sfx.play("rest", -2.0, 0.0)
 	if body.has_method("heal_full"):
 		body.heal_full()
 	_lit = true

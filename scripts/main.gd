@@ -78,6 +78,7 @@ func _start_world() -> void:
 	hud.set_hp(player.hp, Game.max_hp)
 
 	player.hp_changed.connect(hud.set_hp)
+	player.hp_changed.connect(_on_hp_changed)
 	player.hit_hazard.connect(_on_player_hit_hazard)
 	player.died.connect(_on_player_died)
 
@@ -94,6 +95,20 @@ func _process(_delta: float) -> void:
 	if map_screen and room:
 		map_screen.current_room = room.room_name
 		map_screen.storm_at = player.position
+
+
+var _last_hp := -1
+
+
+## Losing health: a red flash and a jolt of the camera.
+func _on_hp_changed(hp: int, _max_hp: int) -> void:
+	if _last_hp >= 0 and hp < _last_hp:
+		hud.flash_hurt()
+		var tween := create_tween()
+		for i in 5:
+			tween.tween_property(camera, "position", Vector2(randf_range(-3, 3), randf_range(-3, 3)), 0.03)
+		tween.tween_property(camera, "position", Vector2.ZERO, 0.03)
+	_last_hp = hp
 
 
 func _quit_to_title() -> void:

@@ -34,6 +34,7 @@ func _process(delta: float) -> void:
 
 
 func _on_body_entered(_body: Node2D) -> void:
+	Sfx.play("pickup", 0.0, 0.0)
 	Game.unlock(ability)
 	queue_free()
 

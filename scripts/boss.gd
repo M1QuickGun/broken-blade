@@ -10,6 +10,7 @@ extends CharacterBody2D
 
 signal defeated
 
+const Effects := preload("res://scripts/effects.gd")
 const LAYER_WORLD := 1
 const LAYER_ENEMY := 4
 const Projectile := preload("res://scripts/projectile.gd")
@@ -217,8 +218,11 @@ func take_hit(damage: int, _from_dir: Vector2) -> void:
 		return
 	hp -= damage
 	_flash = 0.1
+	Sfx.play("hit_boss", -3.0)
+	Effects.sparks(get_parent(), position + Vector2(0, -_size.y / 2), Color(0.85, 0.95, 1.0), 12)
 	if hp <= 0:
 		hp = 0
+		Effects.slow_motion(get_tree())
 		Game.defeated[boss_id] = true
 		remove_from_group("shock_target")
 		collision_layer = 0

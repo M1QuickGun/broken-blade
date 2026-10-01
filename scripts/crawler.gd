@@ -10,6 +10,7 @@ extends CharacterBody2D
 ##   the ground rumbles; it bursts out at him, crawls about for a while, then burrows again.
 ## The node's origin is at its feet.
 
+const Effects := preload("res://scripts/effects.gd")
 const LAYER_WORLD := 1
 const LAYER_ENEMY := 4
 
@@ -181,6 +182,7 @@ func _grub(to: Vector2) -> void:
 					_spray()
 				velocity = Vector2(dir * 90.0, -260.0)
 				_state = St.LEAP
+				Sfx.play("burst", -10.0)
 		St.LEAP:
 			if is_on_floor() and velocity.y >= 0.0:
 				_state = St.WALK
@@ -217,7 +219,12 @@ func take_hit(damage: int, from_dir: Vector2) -> void:
 		return
 	hp -= damage
 	_flash = 0.1
+	var middle := global_position + Vector2(0, -_info.size.y / 2)
+	Sfx.play("hit", -4.0)
+	Effects.sparks(get_parent(), middle, Color(1, 0.95, 0.8))
 	if hp <= 0:
+		Sfx.play("enemy_die", -4.0)
+		Effects.puff(get_parent(), middle, Color(0.75, 0.9, 1.0) if kind == "thrall" else Color(0.45, 0.5, 0.4))
 		queue_free()
 		return
 	if from_dir.x != 0.0 and _state != St.CHARGE:
