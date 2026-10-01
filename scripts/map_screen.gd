@@ -16,6 +16,16 @@ const COLOR_HERE_EDGE := Color("c9d6ee")
 const COLOR_SHRINE := Color("9fe6ff")
 const COLOR_STORM := Color("f3e6b0")
 const COLOR_TEXT := Color("9aa3b5")
+## Each region's colour on the map: [fill, edge].
+const REGION_COLORS := {
+	"foothills": [Color("1c2a20"), Color("6f9a72")],
+	"ice": [Color("1b2734"), Color("7fb3d8")],
+	"fire": [Color("2e2019"), Color("d0875a")],
+	"storm": [Color("26213a"), Color("b9a4ec")],
+	"other": [Color("1d2330"), Color("6f7a90")],
+}
+const REGION_NAMES := [["foothills", "Foothills"], ["ice", "Frozen village"], ["fire", "Fire slopes"],
+	["storm", "Lightning peaks"]]
 
 ## Set by Main: the room Storm is in and where he is in it (world units).
 var current_room := ""
@@ -72,6 +82,18 @@ func _process(delta: float) -> void:
 	_canvas.queue_redraw()
 
 
+func _region(room: String) -> String:
+	if room in Rooms.FIRE_ROOMS:
+		return "fire"
+	if room in Rooms.STORM_ROOMS:
+		return "storm"
+	if room in Rooms.ICE_ROOMS:
+		return "ice"
+	if room in Rooms.FOREST_ROOMS or room in Rooms.CAVE_ROOMS:
+		return "foothills"
+	return "other"
+
+
 ## A room's rectangle on screen, given where the view is centred (in tiles).
 func _room_rect(room: String, center: Vector2) -> Rect2:
 	var at: Vector2i = Rooms.MAP[room]
@@ -90,8 +112,9 @@ func _draw_map() -> void:
 			continue
 		var r := _room_rect(room, center)
 		var here: bool = room == current_room
-		_canvas.draw_rect(r, COLOR_HERE if here else COLOR_ROOM)
-		_canvas.draw_rect(r, COLOR_HERE_EDGE if here else COLOR_ROOM_EDGE, false, 2.0 if here else 1.0)
+		var colors: Array = REGION_COLORS[_region(room)]
+		_canvas.draw_rect(r, colors[0].lightened(0.15) if here else colors[0])
+		_canvas.draw_rect(r, COLOR_HERE_EDGE if here else colors[1], false, 2.0 if here else 1.0)
 		# Rest shrines.
 		var rows: Array = Rooms.LAYOUTS[room]
 		for y in rows.size():
@@ -108,6 +131,12 @@ func _draw_map() -> void:
 	_canvas.draw_string(font, Vector2(24, 36), "Map", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color("e8ecf4"))
 	_canvas.draw_string(font, Vector2(24, SIZE.y - 24), "Move to look around.   M / Esc to close.",
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 14, COLOR_TEXT)
+	for i in REGION_NAMES.size():
+		var key: String = REGION_NAMES[i][0]
+		var at := Vector2(24 + i * 150, 60)
+		_canvas.draw_rect(Rect2(at, Vector2(12, 10)), REGION_COLORS[key][0])
+		_canvas.draw_rect(Rect2(at, Vector2(12, 10)), REGION_COLORS[key][1], false, 1.0)
+		_canvas.draw_string(font, at + Vector2(18, 10), REGION_NAMES[i][1], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, COLOR_TEXT)
 	_canvas.draw_circle(Vector2(SIZE.x - 150, SIZE.y - 30), 3.5, COLOR_SHRINE)
 	_canvas.draw_string(font, Vector2(SIZE.x - 140, SIZE.y - 24), "Rest shrine", HORIZONTAL_ALIGNMENT_LEFT, -1, 14,
 		COLOR_TEXT)

@@ -44,8 +44,8 @@ const LAYER_ENEMY := 4
 const CRACK := Vector2(72, 84)
 ## Where its arms join the body in the torso art (which faces right): the front shoulder by
 ## its head, the back one under the crystals; and its eyes.
-const SHOULDER_FRONT := Vector2(112, 60)
-const SHOULDER_BACK := Vector2(30, 52)
+const SHOULDER_FRONT := Vector2(104, 62)
+const SHOULDER_BACK := Vector2(34, 64)
 const EYES := Vector2(100, 38)
 const ARM_PIVOT := Vector2(12, 28)
 const ARM_REACH := 100.0
@@ -770,8 +770,9 @@ func _draw_phase_1(tint: Color) -> void:
 	var body_tint := Color(tint.r * dim, tint.g * dim, tint.b * dim)
 	# The back arm, behind the body; then the chest and head; then the front arm.
 	if not _arms_off[1]:
+		# (Mirrored from the front arm: its left hand, not a second right one.)
 		_draw_arm(_back_shoulder(), _arm_angle - 0.25, ARM_SCALE_1 * 0.9, 1.0,
-			body_tint.darkened(0.3), true)
+			body_tint.darkened(0.3), false)
 	var c := _torso_center() - position
 	draw_set_transform(c, 0.0, Vector2(-1, 1))  # the art faces right; it faces left, out of the wall
 	draw_texture(TORSO, -Vector2(64, 64), body_tint)
@@ -839,7 +840,7 @@ func _draw_phase_2(tint: Color) -> void:
 		_draw_leg(hips[1], angles[1], tint.darkened(0.3))
 	var c := _torso_center() - position
 	_draw_arm(_back_shoulder(), PI / 2.0 - _dir * (0.2 + swing), 0.95, 1.0,
-		tint.darkened(0.3), _dir < 0)
+		tint.darkened(0.3), _dir > 0)  # mirrored: the other hand
 	draw_set_transform(c, 0.0, Vector2(-1 if flip else 1, 1))
 	draw_texture(TORSO, -Vector2(64, 64), tint)
 	draw_set_transform(Vector2.ZERO)
