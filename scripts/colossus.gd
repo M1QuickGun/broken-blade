@@ -43,6 +43,8 @@ const ARM_LEFT := preload("res://art/bosses/colossus_arm_left.png")
 const ARM_LEFT_PIVOT := Vector2(24, 28)
 const ARM_LEFT_SCALE := 128.0 / 94.0
 const LEG := preload("res://art/bosses/colossus_leg.png")
+## Phase 2's waist and hips (96x64, facing right), joining the chest to the legs.
+const PELVIS := preload("res://art/bosses/colossus_pelvis.png")
 
 const TILE := 16
 const LAYER_WORLD := 1
@@ -847,6 +849,11 @@ func _draw_phase_2(tint: Color) -> void:
 	if _legs_out:
 		_draw_leg(hips[0], angles[0], tint.darkened(0.3))
 		_draw_leg(hips[1], angles[1], tint)
+		# The waist over the tops of both legs, under the chest.
+		var waist := _torso_center() + Vector2(0, 40) - position
+		draw_set_transform(waist, 0.0, Vector2(-1 if flip else 1, 1))
+		draw_texture(PELVIS, -Vector2(48, 30), tint)
+		draw_set_transform(Vector2.ZERO)
 	var c := _torso_center() - position
 	_draw_arm(_back_shoulder(), PI / 2.0 - _dir * (0.2 + swing), 0.95, 1.0,
 		tint.darkened(0.3), _dir < 0, ARM)
