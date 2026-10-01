@@ -35,17 +35,19 @@ const Effects := preload("res://scripts/effects.gd")
 const Projectile := preload("res://scripts/projectile.gd")
 const TORSO := preload("res://art/bosses/colossus_torso.png")
 const ARM := preload("res://art/bosses/colossus_arm.png")
+## Its other arm: the left, the fist seen from the back of the hand.
+const ARM_LEFT := preload("res://art/bosses/colossus_arm_left.png")
 const LEG := preload("res://art/bosses/colossus_leg.png")
 
 const TILE := 16
 const LAYER_WORLD := 1
 const LAYER_ENEMY := 4
 ## The chest wound in the torso art (128x128), and each part's pivot in its own art.
-const CRACK := Vector2(72, 84)
+const CRACK := Vector2(74, 78)
 ## Where its arms join the body in the torso art (which faces right): the front shoulder by
 ## its head, the back one under the crystals; and its eyes.
-const SHOULDER_FRONT := Vector2(104, 62)
-const SHOULDER_BACK := Vector2(34, 64)
+const SHOULDER_FRONT := Vector2(102, 64)
+const SHOULDER_BACK := Vector2(28, 52)
 const EYES := Vector2(100, 38)
 const ARM_PIVOT := Vector2(12, 28)
 const ARM_REACH := 100.0
@@ -770,9 +772,8 @@ func _draw_phase_1(tint: Color) -> void:
 	var body_tint := Color(tint.r * dim, tint.g * dim, tint.b * dim)
 	# The back arm, behind the body; then the chest and head; then the front arm.
 	if not _arms_off[1]:
-		# (Mirrored from the front arm: its left hand, not a second right one.)
 		_draw_arm(_back_shoulder(), _arm_angle - 0.25, ARM_SCALE_1 * 0.9, 1.0,
-			body_tint.darkened(0.3), false)
+			body_tint.darkened(0.3), true, ARM_LEFT)
 	var c := _torso_center() - position
 	draw_set_transform(c, 0.0, Vector2(-1, 1))  # the art faces right; it faces left, out of the wall
 	draw_texture(TORSO, -Vector2(64, 64), body_tint)
@@ -840,7 +841,7 @@ func _draw_phase_2(tint: Color) -> void:
 		_draw_leg(hips[1], angles[1], tint.darkened(0.3))
 	var c := _torso_center() - position
 	_draw_arm(_back_shoulder(), PI / 2.0 - _dir * (0.2 + swing), 0.95, 1.0,
-		tint.darkened(0.3), _dir > 0)  # mirrored: the other hand
+		tint.darkened(0.3), _dir < 0, ARM_LEFT)
 	draw_set_transform(c, 0.0, Vector2(-1 if flip else 1, 1))
 	draw_texture(TORSO, -Vector2(64, 64), tint)
 	draw_set_transform(Vector2.ZERO)
@@ -854,9 +855,10 @@ func _draw_phase_2(tint: Color) -> void:
 
 ## An arm from its shoulder, pointing along `angle` (fist at the far end). The art points
 ## right (fist on the right); `flip_y` mirrors it so the knuckles face the way it faces.
-func _draw_arm(shoulder: Vector2, angle: float, scale_: float, stretch: float, tint: Color, flip_y: bool) -> void:
+func _draw_arm(shoulder: Vector2, angle: float, scale_: float, stretch: float, tint: Color, flip_y: bool,
+		art: Texture2D = ARM) -> void:
 	draw_set_transform(shoulder - position, angle, Vector2(scale_ * stretch, -scale_ if flip_y else scale_))
-	draw_texture(ARM, -ARM_PIVOT, tint)
+	draw_texture(art, -ARM_PIVOT, tint)
 	draw_set_transform(Vector2.ZERO)
 
 
