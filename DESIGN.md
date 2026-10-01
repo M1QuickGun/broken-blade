@@ -171,6 +171,31 @@ ground, so it can only reach a circle around the pin: a tethered boss.
   from the holes.
 - Beaten, it crashes through the village gate, opening the way to the Frozen village.
 
+### Fight plan: the Frost Colossus (proposed)
+An ice golem the ice evil froze into the cavern wall, with the ice piece driven into its
+chest: the piece is what holds it there.
+
+**Fight 1: stuck in the wall (Frost arena).** Only its head, chest and two huge arms are out
+of the ice; it can't move, so the fight is about its reach.
+- *Fist slam:* it raises an arm; a shadow and falling frost mark where the fist will land.
+  The fist slams down and stays wedged in the ice floor for a moment; its arm becomes a ramp
+  up to its chest.
+- *Floor sweep:* frost gathers along its forearm, then it sweeps the arm across the floor at
+  knee height: jump it.
+- *Icicle roar:* it roars and icicles fall from the ceiling; their shadows show where.
+- *Weak point:* the glowing crack in its chest where the ice piece is lodged, reached by
+  running up a wedged arm or wall climbing beside it.
+- Beaten, it slumps; Storm pulls the ice piece out of its chest. Its eyes go dark, but the
+  ice around it cracks...
+
+**Fight 2: broken out (Frost throne).** The whole colossus, free, after the region has taught
+the slide.
+- *Roll:* it curls into a ball and rolls across the arena; slide under the gap as it bounces.
+- *Frozen floor:* it stamps and the floor turns to slick ice for a while.
+- *Pillars:* it raises ice pillars from the floor; wall jump between them to reach its head.
+- *Core:* after its big slams the armor on its chest cracks open, showing a glowing core.
+- Beaten, it shatters into blocks of ice.
+
 ### Healing: flasks
 Storm carries flasks of a shrine's pale flame (3 to start). Drinking one (F or Q, or B on a
 controller) roots him in place for a moment and mends 2 masks; a hit before it lands spills

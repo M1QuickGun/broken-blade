@@ -120,7 +120,8 @@ func _setup_frost(rng: RandomNumberGenerator, cols: int) -> void:
 			"x": rng.randf() * size_px.x, "y": rng.randf() * size_px.y,
 			"speed": rng.randf_range(14.0, 34.0) if style == "snow" else rng.randf_range(3.0, 9.0),
 			"sway": rng.randf_range(4.0, 12.0), "phase": rng.randf() * TAU,
-			"size": 1.0 if rng.randf() < 0.75 else 2.0,
+			# Depth: far flakes are small, slow and faint; near ones larger and brighter.
+			"depth": rng.randf(),
 		})
 	# An icicle or two under most cells that hang over open air.
 	for cy in solid.size():
@@ -234,8 +235,9 @@ func _draw_frost() -> void:
 		var alpha := 0.75
 		if style == "snow":
 			# Falling and blowing a little sideways, wrapping round the room.
-			y = fmod(f.y + _time * f.speed, size_px.y)
-			x = fmod(f.x + _time * f.speed * 0.35 + sin(_time * 0.9 + f.phase) * f.sway, size_px.x)
+			var fall: float = f.speed * lerpf(0.5, 1.2, f.depth)
+			y = fmod(f.y + _time * fall, size_px.y)
+			x = fmod(f.x + _time * fall * 0.35 + sin(_time * 0.9 + f.phase) * f.sway, size_px.x)
 		else:
 			# Frost drifting slowly up through the cold, glinting on and off.
 			y = fmod(f.y - _time * f.speed + size_px.y * 4.0, size_px.y)
@@ -244,7 +246,11 @@ func _draw_frost() -> void:
 		if x < 0.0:
 			x += size_px.x
 		var color := COLOR_SNOW if style == "snow" else COLOR_FROST
-		draw_rect(Rect2(x, y, f.size, f.size), Color(color, alpha))
+		var depth: float = f.depth
+		var radius := lerpf(0.35, 0.9, depth)
+		alpha *= lerpf(0.35, 0.85, depth)
+		draw_circle(Vector2(x, y), radius + 0.5, Color(color, alpha * 0.35))
+		draw_circle(Vector2(x, y), radius, Color(color, alpha))
 
 
 func _draw_ellipse(center: Vector2, radii: Vector2, color: Color) -> void:

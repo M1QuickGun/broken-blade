@@ -177,7 +177,7 @@ func _build_solids() -> void:
 					used[Vector2i(xx, yy)] = true
 			_add_rect(body, Rect2(x * TILE, y * TILE, w * TILE, h * TILE))
 	# Unseen walls just past the room's edges, for rooms open to the sky or the drop.
-	_add_rect(body, Rect2(-TILE * 2, -TILE * 4, size_px.x + TILE * 4, TILE * 2))
+	_add_rect(body, Rect2(-TILE * 2, -TILE * 2, size_px.x + TILE * 4, TILE * 2))
 	_add_rect(body, Rect2(-TILE * 2, -TILE * 4, TILE * 2, size_px.y + TILE * 4))
 	_add_rect(body, Rect2(size_px.x, -TILE * 4, TILE * 2, size_px.y + TILE * 4))
 	_lid = _cells_body("=")
@@ -191,6 +191,8 @@ func _add_props() -> void:
 		return
 	var layer := Node2D.new()
 	layer.z_index = -1
+	# Lit like the painted backdrop behind them, a touch brighter as they stand nearer.
+	layer.modulate = Color(0.78, 0.82, 0.88) if _ice else Color(0.85, 0.88, 0.86)
 	layer.draw.connect(func() -> void:
 		for prop: Array in list:
 			var tex: Texture2D = load("res://art/world/props/%s.png" % prop[0])

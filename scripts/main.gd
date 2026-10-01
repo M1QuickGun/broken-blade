@@ -8,6 +8,8 @@ const Hud := preload("res://scripts/hud.gd")
 
 const START_ROOM := "landing"
 const DOOR_FADE := 0.15
+## The view in world units (see Game.ART_SCALE).
+const VIEW_HEIGHT := 270
 ## How far past the room's edges Storm can go before he's put back on solid ground.
 const OUT_OF_BOUNDS_MARGIN := 48.0
 
@@ -87,6 +89,10 @@ func _load_room(room_name: String, door: String, at := Vector2.INF) -> void:
 		player.place_at(room.spawn_point if door == "" else room.door_spawn(door))
 	camera.limit_left = 0
 	camera.limit_top = -int(room.roof_px)
+	# A room barely taller than the screen isn't for climbing: the camera holds still
+	# vertically, showing its floor, instead of bobbing up after every jump.
+	if room.size_px.y <= VIEW_HEIGHT + 3 * Rooms.TILE:
+		camera.limit_top = int(room.size_px.y) - VIEW_HEIGHT
 	camera.limit_right = int(room.size_px.x)
 	camera.limit_bottom = int(room.size_px.y)
 	camera.reset_smoothing()

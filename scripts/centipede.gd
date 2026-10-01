@@ -788,7 +788,8 @@ func _draw() -> void:
 		# Torn loose, it arcs up and drifts to hover over the middle of the pit.
 		var to := Vector2(position.x, _floor - TILE)
 		var at := _hilt_from.lerp(to, ease(_hilt_t, -2.0)) - Vector2(0, sin(_hilt_t * PI) * 40.0)
-		_draw_hilt(at - position, true, PI + _hilt_t * TAU * 2.0)
+		# (Ends upright and the same size as the pickup that replaces it.)
+		_draw_hilt(at - position, false, _hilt_t * TAU * 2.0)
 
 
 ## The swell of earth where it's about to burst out: a mound on the floor, a bulge on a wall.
