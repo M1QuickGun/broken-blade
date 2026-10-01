@@ -137,6 +137,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.is_action_pressed(action) and not _transitioning:
 			_debug_warp(DEBUG_WARPS[action][0], DEBUG_WARPS[action][1])
 			return
+	if event.is_action_pressed("debug_reveal_map"):
+		# Mark every room visited, to see the whole map (M) filled in.
+		for room_name in Rooms.LAYOUTS:
+			Game.visited[room_name] = true
+		hud.show_message("Map revealed.")
+		return
 	if event.is_action_pressed("debug_defeat_boss"):
 		# Finish off whatever boss is fighting (for testing what comes after it).
 		var boss = get_tree().get_first_node_in_group("boss")

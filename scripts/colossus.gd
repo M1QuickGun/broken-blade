@@ -861,7 +861,8 @@ func _draw_arm(shoulder: Vector2, angle: float, scale_: float, stretch: float, t
 
 
 func _draw_leg(hip: Vector2, angle: float, tint: Color) -> void:
-	draw_set_transform(hip - position, -angle, Vector2.ONE)
+	# The art's toes point right: mirrored when it faces left.
+	draw_set_transform(hip - position, -angle, Vector2(1 if _dir > 0 else -1, 1))
 	draw_texture(LEG, -LEG_PIVOT, tint)
 	draw_set_transform(Vector2.ZERO)
 
