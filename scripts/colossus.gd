@@ -35,7 +35,8 @@ const Effects := preload("res://scripts/effects.gd")
 const Projectile := preload("res://scripts/projectile.gd")
 const TORSO := preload("res://art/bosses/colossus_torso.png")
 const ARM := preload("res://art/bosses/colossus_arm.png")
-## Its other arm: the left, the fist seen from the back of the hand.
+## Its near arm, drawn with the back of the hand toward the viewer (the far arm, ARM, shows
+## the other side of its fist).
 const ARM_LEFT := preload("res://art/bosses/colossus_arm_left.png")
 const LEG := preload("res://art/bosses/colossus_leg.png")
 
@@ -44,10 +45,10 @@ const LAYER_WORLD := 1
 const LAYER_ENEMY := 4
 ## The chest wound in the torso art (128x128), and each part's pivot in its own art.
 const CRACK := Vector2(74, 78)
-## Where its arms join the body in the torso art (which faces right): the front shoulder by
-## its head, the back one under the crystals; and its eyes.
-const SHOULDER_FRONT := Vector2(102, 64)
-const SHOULDER_BACK := Vector2(28, 52)
+## Where its arms join the body in the torso art (which faces right): the near shoulder is the
+## big rounded stump, the far one is tucked behind its head; and its eyes.
+const SHOULDER_FRONT := Vector2(28, 52)
+const SHOULDER_BACK := Vector2(102, 64)
 const EYES := Vector2(100, 38)
 const ARM_PIVOT := Vector2(12, 28)
 const ARM_REACH := 100.0
@@ -773,7 +774,7 @@ func _draw_phase_1(tint: Color) -> void:
 	# The back arm, behind the body; then the chest and head; then the front arm.
 	if not _arms_off[1]:
 		_draw_arm(_back_shoulder(), _arm_angle - 0.25, ARM_SCALE_1 * 0.9, 1.0,
-			body_tint.darkened(0.3), true, ARM_LEFT)
+			body_tint.darkened(0.3), true, ARM)
 	var c := _torso_center() - position
 	draw_set_transform(c, 0.0, Vector2(-1, 1))  # the art faces right; it faces left, out of the wall
 	draw_texture(TORSO, -Vector2(64, 64), body_tint)
@@ -782,7 +783,7 @@ func _draw_phase_1(tint: Color) -> void:
 		_draw_cracks(c, 1.0 if _state == St.SLUMPED else _slump)
 	_draw_eyes(c)
 	if not _arms_off[0]:
-		_draw_arm(_shoulder(), _arm_angle, ARM_SCALE_1, _arm_stretch, body_tint, true)
+		_draw_arm(_shoulder(), _arm_angle, ARM_SCALE_1, _arm_stretch, body_tint, true, ARM_LEFT)
 	if _state == St.BURST:
 		var up := clampf(1.0 - (_timer - 0.35) / 0.15, 0.0, 1.0)
 		for i in 9:
@@ -841,7 +842,7 @@ func _draw_phase_2(tint: Color) -> void:
 		_draw_leg(hips[1], angles[1], tint.darkened(0.3))
 	var c := _torso_center() - position
 	_draw_arm(_back_shoulder(), PI / 2.0 - _dir * (0.2 + swing), 0.95, 1.0,
-		tint.darkened(0.3), _dir < 0, ARM_LEFT)
+		tint.darkened(0.3), _dir < 0, ARM)
 	draw_set_transform(c, 0.0, Vector2(-1 if flip else 1, 1))
 	draw_texture(TORSO, -Vector2(64, 64), tint)
 	draw_set_transform(Vector2.ZERO)
@@ -849,7 +850,7 @@ func _draw_phase_2(tint: Color) -> void:
 	if _legs_out:
 		_draw_leg(hips[0], angles[0], tint)
 	_draw_arm(_shoulder(), PI / 2.0 - _dir * (0.3 - swing), 1.0, 1.0,
-		tint, _dir < 0)
+		tint, _dir < 0, ARM_LEFT)
 	_draw_pieces()
 
 
