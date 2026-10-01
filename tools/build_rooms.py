@@ -86,7 +86,7 @@ r.put(35, 7, "E")
 r.put(34, 14, "U")
 r.fill(41, 15, 44, 15, "^")
 r.box(46, 14, 48, 14)
-r.put(52, 14, "E")
+r.put(47, 13, "E")
 
 # The stone ring. The golden hilt glints in the middle of solid ground; pulling at it wakes the
 # Guardian Centipede it's stuck in, and the earth under the ring (=) caves in: Storm drops into
@@ -107,7 +107,7 @@ r.air(33, 19, 34, 21)
 r.fill(11, 25, 12, 27, "=")
 r.fill(33, 19, 34, 21, "=")
 r.put(39, 11, "?")
-r.put(42, 11, "U")
+r.put(36, 11, "U")
 r.fill(45, 9, 45, 11, "d")
 
 # The cliff. A narrow chimney first, where the wall jump is easy to learn, then the left wall
@@ -186,14 +186,14 @@ r.fill(49, 19, 49, 21, "k")
 
 # The Frost Colossus is frozen into the ice wall at the cavern's end. The way on is a passage
 # high in that wall, above its head: wall jump up the face once it's beaten.
-r = Room("frost_arena", 44, 18)
+r = Room("frost_arena", 30, 18)
 r.floor(16)
 r.fill(0, 13, 0, 15, "k")
-r.box(36, 0, 43, 15)
-r.air(36, 2, 42, 4)
-r.fill(43, 2, 43, 4, "l")
-r.box(7, 13, 10, 13)
-r.put(30, 15, "B")
+r.box(20, 0, 29, 15)
+r.air(20, 2, 28, 4)
+r.fill(29, 2, 29, 4, "l")
+r.box(2, 11, 4, 11)
+r.put(13, 15, "B")
 
 r = Room("frozen_depths", 64, 18)
 r.floor(16)
@@ -213,9 +213,6 @@ r = Room("frost_throne", 44, 18)
 r.floor(16)
 r.fill(0, 13, 0, 15, "m")
 r.fill(43, 13, 43, 15, "n")
-r.box(6, 13, 9, 13)
-r.box(20, 10, 23, 10)
-r.box(34, 13, 37, 13)
 r.put(30, 15, "B")
 
 # Up the mountain: ledges three tiles apart, then a crawlspace to the exit at the top.
@@ -258,7 +255,7 @@ r.air(37, 15, 41, 16)
 r.fill(37, 17, 41, 17, "^")
 r.put(46, 14, "E")
 r.box(50, 0, 54, 13)
-r.put(58, 14, "E")
+r.put(55, 14, "E")
 r.fill(63, 12, 63, 14, "p")
 
 # The crossroads: a rest shrine where the mountain road splits. West (up the ledges) is the
@@ -323,6 +320,12 @@ LINKS = {
 def check():
     for name, room in ROOMS.items():
         rows = room.rows()
+        doors = [(x, y) for y, row in enumerate(rows) for x, c in enumerate(row) if "a" <= c <= "z"]
+        for y, row in enumerate(rows):
+            for x, c in enumerate(row):
+                if c in "EU":
+                    for dx, dy in doors:
+                        assert not (abs(dx - x) < 8 and abs(dy - y) < 6),                             "%s: enemy at %d,%d is right by a door" % (name, x, y)
         assert all(len(row) == room.w for row in rows), name
         doors = {c for row in rows for c in row if "a" <= c <= "z"}
         linked = set(LINKS.get(name, {}))

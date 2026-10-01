@@ -10,9 +10,11 @@ extends Node2D
 ##   chest, its weak point.
 ## - Icicle roar: icicles fall from the ceiling; shadows on the floor show where.
 ## - Frost breath: a freezing wave runs out along the floor; jump it.
-## Beaten, it slumps in the wall and the ice piece comes free of its chest.
+## Beaten, cracks run through it, its arms break off and shatter, chunks fall away, and it
+## slumps dead in the wall; the ice piece comes free of its chest.
 ##
-## Phase 2, the Frost throne: broken out of the wall and walking. In a fixed order:
+## Phase 2, the Frost throne: broken out of the wall. It rises out of the floor body-first,
+## then its legs burst out and it stands. Then, in a fixed order:
 ## - Charge: it crouches low and charges across the arena. Its belly clears the floor by less
 ##   than Storm's height: the way past is to slide between its legs. Hitting the far wall
 ##   stuns it to its knees, chest low: hit the crack.
@@ -98,6 +100,14 @@ var _lift := 0.0
 ## Phase 2's ice pillars: {x, rise (0..1), life, body}; and its shattered pieces.
 var _pillars: Array[Dictionary] = []
 var _pieces: Array[Dictionary] = []
+## Phase 2's entrance: how far its body has risen out of the floor, and whether its legs
+## have burst out yet.
+var _rise := 0.0
+var _legs_out := false
+## Phase 2 turns only now and then (not every time Storm crosses under it).
+var _turn_wait := 0.0
+## Phase 1's death: which arms have broken off.
+var _arms_off := [false, false]
 
 var _chest: Hitbox
 var _fist: Hitbox
@@ -144,7 +154,7 @@ func _ready() -> void:
 		_set_box(foot, false)
 	if dead:
 		_slump = 1.0
-		_arm_angle = deg_to_rad(112.0)
+		_arms_off = [true, true]
 		_state = St.SLUMPED
 
 
@@ -205,7 +215,7 @@ func take_hit(damage: int, _from_dir: Vector2) -> void:
 		for box in [_chest, _fist, _charge_box] + _feet:
 			_set_box(box, false)
 		_fist_ledge.collision_layer = 0
-		_enter(St.SLUMP if phase == 1 else St.SHATTER, 1.4 if phase == 1 else 1.8)
+		_enter(St.SLUMP if phase == 1 else St.SHATTER, 2.6 if phase == 1 else 1.8)
 		if phase >= 2:
 			_shatter()
 
@@ -215,6 +225,9 @@ func take_hit(damage: int, _from_dir: Vector2) -> void:
 func _torso_center() -> Vector2:
 	if phase == 1:
 		return Vector2(_face - 44.0, _floor - 92.0 + 26.0 * _slump)
+	if not _legs_out:
+		# Rising out of the floor, legs still buried.
+		return Vector2(_x, lerpf(_floor + 80.0, _floor - 46.0, _rise))
 	var hip_y := _floor - LEG_LENGTH + 46.0 * _crouch + 34.0 * _kneel
 	return Vector2(_x, hip_y - 46.0)
 
@@ -277,7 +290,7 @@ func _phase_1(p: Vector2, delta: float) -> void:
 	var fist_on := false
 	match _state:
 		St.DORMANT:
-			if p.x > _face - 18.0 * TILE:
+			if p.x > _face - 13.0 * TILE:
 				_wake()
 		St.WAKE:
 			# The frost on it cracks; it pulls its arms free of the wall.
@@ -339,9 +352,21 @@ func _phase_1(p: Vector2, delta: float) -> void:
 				_spawn("frost_wave", Vector2(_face - 110.0, _floor), Vector2(-150.0, 0), 0.0, 3.5)
 				_enter(St.IDLE, 1.2)
 		St.SLUMP:
-			_slump = minf(_slump + delta / 1.2, 1.0)
-			_arm_angle = lerp_angle(_arm_angle, deg_to_rad(112.0), 3.0 * delta)
+			# Cracks run through it; one arm then the other breaks off and shatters on the
+			# floor; chunks fall away as it slumps dead into the wall.
+			_slump = minf(_slump + delta / 2.2, 1.0)
+			_shake = maxf(_shake, 0.06)
+			_arm_angle = lerp_angle(_arm_angle, deg_to_rad(125.0), 2.0 * delta)
 			_arm_stretch = move_toward(_arm_stretch, 1.0, delta)
+			if not _arms_off[0] and _timer < 2.0:
+				_arms_off[0] = true
+				_break_arm(_shoulder(), _arm_angle, ARM_SCALE_1)
+			if not _arms_off[1] and _timer < 1.3:
+				_arms_off[1] = true
+				_break_arm(_shoulder() + Vector2(34, -8), _arm_angle - 0.25, ARM_SCALE_1 * 0.9)
+			if fmod(_time, 0.12) < delta:
+				_chip(_torso_center() + Vector2(randf_range(-40, 10), randf_range(-40, 40)))
+			_update_pieces(delta)
 			if _timer <= 0.0:
 				Game.defeated[boss_id] = true
 				_restore_camera()
@@ -392,14 +417,28 @@ func _phase_2(p: Vector2, delta: float) -> void:
 			feet_on = false
 			if p.x > _left + 8.0 * TILE:
 				_wake()
+				_enter(St.WAKE, 2.8)
 		St.WAKE:
+			# Up out of the floor body-first, ice and earth bursting around it; then its legs
+			# burst out and it stands.
 			feet_on = false
 			_dir = -1 if p.x < _x else 1
+			_rise = minf(_rise + delta / 1.6, 1.0)
+			if not _legs_out and fmod(_time, 0.05) < delta:
+				_frost(Vector2(_x + randf_range(-50, 50), _floor - 2))
+			if not _legs_out and _timer <= 1.0:
+				_legs_out = true
+				_kneel = 1.0
+				_shake = 0.7
+				for i in 10:
+					_frost(Vector2(_x + randf_range(-40, 40), _floor - randf_range(0, 30)))
+			if _legs_out:
+				_kneel = move_toward(_kneel, 0.0, 1.6 * delta)
 			if _timer <= 0.0:
-				_enter(St.IDLE, 1.4)
+				_enter(St.IDLE, 1.2)
 		St.IDLE:
 			# Plods toward Storm.
-			_dir = -1 if p.x < _x else 1
+			_face_toward(p, delta)
 			_kneel = move_toward(_kneel, 0.0, 2.0 * delta)
 			_crouch = move_toward(_crouch, 0.0, 2.0 * delta)
 			if absf(p.x - _x) > 50.0:
@@ -417,7 +456,8 @@ func _phase_2(p: Vector2, delta: float) -> void:
 		St.CROUCH:
 			# Crouching low, scraping a foot: it's about to charge.
 			_crouch = move_toward(_crouch, 1.0, 2.5 * delta)
-			_dir = -1 if p.x < _x else 1
+			if _timer > 0.6:
+				_face_toward(p, delta)
 			if fmod(_time, 0.08) < delta:
 				_frost(Vector2(_x - _dir * 30.0, _floor - 4))
 			if _timer <= 0.0:
@@ -468,6 +508,20 @@ func _phase_2(p: Vector2, delta: float) -> void:
 	# Charging, its body is low but clears the floor by less than Storm stands: slide under.
 	_set_box(_charge_box, charge_on, Vector2(_x, _floor - 14.0 - 40.0))
 	_set_box(_chest, _state not in [St.DORMANT, St.WAKE, St.SHATTER], _chest_point())
+
+
+## Turns to face Storm, but only once he's clearly on its other side and not too often, so
+## it doesn't spin back and forth when he's right under it.
+func _face_toward(p: Vector2, delta: float) -> void:
+	_turn_wait -= delta
+	var want := _dir
+	if p.x < _x - 36.0:
+		want = -1
+	elif p.x > _x + 36.0:
+		want = 1
+	if want != _dir and _turn_wait <= 0.0:
+		_dir = want
+		_turn_wait = 0.6
 
 
 func _hip_points() -> Array:
@@ -549,6 +603,27 @@ func _shatter() -> void:
 		pillar.life = minf(pillar.life, 0.5)
 
 
+## An arm breaking off: chunks along its length that fall and scatter.
+func _break_arm(shoulder: Vector2, angle: float, scale_: float) -> void:
+	_shake = 0.5
+	var along := Vector2.from_angle(angle)
+	for i in 10:
+		var at := shoulder + along * (i + 0.5) * ARM_REACH * scale_ / 10.0
+		_pieces.append({
+			"pos": at + Vector2(randf_range(-8, 8), randf_range(-8, 8)),
+			"vel": Vector2(randf_range(-60, 60), randf_range(-120, 0)),
+			"size": randf_range(8, 16), "rot": randf() * TAU, "spin": randf_range(-6, 6),
+		})
+
+
+## A chip of ice falling off it.
+func _chip(at: Vector2) -> void:
+	_pieces.append({
+		"pos": at, "vel": Vector2(randf_range(-40, 40), randf_range(-60, 0)),
+		"size": randf_range(4, 9), "rot": randf() * TAU, "spin": randf_range(-6, 6),
+	})
+
+
 func _update_pieces(delta: float) -> void:
 	for piece in _pieces:
 		piece.vel.y += 700.0 * delta
@@ -623,23 +698,29 @@ func _draw_phase_1(tint: Color) -> void:
 	if _state == St.AIM:
 		var grow := clampf(1.0 - _timer / 0.9, 0.0, 1.0)
 		_draw_ellipse(Vector2(_target.x, _floor) - position, Vector2(10.0 + 14.0 * grow, 3.0), COLOR_SHADOW)
-	var dim := 0.55 if _state == St.DORMANT else 1.0
+	var dim := 0.55 if _state in [St.DORMANT, St.SLUMPED] else 1.0
+	if _state == St.SLUMP:
+		dim = lerpf(1.0, 0.55, _slump)
 	var body_tint := Color(tint.r * dim, tint.g * dim, tint.b * dim)
 	# The back arm, behind the body; then the chest and head; then the front arm.
-	_draw_arm(_shoulder() + Vector2(34, -8), _arm_angle - 0.25, ARM_SCALE_1 * 0.9, 1.0, body_tint.darkened(0.3))
+	if not _arms_off[1]:
+		_draw_arm(_shoulder() + Vector2(34, -8), _arm_angle - 0.25, ARM_SCALE_1 * 0.9, 1.0,
+			body_tint.darkened(0.3), true)
 	var c := _torso_center() - position
 	draw_texture(TORSO, c - Vector2(64, 64), body_tint)
+	if _state in [St.SLUMP, St.SLUMPED]:
+		_draw_cracks(c, 1.0 if _state == St.SLUMPED else _slump)
 	_draw_eyes(c)
-	_draw_arm(_shoulder(), _arm_angle, ARM_SCALE_1, _arm_stretch, body_tint)
+	if not _arms_off[0]:
+		_draw_arm(_shoulder(), _arm_angle, ARM_SCALE_1, _arm_stretch, body_tint, true)
+	_draw_pieces()
 
 
 func _draw_phase_2(tint: Color) -> void:
+	if _state == St.DORMANT:
+		return  # buried under the floor
 	if _state == St.SHATTER:
-		for piece in _pieces:
-			draw_set_transform(piece.pos - position, piece.rot)
-			draw_rect(Rect2(-piece.size / 2.0, -piece.size / 2.0, piece.size, piece.size * 0.7), Color(0.62, 0.82, 0.95))
-			draw_rect(Rect2(-piece.size / 2.0, -piece.size / 2.0, piece.size, 2), COLOR_FROST)
-		draw_set_transform(Vector2.ZERO)
+		_draw_pieces()
 		return
 	for pillar in _pillars:
 		if pillar.wait > 0.0:
@@ -658,23 +739,27 @@ func _draw_phase_2(tint: Color) -> void:
 	var flip := _dir > 0  # the art faces left
 	var hips := _hip_points()
 	var angles := _leg_angles()
-	# Back leg and arm behind; body; front leg and arm in front.
-	_draw_leg(hips[1], angles[1], tint.darkened(0.3))
+	# Back leg and arm behind; body; front leg and arm in front. The arms hang down and a
+	# little forward, knuckles toward where it faces.
+	var swing := sin(_stride) * 0.15
+	if _legs_out:
+		_draw_leg(hips[1], angles[1], tint.darkened(0.3))
 	var c := _torso_center() - position
-	_draw_arm(_torso_center() + Vector2(_dir * -26.0, -34.0), PI / 2.0 + _dir * 0.25 + sin(_stride) * 0.15, 0.95, 1.0, tint.darkened(0.3))
+	_draw_arm(_torso_center() + Vector2(_dir * -26.0, -34.0), PI / 2.0 - _dir * (0.2 + swing), 0.95, 1.0,
+		tint.darkened(0.3), _dir < 0)
 	draw_set_transform(c, 0.0, Vector2(-1 if flip else 1, 1))
 	draw_texture(TORSO, -Vector2(64, 64), tint)
 	draw_set_transform(Vector2.ZERO)
 	_draw_eyes(c)
-	_draw_leg(hips[0], angles[0], tint)
-	_draw_arm(_torso_center() + Vector2(_dir * 30.0, -30.0), PI / 2.0 - _dir * 0.2 - sin(_stride) * 0.15, 1.0, 1.0, tint)
+	if _legs_out:
+		_draw_leg(hips[0], angles[0], tint)
+	_draw_arm(_torso_center() + Vector2(_dir * 30.0, -30.0), PI / 2.0 - _dir * (0.3 - swing), 1.0, 1.0,
+		tint, _dir < 0)
 
 
-## An arm from its shoulder, pointing along `angle` (fist at the far end).
-func _draw_arm(shoulder: Vector2, angle: float, scale_: float, stretch: float, tint: Color) -> void:
-	# The art points right (fist on the right): flipped vertically when it points left, so
-	# the knuckles stay on top.
-	var flip_y := cos(angle) < 0.0
+## An arm from its shoulder, pointing along `angle` (fist at the far end). The art points
+## right (fist on the right); `flip_y` mirrors it so the knuckles face the way it faces.
+func _draw_arm(shoulder: Vector2, angle: float, scale_: float, stretch: float, tint: Color, flip_y: bool) -> void:
 	draw_set_transform(shoulder - position, angle, Vector2(scale_ * stretch, -scale_ if flip_y else scale_))
 	draw_texture(ARM, -ARM_PIVOT, tint)
 	draw_set_transform(Vector2.ZERO)
@@ -692,6 +777,30 @@ func _draw_eyes(c: Vector2) -> void:
 		return
 	var glow := 0.6 + 0.4 * sin(_time * 4.0)
 	draw_circle(c + Vector2(-34, -44), 5.0, Color(COLOR_EYES, 0.25 * glow))
+
+
+func _draw_pieces() -> void:
+	for piece in _pieces:
+		draw_set_transform(piece.pos - position, piece.rot)
+		draw_rect(Rect2(-piece.size / 2.0, -piece.size / 2.0, piece.size, piece.size * 0.7), Color(0.62, 0.82, 0.95))
+		draw_rect(Rect2(-piece.size / 2.0, -piece.size / 2.0, piece.size, 2), COLOR_FROST)
+	draw_set_transform(Vector2.ZERO)
+
+
+## Dark cracks spreading over its chest as it dies.
+func _draw_cracks(c: Vector2, amount: float) -> void:
+	var color := Color(0.05, 0.12, 0.2, 0.9)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	for i in 6:
+		var start := c + Vector2(rng.randf_range(-40, 10), rng.randf_range(-30, 40))
+		var pts := PackedVector2Array([start])
+		var at := start
+		for k in int(5 * amount) + 1:
+			at += Vector2(rng.randf_range(-10, 10), rng.randf_range(-12, 12))
+			pts.append(at)
+		if pts.size() > 1:
+			draw_polyline(pts, color, 1.5)
 
 
 func _draw_ellipse(center: Vector2, radii: Vector2, color: Color) -> void:

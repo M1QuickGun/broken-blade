@@ -51,6 +51,8 @@ const ICE_GATE_ART := Rect2(0, 8, 64, 169)
 const SHEET_TILE := 32
 ## How many rows of rock are drawn above a room that has a ceiling.
 const ROOF_ROWS := 6
+## Enemies keep this far from the room's sides, so none waits right by a door.
+const DOOR_CLEARANCE := 6.0 * 16.0
 ## Solid-corner mask (NW 8, NE 4, SW 2, SE 1) -> tile in the sheet.
 const STONE_TILES := {
 	0: Vector2i(0, 3), 1: Vector2i(1, 3), 2: Vector2i(0, 0), 3: Vector2i(3, 0),
@@ -320,6 +322,8 @@ func _scan_cells() -> void:
 				"E":
 					var crawler := Crawler.new()
 					crawler.kind = "thrall" if _ice else "beetle"
+					crawler.min_x = DOOR_CLEARANCE
+					crawler.max_x = size_px.x - DOOR_CLEARANCE
 					crawler.position = feet
 					add_child(crawler)
 				"U":

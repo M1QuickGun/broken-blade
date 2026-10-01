@@ -20,21 +20,25 @@ const KNOCKBACK_TIME := 0.15
 const COLOR_DIRT := Color("3b352b")
 
 ## Per kind: body size (world units), drawn size, health, walking speed, sheet, frame size
-## (art pixels) and animation speed. Sheets are horizontal strips facing right.
+## (art pixels) and animation speed. Sheets are horizontal strips facing right. "sink" sets
+## art with thin legs a little into the ground so it doesn't look like it's hovering.
 const KINDS := {
 	"beetle": {"size": Vector2(28, 22), "draw": 36.0, "hp": 4, "speed": 28.0,
 		"tex": preload("res://art/enemies/beetle.png"), "frame": 64, "fps": 7.0},
 	"thrall": {"size": Vector2(14, 28), "draw": 36.0, "hp": 3, "speed": 18.0,
 		"tex": preload("res://art/enemies/thrall.png"), "frame": 64, "fps": 6.0},
-	"hatchling": {"size": Vector2(32, 24), "draw": 32.0, "hp": 3, "speed": 35.0,
+	"hatchling": {"size": Vector2(32, 24), "draw": 32.0, "hp": 3, "speed": 35.0, "sink": 4.0,
 		"tex": preload("res://art/enemies/hatchling.png"), "frame": 32, "fps": 9.0},
-	"grub": {"size": Vector2(28, 20), "draw": 28.0, "hp": 2, "speed": 45.0,
+	"grub": {"size": Vector2(28, 20), "draw": 28.0, "hp": 2, "speed": 45.0, "sink": 4.0,
 		"tex": preload("res://art/enemies/hatchling.png"), "frame": 32, "fps": 12.0},
 }
 
 enum St { WALK, WINDUP, CHARGE, STUN, BURIED, RUMBLE, LEAP, DIG }
 
 var kind := "beetle"
+## How far it may walk (set by the room): it turns back before reaching a door.
+var min_x := -INF
+var max_x := INF
 var hp := 3
 var dir := -1
 
@@ -100,7 +104,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _patrol(speed: float) -> void:
-	if is_on_floor() and (_facing_wall() or not _ground_ahead()):
+	if is_on_floor() and (_facing_wall() or not _ground_ahead() or _at_limit()):
 		dir = -dir
 	velocity.x = dir * speed
 
@@ -120,7 +124,7 @@ func _beetle(to: Vector2) -> void:
 				_timer = 1.0
 		St.CHARGE:
 			velocity.x = dir * 165.0
-			if _facing_wall() or (is_on_floor() and not _ground_ahead()) or _timer <= 0.0:
+			if _facing_wall() or (is_on_floor() and not _ground_ahead()) or _at_limit() or _timer <= 0.0:
 				_state = St.STUN
 				_timer = 0.8 if _facing_wall() else 0.4
 				velocity.x = 0.0
@@ -138,7 +142,7 @@ func _thrall(to: Vector2) -> void:
 		St.WALK:
 			if near:
 				dir = 1 if to.x > 0.0 else -1
-				var blocked := is_on_floor() and (_facing_wall() or not _ground_ahead())
+				var blocked := is_on_floor() and (_facing_wall() or not _ground_ahead() or _at_limit())
 				velocity.x = 0.0 if blocked else dir * 40.0
 				if _cooldown <= 0.0 and absf(to.x) < 34.0:
 					_state = St.WINDUP
@@ -221,6 +225,10 @@ func take_hit(damage: int, from_dir: Vector2) -> void:
 		_knockback = KNOCKBACK_TIME
 
 
+func _at_limit() -> bool:
+	return (dir < 0 and global_position.x <= min_x) or (dir > 0 and global_position.x >= max_x)
+
+
 func _facing_wall() -> bool:
 	return is_on_wall() and signf(get_wall_normal().x) == -dir
 
@@ -255,6 +263,7 @@ func _draw() -> void:
 	var frame := int(_anim * fps) % frames
 	var side: float = _info.draw
 	var shake := Vector2(randf_range(-1, 1), 0) if _state == St.WINDUP else Vector2.ZERO
+	shake.y += _info.get("sink", 0.0)
 	draw_set_transform(shake, 0.0, Vector2(1 if dir > 0 else -1, 1))
 	draw_texture_rect_region(tex, Rect2(-side / 2.0, -side, side, side),
 		Rect2(frame * frame_px, 0, frame_px, frame_px), tint)
