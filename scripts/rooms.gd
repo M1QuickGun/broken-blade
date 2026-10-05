@@ -58,9 +58,12 @@ const BOSSES := {
 		"hp": 14, "reward": "I"},
 	"frost_throne": {"id": "colossus_2", "kind": "colossus", "phase": 2, "title": "The Frost Colossus, Unbound",
 		"hp": 22, "reward": "H"},
-	# The Ashen Drake: grounded in the forge by the fire piece driven through its wing, then
-	# free and flying in its roost.
+	# The Ashen Drake: grounded in the forge by the fire piece driven through its wing (it
+	# breaks out through the roof when the piece comes loose), then free and flying in its
+	# roost.
 	"forge": {"id": "drake_1", "kind": "drake", "phase": 1, "title": "The Ashen Drake", "hp": 16, "reward": "F"},
+	"drake_roost": {"id": "drake_2", "kind": "drake", "phase": 2, "title": "The Ashen Drake, Unbound",
+		"hp": 22, "reward": "H"},
 }
 
 ## Scenery standing on the ground, drawn behind Storm: [kind, x tile, row it stands on].
@@ -113,7 +116,7 @@ const SIGNS := {
 	"burning_homes": ["The homes burned when the fire piece broke loose. The old forge lies west."],
 	"forge": ["The great forge, where the blade was made. Something huge sleeps in the ashes at its far end."],
 	"cinder_steps": ["Jump, then jump again in midair to spin higher. The walls here are no help."],
-	"drake_roost": ["The Drake's roost. (The rematch is still to come.)"],
+	"drake_roost": ["The Drake's roost, high on the mountain. Smoke hangs over it. Something circles above."],
 	"fire_shaft": ["The shaft climbs to the high pass. Only the spin will get you up it."],
 	"cliff_road": ["The cliff road east, to the storm peaks. Rockfall ahead: slide under it."],
 	"storm_bridges": ["The bridges sway in the storm wind. The spire lies east."],
@@ -178,11 +181,11 @@ const MAP := {
 	"spire": Vector2i(732, -66),
 	"cinder_steps": Vector2i(340, -118),
 	"anchor_gorge": Vector2i(776, -63),
-	"drake_roost": Vector2i(296, -129),
+	"drake_roost": Vector2i(292, -132),
 	"thunder_eyrie": Vector2i(840, -66),
-	"fire_shaft": Vector2i(272, -167),
+	"fire_shaft": Vector2i(268, -167),
 	"storm_tower": Vector2i(884, -104),
-	"high_pass": Vector2i(296, -179),
+	"high_pass": Vector2i(292, -179),
 }
 
 const LAYOUTS := {
@@ -592,7 +595,7 @@ const LAYOUTS := {
 		"################################################################",
 	],
 	"forge": [
-		"############################################",
+		"######==============########################",
 		"#..........................................#",
 		"#..........................................#",
 		"#..........................................#",
@@ -654,24 +657,28 @@ const LAYOUTS := {
 		"############################################",
 	],
 	"drake_roost": [
-		"############################################",
-		"#..........................................#",
-		"#..........................................#",
-		"#..........................................#",
-		"#..........................................#",
-		"#..........................................#",
-		"#..........................................#",
-		"#..........................................#",
-		"#..........................................#",
-		"#..........................................#",
-		"#..........................................#",
-		"#..........................................#",
-		"#..........................................#",
-		"x....................H.....................w",
-		"x...................####...................w",
-		"x...................####......?............w",
-		"############################################",
-		"############################################",
+		"#..............................................#",
+		"#..............................................#",
+		"#..............................................#",
+		"#..............................................#",
+		"#..............................................#",
+		"#..............................................#",
+		"#..............................................#",
+		"#..............................................#",
+		"#..............................................#",
+		"#....................######....................#",
+		"#..............................................#",
+		"#..............................................#",
+		"#..............................................#",
+		"#..............................................#",
+		"#.......#####......................#####.......#",
+		"#..............................................#",
+		"x..............................................w",
+		"x..............................................w",
+		"x.......................B..................?...w",
+		"################################################",
+		"################################################",
+		"################################################",
 	],
 	"fire_shaft": [
 		"########################",

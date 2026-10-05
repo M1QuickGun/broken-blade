@@ -30,8 +30,7 @@ controls are in `README.md`.
 ## State
 - Playable: Foothills (forest; the Guardian Centipede twice), Frozen village (the Frost
   Colossus twice), the Crossroads, the Fire slopes (their own art and weather, ash bats, the
-  Ashen Drake's first fight in the Forge; the rematch in the Drake's roost still a mask shard
-  on a pedestal), and the laid-out Lightning peaks (rooms, rest points, secrets, tutorials and
+  Ashen Drake twice: grounded in the Forge, flying in the Drake's roost), and the laid-out Lightning peaks (rooms, rest points, secrets, tutorials and
   climbs; their piece waits on a plinth) up to the High pass.
 - Systems: saving (autosaves at shrines, pickups, bosses, new rooms), title screen with
   intro, pause menu (volume, fullscreen), colour-coded map, flasks, sound effects, hit
@@ -43,12 +42,15 @@ controls are in `README.md`.
 - Storm switches sword hands when he turns (all art is right-facing and mirrored). Making
   him stay right-handed needs left-facing versions of every animation (~80 generations);
   offered, not yet decided.
-- Fire slopes: the Ashen Drake's rematch (flying, in the Drake's roost) needs spread-wing
-  art and its fight; the fire region has no music of its own yet (it plays `exploration`).
+- The fire region has no music of its own yet (it plays `exploration`).
+- Frost Colossus feedback (not acted on yet): fight 1 is too easy; fight 2's chest is out of
+  reach without the double jump. Ideas were offered (topple it by sliding under its charge,
+  kneel lower when stunned, a harder second half for fight 1).
 - Lightning peaks need their art (backdrop, tileset, weather, enemy: the Spark wisp) and both
   fights (the bound thing / Thunderbird).
-- The drake is cut from one drawing (`art/bosses/drake_full.png`) into parts on the same
-  256x144 canvas; recut from it if a part needs changing.
+- The drake is cut from one drawing (`art/bosses/drake_full.png`, and `drake_bare_full.png`
+  with its folded wings painted out) into parts on the same 256x144 canvas; recut from them
+  if a part needs changing. Its spread wing is `drake_wing.png`.
 - The castle gate above the High pass, and the castle.
 - `scripts/boss.gd` (Gate Warden / Frost Warden) is no longer used by any room;
   `tools/playtest.*` uses old room names.

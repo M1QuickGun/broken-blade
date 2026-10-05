@@ -116,11 +116,11 @@ throne (the rematch: a mask shard) → Ice climb (crawlspace exit) → Frozen br
 over frozen spikes, slides under fallen ice walls) → Crossroads (rest; a hidden ledge with a
 mask shard reached by the double jump or the shockline).
 
-**Fire slopes (west), with their own look; the rematch still to come:** Ashen road (slide
+**Fire slopes (west), with their own look and both drake fights:** Ashen road (slide
 under a fallen beam) → Burning homes (rest; a secret ledge only the shockline reaches) → Forge
 (the Ashen Drake's first fight: the fire piece) → Cinder steps (the
 double jump tutorial: platforms five tiles apart over spikes, walls spiked so the wall jump
-can't skip it) → Drake's roost (the rematch; a mask shard waits for now) → Fire shaft (climbed
+can't skip it) → Drake's roost (the rematch, open to the sky: a mask shard) → Fire shaft (climbed
 with the double jump) → High pass.
 
 **Lightning peaks (east), laid out, art and bosses still to come:** Cliff road (slide under a
@@ -235,10 +235,21 @@ fixed order:
   runs out along the floor behind it: jump it.
 - Its body hurts to touch, its head doesn't; both can be struck.
 - Beaten, it collapses and the fire piece tears out of its wing (the double jump). Then it
-  heaves itself up, roars and bolts out of the forge to the west, free.
+  heaves itself up, spreads its wings for the first time and bursts up through the forge's
+  roof, free. The hole stays open.
 
-**Fight 2: free (Drake's roost).** Still to come: it flies. Dives answered with the double
-jump spin, wing gusts, breath from the air.
+**Fight 2: free (Drake's roost).** A ledge high on the mountain, open to the sky, with rocks
+to spin up onto. It drops out of the smoke and fights on the wing. In a fixed order:
+- *Dive:* it rears back in the air and roars, then dives at where Storm stood, rakes the floor
+  and climbs away. Step aside, then spin into its back as it skims.
+- *Air breath:* it hangs high on one side and sweeps a jet along the floor away from itself;
+  the floor burns behind it for a moment. The rocks shelter from it.
+- *Slam:* it climbs above Storm, its shadow following him, and drops; fire runs out both ways
+  along the floor. Then it stays down, panting: the big opening.
+- *Gust:* it hangs facing him and beats its wings three times, each beat pushing him away and
+  throwing embers.
+- Below half health its slams shake embers down too. Beaten, it crashes and burns away to
+  ash, leaving a mask shard.
 
 ### Enemies
 - **Mossback beetle** (Foothills): as big as Storm. Patrols; spotting him ahead, it braces

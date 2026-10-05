@@ -14,7 +14,8 @@ const COLOR_FIRE := Color(1.0, 0.5, 0.15)
 const COLOR_FIRE_HOT := Color(1.0, 0.85, 0.45)
 
 ## "icicle", "clod" or "ember" (falls or is thrown, breaks on the ground), "frost_wave",
-## "dust_wave" or "fire_wave" (runs along the floor).
+## "dust_wave" or "fire_wave" (runs along the floor), "flame" (the floor burning where a
+## breath swept over it: stays put until it dies down, and the blade can't put it out).
 var kind := "icicle"
 var velocity := Vector2.ZERO
 var fall_accel := 0.0
@@ -52,7 +53,8 @@ func _physics_process(delta: float) -> void:
 
 ## The blade breaks it.
 func take_hit(_damage: int, _from_dir: Vector2) -> void:
-	queue_free()
+	if kind != "flame":
+		queue_free()
 
 
 func _wall_ahead() -> bool:
@@ -96,6 +98,15 @@ func _draw() -> void:
 				draw_colored_polygon(PackedVector2Array([
 					Vector2(x - 1.5, 0), Vector2(x, -h * 0.5), Vector2(x + 1.5, 0),
 				]), Color(COLOR_FIRE_HOT, fade))
+		"flame":
+			var fade := clampf(life * 1.5, 0.0, 1.0)
+			for i in 3:
+				var x := -5.0 + i * 5.0
+				var h := (7.0 + 3.0 * sin(life * 25.0 + i * 1.7)) * fade
+				draw_colored_polygon(PackedVector2Array([
+					Vector2(x - 3, 0), Vector2(x + sin(life * 18.0 + i) * 1.5, -h), Vector2(x + 3, 0),
+				]), Color(COLOR_FIRE, 0.9 * fade))
+			draw_rect(Rect2(-8, -1, 16, 1), Color(COLOR_FIRE_HOT, 0.7 * fade))
 		"dust_wave":
 			var fade := clampf(life * 2.0, 0.0, 1.0)
 			draw_circle(Vector2(0, -3), 5.0, Color(COLOR_DUST, 0.7 * fade))

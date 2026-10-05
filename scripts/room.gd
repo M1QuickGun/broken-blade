@@ -109,7 +109,8 @@ func build(name_: String) -> void:
 			_grid[y] = _grid[y].replace("=", ".").replace("G", ".")
 	size_tiles = Vector2i(_grid[0].length(), _grid.size())
 	size_px = Vector2(size_tiles) * TILE
-	if "." not in _grid[0].substr(1, size_tiles.x - 2):
+	# (Judged from the room as built: a roof its boss broke open is still a roof.)
+	if "." not in String(Rooms.LAYOUTS[name_][0]).substr(1, size_tiles.x - 2):
 		roof_px = ROOF_ROWS * TILE
 	for y in _grid.size():
 		assert(_grid[y].length() == size_tiles.x, "%s row %d has the wrong width" % [name_, y])
@@ -253,11 +254,12 @@ func _cells_body(kind: String) -> StaticBody2D:
 	return body
 
 
-## The earth lid gives way (the centipede bursting up under Storm's feet).
-func break_lid() -> void:
+## The earth lid gives way (the centipede bursting up under Storm's feet, the drake bursting
+## up through the forge's roof).
+func break_lid(debris_color := COLOR_DIRT) -> void:
 	Sfx.play("burst")
 	Sfx.play("rumble")
-	_clear_cells("=", COLOR_DIRT)
+	_clear_cells("=", debris_color)
 	if _lid:
 		_lid.queue_free()
 		_lid = null

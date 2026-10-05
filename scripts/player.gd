@@ -214,6 +214,8 @@ var _wall_coyote_dir := 0
 var _spin_time := 0.0
 ## Enemies already struck by the current spin, so each is hit once.
 var _spin_hit: Array[Object] = []
+## Sideways push from a boss's wingbeats (units per second); the boss sets it and clears it.
+var wind := 0.0
 ## Fire sparks thrown off by the spin: [{pos, vel, age}] in global coordinates.
 var _embers: Array[Dictionary] = []
 
@@ -386,7 +388,10 @@ func _physics_process(delta: float) -> void:
 	_update_height()
 	var falling := velocity.y
 	var was_on_floor := is_on_floor()
+	# A boss's wind carries him along without fighting his own speed.
+	velocity.x += wind
 	move_and_slide()
+	velocity.x -= wind
 	if is_on_floor() and not was_on_floor and falling > 180.0:
 		Sfx.play("land", -8.0)
 	if _shock == Shock.PULLING:

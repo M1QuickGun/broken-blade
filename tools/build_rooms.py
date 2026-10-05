@@ -326,6 +326,8 @@ r.put(36, 15, "?")
 r.put(12, 15, "B")
 r.box(1, 9, 3, 9)
 r.box(40, 9, 42, 9)
+# The roof above where it sleeps: it bursts up through it when the piece comes out.
+r.fill(6, 0, 19, 0, "=")
 
 r = Room("cinder_steps", 44, 40)
 r.floor(37)
@@ -344,14 +346,18 @@ r.box(8, 8, 11, 8)
 r.box(1, 5, 5, 5)
 r.fill(0, 2, 0, 4, "w")
 
-r = Room("drake_roost", 44, 18)
-r.floor(16)
-r.fill(43, 13, 43, 15, "w")
-r.fill(0, 13, 0, 15, "x")
-r.put(30, 15, "?")
-# Until the rematch is built, its reward waits here.
-r.box(20, 14, 23, 15)
-r.put(21, 13, "H")
+# The Drake's roost: a ledge high on the mountain, open to the sky. It swoops down out of the
+# smoke when Storm walks in. Rocks to spin up onto over the floor it burns.
+r = Room("drake_roost", 48, 22)
+r.open_sky()
+r.floor(19)
+r.fill(47, 16, 47, 18, "w")
+r.fill(0, 16, 0, 18, "x")
+r.put(43, 18, "?")
+r.put(24, 18, "B")
+r.box(8, 14, 12, 14)
+r.box(35, 14, 39, 14)
+r.box(21, 9, 26, 9)
 
 r = Room("fire_shaft", 24, 56)
 r.floor(54)
