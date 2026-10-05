@@ -234,7 +234,8 @@ func _ready() -> void:
 	for i in 2:
 		_feet.append(_make_box(Vector2(26, 16), false))
 		_leg_boxes.append(_make_box(Vector2(18, 66), false))
-	_body_box = _make_box(Vector2(64, 104), false)
+	# Its waist and hips (not its chest, so the crack can be reached without touching it).
+	_body_box = _make_box(Vector2(56, 56), false)
 	_fist_ledge = StaticBody2D.new()
 	_fist_ledge.collision_layer = 0
 	_fist_ledge.collision_mask = 0
@@ -866,9 +867,10 @@ func _phase_2(p: Vector2, delta: float) -> void:
 		# between its legs, under its low belly, is clear to slide through.
 		var leg_mid: Vector2 = hips[i].lerp(feet[i], 0.45)
 		_set_box(_leg_boxes[i], feet_on and _legs_out, leg_mid)
+	# (Down on its knees, on its face or planted on its arm, it's there to be climbed on.)
 	var standing := _legs_out and _state not in [St.DORMANT, St.WAKE, St.SHATTER, St.CHARGE, St.TOPPLE,
-		St.REACH_WEDGED]
-	_set_box(_body_box, standing, _torso_center() + Vector2(0, 30))
+		St.REACH_WEDGED, St.STUNNED]
+	_set_box(_body_box, standing, _torso_center() + Vector2(0, HIP_DROP - 20.0))
 	_set_box(_fist, _state == St.REACH_STRIKE, _fist_point())
 	_set_steps(_state == St.REACH_WEDGED)
 	# Charging, its body is low but clears the floor by less than Storm stands: slide under.

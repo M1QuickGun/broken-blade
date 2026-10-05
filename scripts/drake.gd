@@ -10,9 +10,9 @@ extends Node2D
 ## stalks him along the floor and, in a fixed order:
 ## - Lunge: it crouches, head drawn back, then lunges forward and snaps. Its head stays low
 ##   afterwards, panting smoke: the opening to hit it.
-## - Breath: its throat glows as it rears its head, then a jet of fire sweeps from high on
-##   the far wall down to the floor just ahead of it. The safe place is close in, right
-##   under its chin (or behind it).
+## - Breath: it lowers its head and its throat glows, then a jet of fire roars straight out
+##   at chest height all the way to the far wall. Slide under it (or be behind it, or up on a
+##   ledge).
 ## - Stomp: it rears up and slams its forefeet down; embers rain from the forge's roof,
 ##   their glow on the floor showing where.
 ## And if Storm gets behind it, it raises its tail and lashes it down: a wave of fire runs
@@ -92,11 +92,10 @@ const WALK_SPEED := 40.0
 const LUNGE_DIST := 120.0
 ## How close to the walls it keeps (its tail and head reach well past its feet).
 const WALL_MARGIN := 120.0
-## The breath jet's width, and where phase 1's sweep starts (up the far wall) and ends (on
-## the floor this far ahead of it).
+## The breath jet's width, and how high phase 1's jet runs where it meets the far wall: its
+## underside clears a sliding Storm, not a standing one.
 const JET_WIDTH := 16.0
-const JET_START_HEIGHT := 110.0
-const JET_END := 150.0
+const JET_HEIGHT := 28.0
 const PATTERN_1 := ["lunge", "breath", "lunge", "stomp"]
 
 ## Phase 2: how high it hangs, how fast it flies about and dives, and where its sweep ends.
@@ -478,7 +477,7 @@ func _phase_1(p: Vector2, delta: float) -> void:
 					"lunge":
 						_enter(St.LUNGE_WINDUP, 0.6)
 					"breath":
-						_enter(St.BREATH_WINDUP, 0.9)
+						_enter(St.BREATH_WINDUP, 1.1)
 					"stomp":
 						_enter(St.REAR, 0.7)
 			elif gap > 140.0 and _side(p) > 0:
@@ -519,20 +518,18 @@ func _phase_1(p: Vector2, delta: float) -> void:
 			if _timer <= 0.0:
 				_enter(St.IDLE, 0.8)
 		St.BREATH_WINDUP:
-			# It rears its head and its throat glows.
-			_crouch = move_toward(_crouch, 0.0, 2.0 * delta)
-			_neck = lerp_angle(_neck, -0.6, 5.0 * delta)
+			# It crouches, head low and level, and its throat glows.
+			_crouch = move_toward(_crouch, 1.0, 2.0 * delta)
+			_aim_head(_breath_target(), 6.0 * delta)
 			_jaw = lerpf(_jaw, 0.35, 4.0 * delta)
 			if fmod(_time, 0.12) < delta:
 				_puff(_mouth(), Vector2(_dir * 8.0, -16.0), 3.0)
 			if _timer <= 0.0:
-				_sweep = 0.0
 				_jet_on = true
-				_enter(St.BREATH, 1.5)
+				_enter(St.BREATH, 1.3)
 		St.BREATH:
-			_sweep = clampf(1.0 - _timer / 1.5, 0.0, 1.0)
 			_jaw = 0.7 + 0.08 * sin(_time * 30.0)
-			_aim_head(_breath_target(), delta)
+			_aim_head(_breath_target(), 10.0 * delta)
 			if _timer <= 0.0:
 				_jet_on = false
 				_enter(St.IDLE, 1.0)
@@ -723,7 +720,7 @@ func _phase_2(p: Vector2, delta: float) -> void:
 			_jaw = 0.7 + 0.08 * sin(_time * 30.0)
 			_air_pose(delta, false)
 			var target := Vector2(_x + _dir * lerpf(30.0, AIR_JET_REACH, _sweep), _floor)
-			_aim_head(target, delta)
+			_aim_head(target, 10.0 * delta)
 			if _jet_end.y >= _floor - 2.0 and absf(_jet_end.x - _last_flame_x) > 20.0:
 				_last_flame_x = _jet_end.x
 				_spawn("flame", Vector2(_jet_end.x, _floor), Vector2.ZERO, 0.0, 1.6 + (1.0 - _sweep) * 0.6)
@@ -873,11 +870,12 @@ func _fly_to(goal: Vector2, speed: float, delta: float) -> void:
 	_alt += v.y * delta
 
 
-## Turns its head (and neck) to point its mouth at a spot in the room.
-func _aim_head(target: Vector2, delta: float) -> void:
+## Turns its head (and neck) to point its mouth at a spot in the room (`weight` is how far
+## toward it this frame).
+func _aim_head(target: Vector2, weight: float) -> void:
 	var to := target - _w(HEAD_PIVOT)
 	var aim := atan2(to.y, to.x * _dir) - _tilt  # as if it faced right
-	_neck = lerp_angle(_neck, clampf(aim - HEAD_REST, -0.8, 1.1), 10.0 * delta)
+	_neck = lerp_angle(_neck, clampf(aim - HEAD_REST, -0.8, 1.1), clampf(weight, 0.0, 1.0))
 
 
 ## Its wings beat on their own rhythm; a sound on each downstroke.
@@ -899,18 +897,9 @@ func _walk(speed: float, delta: float, keep_in := true) -> void:
 	_stride += delta * absf(speed) / 6.0
 
 
-## Where phase 1's breath lands as it sweeps: from up the far wall down to the floor ahead.
+## Where phase 1's breath is aimed: straight out at chest height to the far wall.
 func _breath_target() -> Vector2:
-	var wall := _right if _dir > 0 else _left
-	var far := Vector2(wall, _floor - JET_START_HEIGHT)
-	var corner := Vector2(wall, _floor)
-	var near := Vector2(_x + _dir * JET_END, _floor)
-	# Down the wall in the first part of the sweep, then in along the floor.
-	var down := absf(wall - near.x) / (absf(wall - near.x) + JET_START_HEIGHT)
-	var t := 1.0 - down
-	if _sweep < t:
-		return far.lerp(corner, _sweep / t)
-	return corner.lerp(near, (_sweep - t) / (1.0 - t))
+	return Vector2(_right if _dir > 0 else _left, _floor - JET_HEIGHT)
 
 
 ## The jet runs from its mouth the way its head points until it hits rock.
@@ -1099,7 +1088,7 @@ func _draw_drake(tint: Color) -> void:
 		var eye := _on_part(HEAD_PIVOT, _neck, EYE) - position
 		draw_circle(eye, 4.0, Color(COLOR_EYES, (0.3 + 0.15 * sin(_time * 5.0)) * tint.a))
 	if _state == St.BREATH_WINDUP or _state == St.AIR_BREATH_WINDUP:
-		var total := 0.9 if _state == St.BREATH_WINDUP else 1.4
+		var total := 1.1 if _state == St.BREATH_WINDUP else 1.4
 		var grow := clampf(1.0 - _timer / total, 0.0, 1.0)
 		var throat := _on_part(HEAD_PIVOT, _neck, Vector2(200, 78)) - position
 		draw_circle(throat, 8.0 + 10.0 * grow, Color(COLOR_FIRE, 0.25 * grow))

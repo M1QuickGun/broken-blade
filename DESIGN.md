@@ -237,9 +237,9 @@ ashes at the forge's west end until Storm comes in, then stalks him along the fl
 fixed order:
 - *Lunge:* it crouches with its head drawn back, then lunges forward and snaps. Its head
   stays low afterwards, panting smoke: the opening.
-- *Breath:* its throat glows as it rears its head, then a jet of fire sweeps from high on
-  the far wall down to the floor just ahead of it. The safe place is close in, under its
-  chin.
+- *Breath:* it crouches with its head low and level and its throat glows, then a jet of fire
+  roars straight out at chest height to the far wall. Slide under it (or be behind it, or up
+  on a ledge).
 - *Stomp:* it rears up and slams down; embers rain from the roof, their glow on the floor
   showing where.
 - *Tail lash:* if Storm gets behind it, it raises its tail and lashes it down; a wave of fire
