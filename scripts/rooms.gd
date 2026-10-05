@@ -58,6 +58,9 @@ const BOSSES := {
 		"hp": 14, "reward": "I"},
 	"frost_throne": {"id": "colossus_2", "kind": "colossus", "phase": 2, "title": "The Frost Colossus, Unbound",
 		"hp": 22, "reward": "H"},
+	# The Ashen Drake: grounded in the forge by the fire piece driven through its wing, then
+	# free and flying in its roost.
+	"forge": {"id": "drake_1", "kind": "drake", "phase": 1, "title": "The Ashen Drake", "hp": 16, "reward": "F"},
 }
 
 ## Scenery standing on the ground, drawn behind Storm: [kind, x tile, row it stands on].
@@ -108,7 +111,7 @@ const SIGNS := {
 	],
 	"ashen_road": ["The road west, to the burning homes. A fallen beam blocks the way: slide under it."],
 	"burning_homes": ["The homes burned when the fire piece broke loose. The old forge lies west."],
-	"forge": ["The great forge, where the blade was made. The Ashen Drake nests here. (Its fight is still to come: the fire piece waits on the anvil.)"],
+	"forge": ["The great forge, where the blade was made. Something huge sleeps in the ashes at its far end."],
 	"cinder_steps": ["Jump, then jump again in midair to spin higher. The walls here are no help."],
 	"drake_roost": ["The Drake's roost. (The rematch is still to come.)"],
 	"fire_shaft": ["The shaft climbs to the high pass. Only the spin will get you up it."],
@@ -598,13 +601,13 @@ const LAYOUTS := {
 		"#..........................................#",
 		"#..........................................#",
 		"#..........................................#",
+		"####....................................####",
 		"#..........................................#",
 		"#..........................................#",
 		"#..........................................#",
-		"#..........................................#",
-		"v....................F.....................t",
-		"v...................####...................t",
-		"v...................####......?............t",
+		"v..........................................t",
+		"v..........................................t",
+		"v...........B.......................?......t",
 		"############################################",
 		"############################################",
 	],

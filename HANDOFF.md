@@ -29,21 +29,26 @@ controls are in `README.md`.
 
 ## State
 - Playable: Foothills (forest; the Guardian Centipede twice), Frozen village (the Frost
-  Colossus twice), the Crossroads, and the laid-out Fire slopes and Lightning peaks (rooms,
-  rest points, secrets, tutorials and climbs; their pieces wait on pedestals) up to the High
-  pass.
+  Colossus twice), the Crossroads, the Fire slopes (their own art and weather, ash bats, the
+  Ashen Drake's first fight in the Forge; the rematch in the Drake's roost still a mask shard
+  on a pedestal), and the laid-out Lightning peaks (rooms, rest points, secrets, tutorials and
+  climbs; their piece waits on a plinth) up to the High pass.
 - Systems: saving (autosaves at shrines, pickups, bosses, new rooms), title screen with
   intro, pause menu (volume, fullscreen), colour-coded map, flasks, sound effects, hit
   effects, Silksong-style rings with region skins.
-- Debug keys (editor build): 1-4 abilities, 5 beat the current boss, 6-9 warps (Village
-  square, Frost arena, Frost throne, Crossroads), 0 reveal the map.
+- Debug keys (editor build): 1-4 abilities, 5 beat the current boss, 6-9 and - warps
+  (Village square, Frost arena, Frost throne, Crossroads, Forge), 0 reveal the map.
 
 ## Open items
 - Storm switches sword hands when he turns (all art is right-facing and mirrored). Making
   him stay right-handed needs left-facing versions of every animation (~80 generations);
   offered, not yet decided.
-- Fire and lightning regions need their art (backdrops, tilesets, weather, enemies) and
-  four boss fights (Ashen Drake; the bound thing / Thunderbird).
+- Fire slopes: the Ashen Drake's rematch (flying, in the Drake's roost) needs spread-wing
+  art and its fight; the fire region has no music of its own yet (it plays `exploration`).
+- Lightning peaks need their art (backdrop, tileset, weather, enemy: the Spark wisp) and both
+  fights (the bound thing / Thunderbird).
+- The drake is cut from one drawing (`art/bosses/drake_full.png`) into parts on the same
+  256x144 canvas; recut from it if a part needs changing.
 - The castle gate above the High pass, and the castle.
 - `scripts/boss.gd` (Gate Warden / Frost Warden) is no longer used by any room;
   `tools/playtest.*` uses old room names.

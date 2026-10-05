@@ -17,6 +17,7 @@ const Boss := preload("res://scripts/boss.gd")
 const Centipede := preload("res://scripts/centipede.gd")
 const Colossus := preload("res://scripts/colossus.gd")
 const Bat := preload("res://scripts/bat.gd")
+const Drake := preload("res://scripts/drake.gd")
 
 const PIECE_ABILITIES := {"I": "dash", "F": "double_jump", "L": "shockline", "W": "wall_jump"}
 
@@ -458,6 +459,8 @@ func _setup_boss() -> void:
 			boss = Centipede.new()
 		"colossus":
 			boss = Colossus.new()
+		"drake":
+			boss = Drake.new()
 		_:
 			boss = Boss.new()
 	boss.boss_id = info.id

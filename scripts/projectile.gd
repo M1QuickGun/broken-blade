@@ -10,9 +10,11 @@ const COLOR_ICE_DARK := Color("5d8fb8")
 const COLOR_DUST := Color("8a7a66")
 const COLOR_CLOD := Color("3b352b")
 const COLOR_CLOD_LIGHT := Color("5e5443")
+const COLOR_FIRE := Color(1.0, 0.5, 0.15)
+const COLOR_FIRE_HOT := Color(1.0, 0.85, 0.45)
 
-## "icicle" or "clod" (falls or is thrown, breaks on the ground), "frost_wave" or "dust_wave"
-## (runs along the floor).
+## "icicle", "clod" or "ember" (falls or is thrown, breaks on the ground), "frost_wave",
+## "dust_wave" or "fire_wave" (runs along the floor).
 var kind := "icicle"
 var velocity := Vector2.ZERO
 var fall_accel := 0.0
@@ -23,10 +25,10 @@ var _size := Vector2(6, 12)
 
 func _ready() -> void:
 	collision_layer = LAYER_ENEMY
-	var falls := kind == "icicle" or kind == "clod"
+	var falls := kind == "icicle" or kind == "clod" or kind == "ember"
 	collision_mask = LAYER_WORLD if falls else 0
 	monitoring = falls
-	if kind == "clod":
+	if kind == "clod" or kind == "ember":
 		_size = Vector2(8, 8)
 	elif not falls:
 		_size = Vector2(12, 10)
@@ -77,6 +79,23 @@ func _draw() -> void:
 				draw_colored_polygon(PackedVector2Array([
 					Vector2(x - 2.5, 0), Vector2(x, -h), Vector2(x + 2.5, 0),
 				]), Color(COLOR_ICE, fade))
+		"ember":
+			var flicker := 0.7 + 0.3 * sin(life * 40.0)
+			draw_circle(Vector2.ZERO, 6.0, Color(COLOR_FIRE, 0.3 * flicker))
+			draw_circle(Vector2.ZERO, 3.5, COLOR_FIRE)
+			draw_circle(Vector2(0, 1), 2.0, COLOR_FIRE_HOT)
+			draw_line(Vector2(0, -3), Vector2(0, -9), Color(COLOR_FIRE, 0.5), 2.0)
+		"fire_wave":
+			var fade := clampf(life * 2.0, 0.0, 1.0)
+			for i in 3:
+				var x := -5.0 + i * 5.0
+				var h := 8.0 + 4.0 * sin(life * 30.0 + i * 2.0)
+				draw_colored_polygon(PackedVector2Array([
+					Vector2(x - 3, 0), Vector2(x, -h), Vector2(x + 3, 0),
+				]), Color(COLOR_FIRE, fade))
+				draw_colored_polygon(PackedVector2Array([
+					Vector2(x - 1.5, 0), Vector2(x, -h * 0.5), Vector2(x + 1.5, 0),
+				]), Color(COLOR_FIRE_HOT, fade))
 		"dust_wave":
 			var fade := clampf(life * 2.0, 0.0, 1.0)
 			draw_circle(Vector2(0, -3), 5.0, Color(COLOR_DUST, 0.7 * fade))

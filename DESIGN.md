@@ -116,9 +116,9 @@ throne (the rematch: a mask shard) → Ice climb (crawlspace exit) → Frozen br
 over frozen spikes, slides under fallen ice walls) → Crossroads (rest; a hidden ledge with a
 mask shard reached by the double jump or the shockline).
 
-**Fire slopes (west), laid out, art and bosses still to come:** Ashen road (slide under a
-fallen beam) → Burning homes (rest; a secret ledge only the shockline reaches) → Forge (the
-Ashen Drake's first fight; for now the fire piece waits on the anvil) → Cinder steps (the
+**Fire slopes (west), with their own look; the rematch still to come:** Ashen road (slide
+under a fallen beam) → Burning homes (rest; a secret ledge only the shockline reaches) → Forge
+(the Ashen Drake's first fight: the fire piece) → Cinder steps (the
 double jump tutorial: platforms five tiles apart over spikes, walls spiked so the wall jump
 can't skip it) → Drake's roost (the rematch; a mask shard waits for now) → Fire shaft (climbed
 with the double jump) → High pass.
@@ -138,7 +138,9 @@ it needs, and that every ability gate and secret really needs its ability.
 
 Every region has its own painted backdrop and weather: the Foothills forest (light through
 the canopy), the Frozen village outdoors (snow falling over the terraced houses, icicles),
-and its caverns (frost drifting in the cold, icicles).
+and its caverns (frost drifting in the cold, icicles); the Fire slopes' burned village
+(embers rising, ash and smoke drifting, embers smouldering on the ground) and the forge
+under the rock (embers thicker, heat glowing up from below, molten drips under overhangs).
 
 ### Bosses: two fights per region
 Every region's boss is fought twice. The first fight, partway through, wins the region's
@@ -159,8 +161,9 @@ fight means prying the piece loose, which frees the boss at full strength for th
   and bigger, it rolls into a ball (slide under it), freezes the floor, and raises ice pillars
   to wall jump between; a glowing core opens after its big slams. (The Frost Warden is its
   placeholder for now.)
-- **Fire slopes: the Ashen Drake.** A dragon in a collapsed forge, then on a crumbling bridge.
-  Breath sweeps and wing gusts; its dives are answered with the double jump spin.
+- **Fire slopes: the Ashen Drake.** A dragon in a collapsed forge, then in its roost. Breath
+  sweeps and wing gusts; its dives are answered with the double jump spin. See the fight
+  plan below.
 - **Lightning peaks: the Thunderbird.** The first fight is against its bound form, something
   small and wrong with the lightning tip driven through it. Pulling the tip out sets it free
   and it becomes the Thunderbird, a huge storm bird, for the rematch: Storm shocklines onto its
@@ -215,6 +218,28 @@ the slide.
 - *Core:* after its big slams the armor on its chest cracks open, showing a glowing core.
 - Beaten, it shatters into blocks of ice.
 
+### Fight plan: the Ashen Drake
+A dragon of charred scales cracked with embers, with the fire piece driven through its wing.
+
+**Fight 1: grounded (Forge).** The piece pins its wing, so it can't fly. It sleeps in the
+ashes at the forge's west end until Storm comes in, then stalks him along the floor. In a
+fixed order:
+- *Lunge:* it crouches with its head drawn back, then lunges forward and snaps. Its head
+  stays low afterwards, panting smoke: the opening.
+- *Breath:* its throat glows as it rears its head, then a jet of fire sweeps from high on
+  the far wall down to the floor just ahead of it. The safe place is close in, under its
+  chin.
+- *Stomp:* it rears up and slams down; embers rain from the roof, their glow on the floor
+  showing where.
+- *Tail lash:* if Storm gets behind it, it raises its tail and lashes it down; a wave of fire
+  runs out along the floor behind it: jump it.
+- Its body hurts to touch, its head doesn't; both can be struck.
+- Beaten, it collapses and the fire piece tears out of its wing (the double jump). Then it
+  heaves itself up, roars and bolts out of the forge to the west, free.
+
+**Fight 2: free (Drake's roost).** Still to come: it flies. Dives answered with the double
+jump spin, wing gusts, breath from the air.
+
 ### Enemies
 - **Mossback beetle** (Foothills): as big as Storm. Patrols; spotting him ahead, it braces
   and charges, and running into a wall stuns it.
@@ -223,6 +248,9 @@ the slide.
   lesson in the Guardian Centipede's warning signs.
 - **Frozen thrall** (Frozen village): a villager the cold turned into a husk. It shambles
   after Storm when he's near and lunges when he's close.
+- **Ash bat** (Fire slopes): a bat of charred flesh with embers in its wings. It hangs in the
+  air above its roost, drifting after Storm; then it screeches, flaring up, and dives at
+  where he stood in a straight line, and swoops back up. A small lesson in the drake's dives.
 - **Hatchlings**: the centipede's young, dropped into its second fight.
 
 ### Healing: flasks

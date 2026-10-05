@@ -320,10 +320,12 @@ r = Room("forge", 44, 18)
 r.floor(16)
 r.fill(43, 13, 43, 15, "t")
 r.fill(0, 13, 0, 15, "v")
-r.put(30, 15, "?")
-# Until the Ashen Drake's fight is built, its piece waits on the anvil.
-r.box(20, 14, 23, 15)
-r.put(21, 13, "F")
+r.put(36, 15, "?")
+# The Ashen Drake sleeps in the ashes at the forge's west end, the fire piece pinning its
+# wing. Beaten, the piece comes loose (the double jump). A ledge high on each wall to perch on.
+r.put(12, 15, "B")
+r.box(1, 9, 3, 9)
+r.box(40, 9, 42, 9)
 
 r = Room("cinder_steps", 44, 40)
 r.floor(37)
