@@ -43,9 +43,10 @@ controls are in `README.md`.
   him stay right-handed needs left-facing versions of every animation (~80 generations);
   offered, not yet decided.
 - The fire region has no music of its own yet (it plays `exploration`).
-- Frost Colossus feedback (not acted on yet): fight 1 is too easy; fight 2's chest is out of
-  reach without the double jump. Ideas were offered (topple it by sliding under its charge,
-  kneel lower when stunned, a harder second half for fight 1).
+- Frost Colossus reworked after feedback (fight 1 too easy, fight 2's chest out of reach):
+  fight 1 got a second half, double slams, a floor sweep, a greed burst and icicles that
+  stick; fight 2 trips when slid under, kneels lower, and plants an arm as footholds. Needs
+  a playtest.
 - Lightning peaks need their art (backdrop, tileset, weather, enemy: the Spark wisp) and both
   fights (the bound thing / Thunderbird).
 - The drake is cut from one drawing (`art/bosses/drake_full.png`, and `drake_bare_full.png`

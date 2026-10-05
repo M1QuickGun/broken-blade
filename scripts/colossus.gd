@@ -5,13 +5,19 @@ extends Node2D
 ## Phase 1, the Frost arena: it's frozen into the ice wall at the end of the cavern with the
 ## ice piece driven into its chest; only its chest, head and arms are out. It can't move, so
 ## the fight is about its reach. In a fixed order:
-## - Fist slam: it raises an arm; a shadow and falling frost mark where the fist will land.
-##   The fist stays wedged in the floor for a moment: a step up to the glowing crack in its
-##   chest, its weak point.
-## - Icicle roar: icicles fall from the ceiling; shadows on the floor show where.
+## - Double slam: it raises its near arm; a shadow and falling frost mark where the fist will
+##   land. Then the far fist comes down where Storm has moved to, and that one stays wedged in
+##   the floor for a moment: a step up to the glowing crack in its chest, its weak point.
+## - Icicle roar: icicles fall from the ceiling; shadows on the floor show where. They stick
+##   in the floor as spikes of ice in the way, until its next slam or sweep shatters them.
+## - Floor sweep: frost gathers along its forearm far out on the floor, then the fist rakes
+##   along the floor toward the wall at knee height: jump it.
 ## - Frost breath: a freezing wave runs out along the floor; jump it.
 ## And if Storm crowds it (up on the ice it's frozen into), frost gathers at its base and ice
-## spikes burst up there: back off.
+## spikes burst up there: back off. Three hits on its chest at once and the crack flares and
+## bursts out a spray of ice shards: get out after two.
+## At half health it roars and tears its arm further out of the wall: from then on it reaches
+## further and attacks faster.
 ## Beaten, the ice piece bursts out of its chest and floats free, cracks run through it, its
 ## arms break off and shatter, chunks fall away, and it slumps dead in the wall with an empty
 ## hole where the piece was.
@@ -20,8 +26,11 @@ extends Node2D
 ## chest. It rises out of the floor body-first,
 ## then its legs burst out and it stands. Then, in a fixed order:
 ## - Charge: it crouches low and charges across the arena. Its belly clears the floor by less
-##   than Storm's height: the way past is to slide between its legs. Hitting the far wall
-##   stuns it to its knees, chest low: hit the crack.
+##   than Storm's height: the way past is to slide between its legs, and sliding under it
+##   trips it: it crashes face down, chest on the floor, for a few moments. Hitting the far
+##   wall instead stuns it to its knees, chest low enough to reach with a jump.
+## - Reach: it drops into a crouch and slams its fist down in front of it; the arm stays
+##   planted, a stair of footholds up to its chest.
 ## - Stomp: it lifts a foot and stamps; shockwaves run both ways along the floor.
 ## - Ice pillars: the floor swells, then pillars of ice burst up around Storm. Climb them to
 ##   reach its chest.
@@ -74,12 +83,24 @@ const ARM_SCALE_1 := 1.4
 const COLOR_FROST := Color(0.75, 0.92, 1.0)
 const COLOR_SHADOW := Color(0.02, 0.05, 0.1, 0.55)
 const COLOR_EYES := Color(0.45, 0.95, 1.0)
-const PATTERN_1 := ["slam", "roar", "slam", "breath"]
-const PATTERN_2 := ["charge", "stomp", "pillars", "charge", "stomp"]
+const PATTERN_1 := ["slam", "roar", "sweep", "slam", "breath", "sweep"]
+const PATTERN_2 := ["charge", "reach", "stomp", "pillars", "charge", "reach"]
+## How far down its hips sink when it kneels, and further when it's tripped flat.
+const KNEEL_DROP := 80.0
+const TOPPLE_DROP := 40.0
+## Phase 2's arm, drawn bigger than walking so it can reach the floor, and its footholds.
+const ARM_SCALE_2 := 1.25
+const STEP_SIZE := Vector2(20, 6)
+## Chest hits in one opening before it bursts ice out of the crack.
+const GREED_HITS := 3
+## Icicles stuck in the floor, at most.
+const MAX_SPIKES := 8
 
 enum St {
 	DORMANT, WAKE, IDLE, AIM, STRIKE, WEDGED, RETRACT, ROAR, BREATH,
 	CROUCH, CHARGE, STUNNED, LIFT, PILLARS, SLUMP, SLUMPED, SHATTER, BURST_WARN, BURST,
+	AIM_2, STRIKE_2, SWEEP_CHARGE, SWEEP, GREED_WARN, ENRAGE, TOPPLE,
+	REACH_AIM, REACH_STRIKE, REACH_WEDGED, REACH_RETRACT,
 }
 
 ## Set by the room before it's added (see Rooms.BOSSES).
@@ -148,6 +169,32 @@ var _feet: Array[Hitbox] = []
 var _body_box: Hitbox
 var _leg_boxes: Array[Hitbox] = []
 var _fist_ledge: StaticBody2D
+var _fist_2: Hitbox
+## Phase 1: its far arm's own angle and stretch (it slams second); below half health it
+## reaches further and moves faster (its waits and wind-ups scaled by _pace).
+var _back_angle := deg_to_rad(160.0) - 0.25
+var _back_stretch := 1.0
+var _back_from := 0.0
+var _back_to := 0.0
+var _back_stretch_from := 1.0
+var _back_stretch_to := 1.0
+var _target_2 := Vector2.ZERO
+var _enraged := false
+var _pace := 1.0
+## Chest hits since its last attack began.
+var _greed := 0
+## The floor sweep: where the fist starts and ends along the floor.
+var _sweep_from := 0.0
+var _sweep_to := 0.0
+## Icicles that fell and stuck: {x, y (the ground it stands on), body}; and ones still
+## falling, to stick when they land: {x, y, t}.
+var _spikes: Array[Dictionary] = []
+var _landing: Array[Dictionary] = []
+## Phase 2: how far it's tripped flat; which side of it Storm was when its charge began; the
+## footholds along its planted arm.
+var _topple := 0.0
+var _charge_side := 0
+var _steps: Array[StaticBody2D] = []
 
 
 class Hitbox extends Area2D:
@@ -168,6 +215,20 @@ func _ready() -> void:
 	_x = position.x
 	_chest = _make_box(Vector2(28, 28), true)
 	_fist = _make_box(Vector2(40, 30), false)
+	_fist_2 = _make_box(Vector2(40, 30), false)
+	for i in 4:
+		var step := StaticBody2D.new()
+		step.collision_layer = 0
+		step.collision_mask = 0
+		step.top_level = true
+		var step_shape := RectangleShape2D.new()
+		step_shape.size = STEP_SIZE
+		var step_col := CollisionShape2D.new()
+		step_col.shape = step_shape
+		step_col.one_way_collision = true
+		step.add_child(step_col)
+		add_child(step)
+		_steps.append(step)
 	_charge_box = _make_box(Vector2(84, 80), false)
 	_burst_box = _make_box(Vector2(130, 70), false)
 	for i in 2:
@@ -186,6 +247,7 @@ func _ready() -> void:
 	add_child(_fist_ledge)
 	_set_box(_chest, false)
 	_set_box(_fist, false)
+	_set_box(_fist_2, false)
 	_set_box(_charge_box, false)
 	_set_box(_burst_box, false)
 	_set_box(_body_box, false)
@@ -254,14 +316,28 @@ func take_hit(damage: int, _from_dir: Vector2) -> void:
 	_flash = 0.1
 	Sfx.play("hit_boss", -3.0)
 	Effects.sparks(get_parent(), _chest_point(), Color(0.75, 0.95, 1.0), 14)
+	if phase == 1 and hp > 0:
+		_greed += 1
+		if not _enraged and hp <= max_hp / 2:
+			_enraged = true
+			_pace = 0.75
+			_greed = 0
+			_enter(St.ENRAGE, 1.3)
+		elif _greed >= GREED_HITS and _state not in [St.GREED_WARN, St.ENRAGE]:
+			_greed = 0
+			_enter(St.GREED_WARN, 0.45)
 	if hp <= 0:
 		Effects.slow_motion(get_tree())
 		hp = 0
 		remove_from_group("shock_target")
 		remove_from_group("boss")
-		for box in [_chest, _fist, _charge_box, _body_box] + _feet + _leg_boxes:
+		for box in [_chest, _fist, _fist_2, _charge_box, _body_box] + _feet + _leg_boxes:
 			_set_box(box, false)
 		_fist_ledge.collision_layer = 0
+		_set_steps(false)
+		_icicles.clear()
+		_landing.clear()
+		_shatter_spikes()
 		_enter(St.SLUMP if phase == 1 else St.SHATTER, 2.6 if phase == 1 else 1.8)
 		if phase >= 2:
 			_shatter()
@@ -275,7 +351,7 @@ func _torso_center() -> Vector2:
 	if not _legs_out:
 		# Rising out of the floor, legs still buried.
 		return Vector2(_x, lerpf(_floor + 80.0, _floor - 46.0, _rise))
-	var hip_y := _floor - LEG_LENGTH + 46.0 * _crouch + 60.0 * _kneel
+	var hip_y := _floor - LEG_LENGTH + 46.0 * _crouch + KNEEL_DROP * _kneel + TOPPLE_DROP * _topple
 	return Vector2(_x, hip_y - HIP_DROP)
 
 
@@ -304,7 +380,17 @@ func _back_shoulder() -> Vector2:
 
 
 func _fist_point() -> Vector2:
-	return _shoulder() + Vector2.from_angle(_arm_angle) * ARM_REACH * ARM_SCALE_1 * _arm_stretch
+	var scale_ := ARM_SCALE_1 if phase == 1 else ARM_SCALE_2
+	return _shoulder() + Vector2.from_angle(_arm_angle) * ARM_REACH * scale_ * _arm_stretch
+
+
+func _back_fist_point() -> Vector2:
+	return _back_shoulder() + Vector2.from_angle(_back_angle) * ARM_REACH * ARM_SCALE_1 * 0.9 * _back_stretch
+
+
+## How far its arms may stretch to reach (further once it's torn an arm free).
+func _max_stretch() -> float:
+	return 1.5 if _enraged else 1.3
 
 
 # --- Behaviour ---
@@ -354,6 +440,7 @@ func _wake() -> void:
 
 
 func _next_attack() -> void:
+	_greed = 0
 	var pattern: Array = PATTERN_1 if phase == 1 else PATTERN_2
 	_attack = pattern[_move % pattern.size()]
 	_move += 1
@@ -374,8 +461,9 @@ func _phase_1(p: Vector2, delta: float) -> void:
 		St.IDLE:
 			_arm_angle = lerp_angle(_arm_angle, deg_to_rad(160.0) + sin(_time * 1.5) * 0.05, 4.0 * delta)
 			_arm_stretch = move_toward(_arm_stretch, 1.0, delta)
+			_rest_back_arm(delta)
 			if _timer <= 0.0 and p.x > _face - 120.0:
-				_enter(St.BURST_WARN, 0.75)  # too close: it drives him off
+				_enter(St.BURST_WARN, 0.75 * _pace)  # too close: it drives him off
 			elif _timer <= 0.0:
 				_next_attack()
 				match _attack:
@@ -383,11 +471,16 @@ func _phase_1(p: Vector2, delta: float) -> void:
 						_aim_slam(p)
 					"roar":
 						_roar(p)
+					"sweep":
+						_sweep_from = _shoulder().x - (190.0 if _enraged else 165.0)
+						_sweep_to = _face - 92.0
+						_enter(St.SWEEP_CHARGE, 0.8 * _pace)
 					"breath":
-						_enter(St.BREATH, 0.9)
+						_enter(St.BREATH, 0.9 * _pace)
 		St.AIM:
-			# Arm raised; the shadow of the fist grows where it'll land.
+			# Near arm raised; the shadow of the fist grows where it'll land.
 			_arm_angle = lerp_angle(_arm_angle, deg_to_rad(215.0), 6.0 * delta)
+			_rest_back_arm(delta)
 			if fmod(_time, 0.06) < delta:
 				_frost(Vector2(_target.x + randf_range(-14, 14), _floor - 120.0))
 			if _timer <= 0.0:
@@ -395,7 +488,7 @@ func _phase_1(p: Vector2, delta: float) -> void:
 				_stretch_from = _arm_stretch
 				var to := _target - _shoulder()
 				_arm_to = to.angle()
-				_stretch_to = clampf(to.length() / (ARM_REACH * ARM_SCALE_1), 0.7, 1.3)
+				_stretch_to = clampf(to.length() / (ARM_REACH * ARM_SCALE_1), 0.7, _max_stretch())
 				_enter(St.STRIKE, 0.18)
 		St.STRIKE:
 			var t := clampf(1.0 - _timer / 0.18, 0.0, 1.0)
@@ -403,22 +496,89 @@ func _phase_1(p: Vector2, delta: float) -> void:
 			_arm_stretch = lerpf(_stretch_from, _stretch_to, t)
 			fist_on = true
 			if _timer <= 0.0:
-				_shake = 0.35
-				for i in 5:
-					_frost(_fist_point() + Vector2(randf_range(-16, 16), 10))
+				_land_fist(_fist_point())
+				# Then the far fist, aimed at wherever he's gone.
+				_target_2 = Vector2(_slam_x(p), _floor - 22.0)
+				_enter(St.AIM_2, 0.6 * _pace)
+		St.AIM_2:
+			# The near fist stays down; the far arm rises over it.
+			_back_angle = lerp_angle(_back_angle, deg_to_rad(205.0), 8.0 * delta)
+			_target_2.x = lerpf(_target_2.x, _slam_x(p), 3.0 * delta)
+			if fmod(_time, 0.06) < delta:
+				_frost(Vector2(_target_2.x + randf_range(-14, 14), _floor - 120.0))
+			if _timer <= 0.0:
+				_back_from = _back_angle
+				_back_stretch_from = _back_stretch
+				var to := _target_2 - _back_shoulder()
+				_back_to = to.angle()
+				_back_stretch_to = clampf(to.length() / (ARM_REACH * ARM_SCALE_1 * 0.9), 0.7, _max_stretch() + 0.15)
+				_enter(St.STRIKE_2, 0.18)
+		St.STRIKE_2:
+			var t := clampf(1.0 - _timer / 0.18, 0.0, 1.0)
+			_back_angle = lerp_angle(_back_from, _back_to, t * t)
+			_back_stretch = lerpf(_back_stretch_from, _back_stretch_to, t)
+			_arm_angle = lerp_angle(_arm_angle, deg_to_rad(160.0), 6.0 * delta)
+			_arm_stretch = move_toward(_arm_stretch, 1.0, 3.0 * delta)
+			if _timer <= 0.0:
+				_land_fist(_back_fist_point())
 				_enter(St.WEDGED, 2.2)
 		St.WEDGED:
-			# Stuck in the floor: a step up to its chest.
+			# The far fist stuck in the floor: a step up to its chest.
+			_arm_angle = lerp_angle(_arm_angle, deg_to_rad(160.0), 4.0 * delta)
+			_arm_stretch = move_toward(_arm_stretch, 1.0, 2.0 * delta)
 			if _timer <= 0.0:
 				_enter(St.RETRACT, 0.6)
 		St.RETRACT:
 			_arm_angle = lerp_angle(_arm_angle, deg_to_rad(160.0), 5.0 * delta)
 			_arm_stretch = move_toward(_arm_stretch, 1.0, 2.0 * delta)
+			_rest_back_arm(delta, 5.0)
 			if _timer <= 0.0:
-				_enter(St.IDLE, 0.9)
+				_enter(St.IDLE, 0.9 * _pace)
+		St.SWEEP_CHARGE:
+			# The fist laid out far along the floor, frost gathering along the forearm.
+			_rest_back_arm(delta)
+			_aim_arm_at(Vector2(_sweep_from, _floor - 14.0), 6.0 * delta)
+			if fmod(_time, 0.05) < delta:
+				_frost(_shoulder().lerp(_fist_point(), randf()) + Vector2(randf_range(-6, 6), -8))
+			if _timer <= 0.0:
+				Sfx.play("spin", -4.0, 0.0)
+				_enter(St.SWEEP, 0.45)
+		St.SWEEP:
+			# Raking along the floor toward the wall at knee height.
+			var t := clampf(1.0 - _timer / 0.45, 0.0, 1.0)
+			_aim_arm_at(Vector2(lerpf(_sweep_from, _sweep_to, t), _floor - 14.0), 1.0)
+			fist_on = true
+			if fmod(_time, 0.03) < delta:
+				_frost(_fist_point() + Vector2(0, 10))
+			_shatter_spikes(_fist_point().x, 24.0)
+			if _timer <= 0.0:
+				_enter(St.RETRACT, 0.6)
+		St.GREED_WARN:
+			# Struck once too often: the crack flares...
+			if fmod(_time, 0.04) < delta:
+				_frost(_chest_point() + Vector2(randf_range(-10, 10), randf_range(-10, 10)))
+			if _timer <= 0.0:
+				# ...and bursts out a spray of ice shards.
+				_shake = 0.3
+				Sfx.play("shatter", -4.0)
+				for i in 6:
+					var angle := deg_to_rad(lerpf(-70.0, 25.0, i / 5.0))
+					_spawn("icicle", _chest_point() + Vector2(-12, 0),
+						Vector2(-cos(angle), sin(angle)) * randf_range(190, 240), 300.0, 2.0)
+				_enter(St.RETRACT, 0.6)
+		St.ENRAGE:
+			# Half beaten: it roars and wrenches its arm further out of the wall.
+			_rest_back_arm(delta)
+			_arm_angle = lerp_angle(_arm_angle, deg_to_rad(200.0), 3.0 * delta)
+			_shake = maxf(_shake, 0.05)
+			if fmod(_time, 0.05) < delta:
+				_frost(_shoulder() + Vector2(randf_range(-20, 20), randf_range(-20, 20)))
+			if _timer <= 0.0:
+				_enter(St.IDLE, 0.4)
 		St.ROAR:
+			_rest_back_arm(delta)
 			if _timer <= 0.0:
-				_enter(St.IDLE, 0.6)
+				_enter(St.IDLE, 0.6 * _pace)
 		St.BURST_WARN:
 			# Frost gathers on the ice at its base...
 			if fmod(_time, 0.04) < delta:
@@ -436,7 +596,7 @@ func _phase_1(p: Vector2, delta: float) -> void:
 				_frost(_torso_center() + Vector2(-46, -40))
 			if _timer <= 0.0:
 				_spawn("frost_wave", Vector2(_face - 110.0, _floor), Vector2(-150.0, 0), 0.0, 3.5)
-				_enter(St.IDLE, 1.2)
+				_enter(St.IDLE, 1.2 * _pace)
 		St.SLUMP:
 			# Cracks run through it; one arm then the other breaks off and shatters on the
 			# floor; chunks fall away as it slumps dead into the wall.
@@ -453,12 +613,14 @@ func _phase_1(p: Vector2, delta: float) -> void:
 			_piece_t = minf(_piece_t + delta / 1.4, 1.0)
 			_arm_angle = lerp_angle(_arm_angle, deg_to_rad(125.0), 2.0 * delta)
 			_arm_stretch = move_toward(_arm_stretch, 1.0, delta)
+			_back_angle = lerp_angle(_back_angle, deg_to_rad(125.0) - 0.25, 2.0 * delta)
+			_back_stretch = move_toward(_back_stretch, 1.0, delta)
 			if not _arms_off[0] and _timer < 2.0:
 				_arms_off[0] = true
 				_break_arm(_shoulder(), _arm_angle, ARM_SCALE_1)
 			if not _arms_off[1] and _timer < 1.3:
 				_arms_off[1] = true
-				_break_arm(_back_shoulder(), _arm_angle - 0.25, ARM_SCALE_1 * 0.9)
+				_break_arm(_back_shoulder(), _back_angle, ARM_SCALE_1 * 0.9)
 			if fmod(_time, 0.12) < delta:
 				_chip(_torso_center() + Vector2(randf_range(-40, 10), randf_range(-40, 40)))
 			_update_pieces(delta)
@@ -469,27 +631,57 @@ func _phase_1(p: Vector2, delta: float) -> void:
 				_enter(St.SLUMPED)
 	_set_box(_chest, _state not in [St.DORMANT, St.WAKE, St.SLUMP], _chest_point())
 	_set_box(_fist, fist_on, _fist_point())
+	_set_box(_fist_2, _state == St.STRIKE_2, _back_fist_point())
 	_set_box(_burst_box, _state == St.BURST, Vector2(_face - 65.0, _floor - 35.0))
 	var wedged := _state == St.WEDGED
 	_fist_ledge.collision_layer = LAYER_WORLD if wedged else 0
 	if wedged:
-		_fist_ledge.global_position = get_parent().to_global(_fist_point() + Vector2(0, -6))
+		_fist_ledge.global_position = get_parent().to_global(_back_fist_point() + Vector2(0, -6))
+	_update_spikes(delta)
 
 
 func _aim_slam(p: Vector2) -> void:
-	# Where the fist can land: a band of floor out in front of it.
+	_target = Vector2(_slam_x(p), _floor - 22.0)
+	_enter(St.AIM, 0.9 * _pace)
+
+
+## Where a fist can land nearest Storm: a band of floor out in front of it (wider once it's
+## torn its arm free).
+func _slam_x(p: Vector2) -> float:
 	var near := _shoulder().x - 60.0
-	var far := _shoulder().x - 160.0
-	_target = Vector2(clampf(p.x, far, near), _floor - 22.0)
-	_enter(St.AIM, 0.9)
+	var far := _shoulder().x - (210.0 if _enraged else 160.0)
+	return clampf(p.x, far, near)
+
+
+## A fist hitting the floor: a jolt, frost, and the icicles standing in the floor shatter.
+func _land_fist(at: Vector2) -> void:
+	_shake = 0.35
+	Sfx.play("slam", -2.0)
+	for i in 5:
+		_frost(at + Vector2(randf_range(-16, 16), 10))
+	_shatter_spikes()
+
+
+## Points the near arm (fist end) at a spot, stretching to reach it.
+func _aim_arm_at(at: Vector2, weight: float) -> void:
+	var to := at - _shoulder()
+	var w := clampf(weight, 0.0, 1.0)
+	_arm_angle = lerp_angle(_arm_angle, to.angle(), w)
+	_arm_stretch = lerpf(_arm_stretch, clampf(to.length() / (ARM_REACH * ARM_SCALE_1), 0.7, _max_stretch()), w)
+
+
+## The far arm easing back to rest beside it.
+func _rest_back_arm(delta: float, rate := 3.0) -> void:
+	_back_angle = lerp_angle(_back_angle, deg_to_rad(160.0) - 0.25 + sin(_time * 1.5 + 1.0) * 0.05, rate * delta)
+	_back_stretch = move_toward(_back_stretch, 1.0, rate * 0.5 * delta)
 
 
 func _roar(p: Vector2) -> void:
 	_shake = 0.5
 	for i in 6:
 		var x := clampf(p.x + (i - 2.5) * 34.0 + randf_range(-8, 8), _left + 10, _face - 10)
-		_icicles.append({"x": x, "t": 0.9 + i * 0.12})
-	_enter(St.ROAR, 1.6)
+		_icicles.append({"x": x, "t": (0.9 + i * 0.12) * _pace})
+	_enter(St.ROAR, 1.6 * _pace)
 
 
 func _update_icicles(delta: float) -> void:
@@ -499,6 +691,10 @@ func _update_icicles(delta: float) -> void:
 		if ice.t <= 0.0:
 			_spawn("icicle", Vector2(ice.x, TILE * 1.5), Vector2.ZERO, 520.0, 2.5)
 			fallen.append(ice)
+			if phase == 1:
+				# It'll stick where it lands.
+				var ground := _ground_under(ice.x)
+				_landing.append({"x": ice.x, "y": ground, "t": sqrt(2.0 * (ground - TILE * 1.5) / 520.0)})
 	for ice in fallen:
 		_icicles.erase(ice)
 
@@ -557,6 +753,12 @@ func _phase_2(p: Vector2, delta: float) -> void:
 						_enter(St.LIFT, 0.7)
 					"pillars":
 						_raise_pillars(p)
+					"reach":
+						_face_toward(p, 1.0)
+						_arm_angle = PI / 2.0 - _dir * 0.3  # from where it hangs at its side
+						_arm_stretch = 1.0
+						_target = Vector2(_x + _dir * clampf(absf(p.x - _x), 60.0, 120.0), _floor - 18.0)
+						_enter(St.REACH_AIM, 0.9)
 		St.CROUCH:
 			# Crouching low, scraping a foot: it's about to charge.
 			_crouch = move_toward(_crouch, 1.0, 2.5 * delta)
@@ -565,10 +767,18 @@ func _phase_2(p: Vector2, delta: float) -> void:
 			if fmod(_time, 0.08) < delta:
 				_frost(Vector2(_x - _dir * 30.0, _floor - 4))
 			if _timer <= 0.0:
+				_charge_side = 1 if p.x > _x else -1
 				_enter(St.CHARGE, 3.0)
 		St.CHARGE:
 			feet_on = false
 			charge_on = true
+			if _slid_under(p):
+				# It trips over him and crashes down on its face.
+				_shake = 0.8
+				Sfx.play("slam", 0.0)
+				for i in 10:
+					_frost(Vector2(_x + randf_range(-60, 60), _floor - randf_range(0, 20)))
+				_enter(St.TOPPLE, 3.2)
 			_x += _dir * 230.0 * delta
 			_stride += delta * 14.0
 			if fmod(_time, 0.05) < delta:
@@ -578,6 +788,46 @@ func _phase_2(p: Vector2, delta: float) -> void:
 				_x = clampf(_x, _left + 50, _right - 50)
 				_shake = 0.5
 				_enter(St.STUNNED, 1.8)
+		St.TOPPLE:
+			# Face down on the floor, chest within reach; then it heaves itself back up.
+			feet_on = false
+			_crouch = move_toward(_crouch, 0.0, 4.0 * delta)
+			var down := _timer > 0.6
+			_kneel = move_toward(_kneel, 1.0 if down else 0.0, (6.0 if down else 2.0) * delta)
+			_topple = move_toward(_topple, 1.0 if down else 0.0, (6.0 if down else 2.0) * delta)
+			if _timer <= 0.0:
+				_topple = 0.0
+				_enter(St.IDLE, 0.8)
+		St.REACH_AIM:
+			# It drops into a crouch and raises its fist; the shadow shows where it'll land.
+			_crouch = move_toward(_crouch, 1.0, 2.5 * delta)
+			_arm_angle = lerp_angle(_arm_angle, -PI / 2.0 - _dir * 0.3, 5.0 * delta)
+			_arm_stretch = move_toward(_arm_stretch, 1.0, 2.0 * delta)
+			if fmod(_time, 0.06) < delta:
+				_frost(Vector2(_target.x + randf_range(-14, 14), _floor - 100.0))
+			if _timer <= 0.0:
+				_arm_from = _arm_angle
+				_stretch_from = _arm_stretch
+				var to := _target - _shoulder()
+				_arm_to = to.angle()
+				_stretch_to = clampf(to.length() / (ARM_REACH * ARM_SCALE_2), 0.7, 1.4)
+				_enter(St.REACH_STRIKE, 0.2)
+		St.REACH_STRIKE:
+			var t := clampf(1.0 - _timer / 0.2, 0.0, 1.0)
+			_arm_angle = lerp_angle(_arm_from, _arm_to, t * t)
+			_arm_stretch = lerpf(_stretch_from, _stretch_to, t)
+			if _timer <= 0.0:
+				_land_fist(_fist_point())
+				_enter(St.REACH_WEDGED, 2.8)
+		St.REACH_WEDGED:
+			# Its arm stays planted: footholds up it to its chest.
+			feet_on = false
+			if _timer <= 0.0:
+				_enter(St.REACH_RETRACT, 0.6)
+		St.REACH_RETRACT:
+			_crouch = move_toward(_crouch, 0.0, 2.0 * delta)
+			if _timer <= 0.0:
+				_enter(St.IDLE, 1.0)
 		St.STUNNED:
 			# Knocked to its knees, chest low: the moment to strike.
 			feet_on = false
@@ -616,8 +866,11 @@ func _phase_2(p: Vector2, delta: float) -> void:
 		# between its legs, under its low belly, is clear to slide through.
 		var leg_mid: Vector2 = hips[i].lerp(feet[i], 0.45)
 		_set_box(_leg_boxes[i], feet_on and _legs_out, leg_mid)
-	var standing := _legs_out and _state not in [St.DORMANT, St.WAKE, St.SHATTER, St.CHARGE]
+	var standing := _legs_out and _state not in [St.DORMANT, St.WAKE, St.SHATTER, St.CHARGE, St.TOPPLE,
+		St.REACH_WEDGED]
 	_set_box(_body_box, standing, _torso_center() + Vector2(0, 30))
+	_set_box(_fist, _state == St.REACH_STRIKE, _fist_point())
+	_set_steps(_state == St.REACH_WEDGED)
 	# Charging, its body is low but clears the floor by less than Storm stands: slide under.
 	_set_box(_charge_box, charge_on, Vector2(_x, _floor - 14.0 - 40.0))
 	_set_box(_chest, _state not in [St.DORMANT, St.WAKE, St.SHATTER], _chest_point())
@@ -648,8 +901,8 @@ func _leg_angles() -> Array:
 	var front := swing + _crouch * 0.7 * _dir - _lift * 0.9 * _dir
 	var back := -swing - _crouch * 0.7 * _dir
 	if _kneel > 0.0:
-		front = lerpf(front, 0.9 * _dir, _kneel)
-		back = lerpf(back, -1.2 * _dir, _kneel)
+		front = lerpf(front, 1.25 * _dir, _kneel)
+		back = lerpf(back, -1.45 * _dir, _kneel)
 	return [front, back]
 
 
@@ -701,6 +954,83 @@ func _update_pillars(delta: float) -> void:
 			gone.append(pillar)
 	for pillar in gone:
 		_pillars.erase(pillar)
+
+
+## Whether Storm has just slid under its charge, from the side he started on to the other.
+func _slid_under(p: Vector2) -> bool:
+	var player := _player()
+	if player == null or not player.has_method("_is_small"):
+		return false
+	var side := 1 if p.x > _x else -1
+	return side != _charge_side and absf(p.x - _x) < 60.0 and player.is_on_floor() and player._is_small()
+
+
+## Footholds along its planted arm (phase 2's reach), from the fist up toward its shoulder.
+func _set_steps(on: bool) -> void:
+	for i in _steps.size():
+		var step := _steps[i]
+		step.collision_layer = LAYER_WORLD if on else 0
+		if on:
+			var f := 0.18 + i * 0.2
+			step.global_position = get_parent().to_global(_fist_point().lerp(_shoulder(), f) + Vector2(0, -6))
+
+
+## The top of the ground under x (the floor, or the ice it rests on).
+func _ground_under(x: float) -> float:
+	var room := get_parent()
+	var cx := int(x / TILE)
+	for cy in range(1, room.size_tiles.y):
+		if room._cell(cx, cy) == "#":
+			return cy * TILE
+	return _floor
+
+
+## Fallen icicles sticking where they landed, as spikes of ice in the way.
+func _update_spikes(delta: float) -> void:
+	var stuck := []
+	for ice in _landing:
+		ice.t -= delta
+		if ice.t > 0.0:
+			continue
+		stuck.append(ice)
+		var player := _player()
+		# Not on top of Storm (it broke on him instead).
+		if player and absf(player.position.x - ice.x) < 12.0 and absf(player.position.y - ice.y) < 30.0:
+			continue
+		var body := StaticBody2D.new()
+		body.collision_layer = LAYER_WORLD
+		body.collision_mask = 0
+		body.top_level = true
+		var shape := RectangleShape2D.new()
+		shape.size = Vector2(8, 16)
+		var col := CollisionShape2D.new()
+		col.shape = shape
+		body.add_child(col)
+		add_child(body)
+		body.global_position = get_parent().to_global(Vector2(ice.x, ice.y - 8.0))
+		_spikes.append({"x": ice.x, "y": ice.y, "body": body})
+		if _spikes.size() > MAX_SPIKES:
+			_break_spike(_spikes.pop_front())
+	for ice in stuck:
+		_landing.erase(ice)
+
+
+## Shatters the stuck icicles: all of them, or just those within `reach` of x.
+func _shatter_spikes(x := 0.0, reach := -1.0) -> void:
+	var gone := []
+	for spike in _spikes:
+		if reach < 0.0 or absf(spike.x - x) < reach:
+			gone.append(spike)
+	for spike in gone:
+		_spikes.erase(spike)
+		_break_spike(spike)
+
+
+func _break_spike(spike: Dictionary) -> void:
+	for i in 3:
+		_frost(Vector2(spike.x + randf_range(-4, 4), spike.y - randf_range(2, 14)))
+	if is_instance_valid(spike.body):
+		spike.body.queue_free()
 
 
 func _shatter() -> void:
@@ -814,15 +1144,24 @@ func _draw() -> void:
 
 func _draw_phase_1(tint: Color) -> void:
 	if _state == St.AIM:
-		var grow := clampf(1.0 - _timer / 0.9, 0.0, 1.0)
+		var grow := clampf(1.0 - _timer / (0.9 * _pace), 0.0, 1.0)
 		_draw_ellipse(Vector2(_target.x, _floor) - position, Vector2(10.0 + 14.0 * grow, 3.0), COLOR_SHADOW)
+	if _state == St.AIM_2:
+		var grow := clampf(1.0 - _timer / (0.6 * _pace), 0.0, 1.0)
+		_draw_ellipse(Vector2(_target_2.x, _floor) - position, Vector2(10.0 + 14.0 * grow, 3.0), COLOR_SHADOW)
+	for spike in _spikes:
+		var base := Vector2(spike.x, spike.y) - position
+		draw_colored_polygon(PackedVector2Array([
+			base + Vector2(-4, 0), base + Vector2(0, -16), base + Vector2(4, 0),
+		]), Color(0.72, 0.88, 1.0, 0.95))
+		draw_line(base + Vector2(-1, -2), base + Vector2(0, -12), COLOR_FROST, 1.0)
 	var dim := 0.55 if _state in [St.DORMANT, St.SLUMPED] else 1.0
 	if _state == St.SLUMP:
 		dim = lerpf(1.0, 0.55, _slump)
 	var body_tint := Color(tint.r * dim, tint.g * dim, tint.b * dim)
 	# The back arm, behind the body; then the chest and head; then the front arm.
 	if not _arms_off[1]:
-		_draw_arm(_back_shoulder(), _arm_angle - 0.25, ARM_SCALE_1 * 0.9, 1.0,
+		_draw_arm(_back_shoulder(), _back_angle, ARM_SCALE_1 * 0.9, _back_stretch,
 			body_tint.darkened(0.3), true, ARM)
 	var c := _torso_center() - position
 	draw_set_transform(c, 0.0, Vector2(-1, 1))  # the art faces right; it faces left, out of the wall
@@ -831,6 +1170,10 @@ func _draw_phase_1(tint: Color) -> void:
 	if _state in [St.SLUMP, St.SLUMPED]:
 		_draw_cracks(c, 1.0 if _state == St.SLUMPED else _slump)
 	_draw_eyes(c)
+	if _state == St.GREED_WARN:
+		# The crack flaring before it bursts.
+		var glare := clampf(1.0 - _timer / 0.45, 0.0, 1.0)
+		draw_circle(_chest_point() - position, 8.0 + 10.0 * glare, Color(COLOR_FROST, 0.35 + 0.4 * glare))
 	if not _arms_off[0]:
 		_draw_arm(_shoulder(), _arm_angle, ARM_SCALE_1, _arm_stretch, body_tint, true, ARM_LEFT)
 	if _piece_t >= 0.0 and _piece_t < 1.0:
@@ -912,8 +1255,18 @@ func _draw_phase_2(tint: Color) -> void:
 		draw_set_transform(c + Vector2(0, HIP_DROP - 14.0), 0.0, Vector2(-1 if flip else 1, 1))
 		draw_texture(PELVIS, -Vector2(48, 30), tint)
 		draw_set_transform(Vector2.ZERO)
-	_draw_arm(_shoulder(), PI / 2.0 - _dir * (0.3 - swing), 1.0, 1.0,
-		tint, _dir < 0, ARM_LEFT)
+	var rest := PI / 2.0 - _dir * (0.3 - swing)
+	if _state in [St.REACH_AIM, St.REACH_STRIKE, St.REACH_WEDGED]:
+		if _state == St.REACH_AIM:
+			var grow := clampf(1.0 - _timer / 0.9, 0.0, 1.0)
+			_draw_ellipse(Vector2(_target.x, _floor) - position, Vector2(10.0 + 14.0 * grow, 3.0), COLOR_SHADOW)
+		_draw_arm(_shoulder(), _arm_angle, ARM_SCALE_2, _arm_stretch, tint, _dir < 0, ARM_LEFT)
+	elif _state == St.REACH_RETRACT:
+		var t := clampf(1.0 - _timer / 0.6, 0.0, 1.0)
+		_draw_arm(_shoulder(), lerp_angle(_arm_angle, rest, t), lerpf(ARM_SCALE_2, 1.0, t),
+			lerpf(_arm_stretch, 1.0, t), tint, _dir < 0, ARM_LEFT)
+	else:
+		_draw_arm(_shoulder(), rest, 1.0, 1.0, tint, _dir < 0, ARM_LEFT)
 	_draw_pieces()
 
 

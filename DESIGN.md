@@ -204,7 +204,14 @@ of the ice; it can't move, so the fight is about its reach.
   up to its chest.
 - *Floor sweep:* frost gathers along its forearm, then it sweeps the arm across the floor at
   knee height: jump it.
-- *Icicle roar:* it roars and icicles fall from the ceiling; their shadows show where.
+- *Icicle roar:* it roars and icicles fall from the ceiling; their shadows show where. They
+  stick in the floor as spikes of ice in the way until its next slam or sweep shatters them.
+- *Double slam:* the near fist comes down, then the far one where Storm has moved to; only
+  the second stays wedged as a step.
+- *Greed:* three hits on its chest in one opening and the crack bursts out a spray of ice
+  shards.
+- *Second half:* at half health it roars and tears its arm further out of the wall: it reaches
+  further and attacks faster.
 - *Weak point:* the glowing crack in its chest where the ice piece is lodged, reached by
   running up a wedged arm or wall climbing beside it.
 - Beaten, it slumps; Storm pulls the ice piece out of its chest. Its eyes go dark, but the
@@ -215,6 +222,10 @@ the slide.
 - *Roll:* it curls into a ball and rolls across the arena; slide under the gap as it bounces.
 - *Frozen floor:* it stamps and the floor turns to slick ice for a while.
 - *Pillars:* it raises ice pillars from the floor; wall jump between them to reach its head.
+- *Trip:* sliding under its charge trips it; it crashes face down, chest on the floor, for a
+  few moments. Charging into the wall instead stuns it to its knees, chest a jump high.
+- *Reach:* it crouches and slams a fist down in front of it; the arm stays planted, a stair
+  of footholds up to its chest.
 - *Core:* after its big slams the armor on its chest cracks open, showing a glowing core.
 - Beaten, it shatters into blocks of ice.
 
