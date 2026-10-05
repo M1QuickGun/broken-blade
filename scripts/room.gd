@@ -198,7 +198,8 @@ func _build_solids() -> void:
 	_ice_gate = _cells_body("G")
 
 
-## Scenery from Rooms.PROPS, on one layer behind Storm (and in front of the backdrop).
+## Scenery from Rooms.PROPS, on one layer behind Storm (and in front of the backdrop): a
+## sprite each, standing on its tile row.
 func _add_props() -> void:
 	var list: Array = Rooms.PROPS.get(room_name, [])
 	if list.is_empty():
@@ -207,13 +208,17 @@ func _add_props() -> void:
 	layer.z_index = -1
 	# Lit like the painted backdrop behind them, a touch brighter as they stand nearer.
 	layer.modulate = Color(0.78, 0.82, 0.88) if _ice else (Color(0.9, 0.82, 0.76) if _fire else Color(0.85, 0.88, 0.86))
-	layer.draw.connect(func() -> void:
-		for prop: Array in list:
-			var tex: Texture2D = load("res://art/world/props/%s.png" % prop[0])
-			var size := Vector2(tex.get_size()) / 2.0
-			var foot := Vector2((prop[1] + 0.5) * TILE, prop[2] * TILE)
-			layer.draw_texture_rect(tex, Rect2(foot - Vector2(size.x / 2.0, size.y), size), false))
 	add_child(layer)
+	for prop: Array in list:
+		var tex: Texture2D = load("res://art/world/props/%s.png" % prop[0])
+		var sprite := Sprite2D.new()
+		sprite.texture = tex
+		sprite.centered = false
+		sprite.scale = Vector2(0.5, 0.5)  # drawn at 2x detail
+		var size := Vector2(tex.get_size()) / 2.0
+		var foot := Vector2((prop[1] + 0.5) * TILE, prop[2] * TILE)
+		sprite.position = foot - Vector2(size.x / 2.0, size.y)
+		layer.add_child(sprite)
 
 
 ## Which ring skin this room's shockline rings use.
