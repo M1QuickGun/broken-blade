@@ -30,8 +30,10 @@ extends Node2D
 ##   than Storm's height: the way past is to slide between its legs, and sliding under it
 ##   trips it: it crashes face down, chest on the floor, for a few moments. Hitting the far
 ##   wall instead stuns it to its knees, chest low enough to reach with a jump.
-## - Reach: it drops into a crouch and slams its fist down in front of it; the arm stays
-##   planted, a stair of footholds up to its chest.
+## - Reach: it drops to one knee and slams its fist down in front of it; the arm stays
+##   planted, a stair of icy footholds up to its chest (which is within a jump anyway).
+## While it's down (stunned, tripped, or planted on its arm) a blow anywhere on its upper
+## body finds the crack.
 ## - Stomp: it lifts a foot and stamps; shockwaves run both ways along the floor.
 ## - Ice pillars: the floor swells, then pillars of ice burst up around Storm. Climb them to
 ##   reach its chest.
@@ -802,7 +804,7 @@ func _phase_2(p: Vector2, delta: float) -> void:
 			if (_dir < 0 and _x <= edge) or (_dir > 0 and _x >= edge) or _timer <= 0.0:
 				_x = clampf(_x, _left + 50, _right - 50)
 				_shake = 0.5
-				_enter(St.STUNNED, 1.8)
+				_enter(St.STUNNED, 2.6)
 		St.TOPPLE:
 			# Face down on the floor, chest within reach; then it heaves itself back up.
 			feet_on = false
@@ -814,8 +816,9 @@ func _phase_2(p: Vector2, delta: float) -> void:
 				_topple = 0.0
 				_enter(St.IDLE, 0.8)
 		St.REACH_AIM:
-			# It drops into a crouch and raises its fist; the shadow shows where it'll land.
+			# It drops to one knee and raises its fist; the shadow shows where it'll land.
 			_crouch = move_toward(_crouch, 1.0, 2.5 * delta)
+			_kneel = move_toward(_kneel, 0.5, 1.5 * delta)
 			_arm_angle = lerp_angle(_arm_angle, -PI / 2.0 - _dir * 0.3, 5.0 * delta)
 			_arm_stretch = move_toward(_arm_stretch, 1.0, 2.0 * delta)
 			if fmod(_time, 0.06) < delta:
@@ -841,6 +844,7 @@ func _phase_2(p: Vector2, delta: float) -> void:
 				_enter(St.REACH_RETRACT, 0.6)
 		St.REACH_RETRACT:
 			_crouch = move_toward(_crouch, 0.0, 2.0 * delta)
+			_kneel = move_toward(_kneel, 0.0, 2.0 * delta)
 			if _timer <= 0.0:
 				_enter(St.IDLE, 1.0)
 		St.STUNNED:
@@ -890,7 +894,12 @@ func _phase_2(p: Vector2, delta: float) -> void:
 	_set_box(_knuckles, _state == St.REACH_WEDGED, _fist_point())
 	# Charging, its body is low but clears the floor by less than Storm stands: slide under.
 	_set_box(_charge_box, charge_on, Vector2(_x, _floor - 14.0 - 40.0))
-	_set_box(_chest, _state not in [St.DORMANT, St.WAKE, St.SHATTER], _chest_point())
+	# Down, its whole upper body is open to a blow; standing, only the crack.
+	var down := _state in [St.STUNNED, St.TOPPLE, St.REACH_WEDGED]
+	var chest_shape: RectangleShape2D = _chest.get_child(0).shape
+	chest_shape.size = Vector2(84, 80) if down else Vector2(40, 40)
+	_set_box(_chest, _state not in [St.DORMANT, St.WAKE, St.SHATTER],
+		_torso_center() + Vector2(0, 12) if down else _chest_point())
 
 
 ## Turns to face Storm, but only once he's clearly on its other side and not too often, so
@@ -1159,6 +1168,7 @@ func _draw() -> void:
 		_draw_phase_1(tint)
 	else:
 		_draw_phase_2(tint)
+	_draw_steps()
 
 
 func _draw_phase_1(tint: Color) -> void:
@@ -1316,6 +1326,17 @@ func _draw_eyes(c: Vector2) -> void:
 		return
 	var glow := 0.6 + 0.4 * sin(_time * 4.0)
 	draw_circle(_on_torso(EYES) - position, 5.0, Color(COLOR_EYES, 0.25 * glow))
+
+
+## The footholds on a planted arm: ledges of ice frozen onto it.
+func _draw_steps() -> void:
+	for step in _steps:
+		if step.collision_layer == 0:
+			continue
+		var at: Vector2 = get_parent().to_local(step.global_position) - position
+		var half := STEP_SIZE / 2.0
+		draw_rect(Rect2(at - half, STEP_SIZE + Vector2(0, 2)), Color(0.42, 0.62, 0.78))
+		draw_rect(Rect2(at - half, Vector2(STEP_SIZE.x, 2)), COLOR_FROST)
 
 
 func _draw_pieces() -> void:

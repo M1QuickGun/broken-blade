@@ -225,8 +225,10 @@ the slide.
 - *Pillars:* it raises ice pillars from the floor; wall jump between them to reach its head.
 - *Trip:* sliding under its charge trips it; it crashes face down, chest on the floor, for a
   few moments. Charging into the wall instead stuns it to its knees, chest a jump high.
-- *Reach:* it crouches and slams a fist down in front of it; the arm stays planted, a stair
-  of footholds up to its chest.
+- *Reach:* it drops to one knee and slams a fist down in front of it; the arm stays planted,
+  a stair of icy footholds up to its chest (within a jump anyway).
+- While it's down (stunned, tripped, or planted on its arm), a blow anywhere on its upper body
+  finds the crack.
 - *Core:* after its big slams the armor on its chest cracks open, showing a glowing core.
 - Beaten, it shatters into blocks of ice.
 
