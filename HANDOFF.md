@@ -35,8 +35,8 @@ controls are in `README.md`.
 - Systems: saving (autosaves at shrines, pickups, bosses, new rooms), title screen with
   intro, pause menu (volume, fullscreen), colour-coded map, flasks, sound effects, hit
   effects, Silksong-style rings with region skins.
-- Debug keys (editor build): 1-4 abilities, 5 beat the current boss, 6-9 and - warps
-  (Village square, Frost arena, Frost throne, Crossroads, Forge), 0 reveal the map.
+- Debug keys (editor build): 1-4 abilities, 5 beat the current boss, 6-9, - and = warps
+  (Village square, Frost arena, Frost throne, Crossroads, Forge, Drake's roost), 0 reveal the map.
 
 ## Open items
 - Storm switches sword hands when he turns (all art is right-facing and mirrored). Making

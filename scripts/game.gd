@@ -251,6 +251,7 @@ func _setup_input() -> void:
 	_bind("debug_warp_frost_throne", [KEY_8], [], [])
 	_bind("debug_warp_crossroads", [KEY_9], [], [])
 	_bind("debug_warp_forge", [KEY_MINUS], [], [])
+	_bind("debug_warp_roost", [KEY_EQUAL], [], [])
 	_bind("debug_reveal_map", [KEY_0], [], [])
 
 
