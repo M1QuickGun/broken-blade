@@ -7,6 +7,10 @@ extends Node2D
 ##   icicles under every overhang.
 ## - "cave" (the frozen caverns): frost glinting as it drifts up through the cold air, a faint
 ##   glow off the ice, and icicles under every overhang.
+## - "ash" (the Fire slopes, outdoors): embers rising off the burned village, ash drifting
+##   down through slow smoke, a red glow low in the sky, and embers smouldering on the ground.
+## - "forge" (the Fire slopes, under rock): the same embers thicker, heat glowing up from
+##   below, and molten drips glowing under every overhang.
 ## The room adds one of each (front = false / true) and hands over its size and cells.
 
 const TILE := 16
@@ -14,6 +18,8 @@ const BACKDROPS := {
 	"forest": preload("res://art/world/forest_bg.png"),
 	"snow": preload("res://art/world/ice_village_bg.png"),
 	"cave": preload("res://art/world/ice_cave_bg.png"),
+	"ash": preload("res://art/world/fire_village_bg.png"),
+	"forge": preload("res://art/world/forge_bg.png"),
 }
 ## How much the backdrop follows the camera's movement across the room: 0 would pin it
 ## to the screen, 1 to the room.
@@ -34,8 +40,13 @@ const COLOR_SNOW := Color(0.9, 0.95, 1.0)
 const COLOR_FROST := Color(0.7, 0.92, 1.0)
 const COLOR_ICICLE := Color(0.72, 0.88, 1.0, 0.85)
 const COLOR_ICICLE_SHINE := Color(0.95, 1.0, 1.0, 0.9)
+const COLOR_EMBER := Color(1.0, 0.55, 0.18)
+const COLOR_EMBER_HOT := Color(1.0, 0.86, 0.5)
+const COLOR_ASH := Color(0.62, 0.6, 0.58)
+const COLOR_SMOKE := Color(0.08, 0.07, 0.07)
+const COLOR_HEAT := Color(1.0, 0.36, 0.1)
 
-## "forest", "snow" or "cave".
+## "forest", "snow", "cave", "ash" or "forge".
 var style := "forest"
 var front := false
 var size_px := Vector2.ZERO
@@ -55,6 +66,10 @@ var _leaves: Array[Dictionary] = []
 var _backdrop: Sprite2D
 var _flakes: Array[Dictionary] = []
 var _icicles: Array[Dictionary] = []
+var _embers: Array[Dictionary] = []
+var _smoke: Array[Dictionary] = []
+## Smouldering spots on the ground (outdoors) or molten drips under overhangs (the forge).
+var _glows: Array[Dictionary] = []
 
 
 func _ready() -> void:
@@ -73,6 +88,9 @@ func _ready() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(seed_text)
 	var cols := int(size_px.x / TILE)
+	if style == "ash" or style == "forge":
+		_setup_fire(rng, cols)
+		return
 	if style != "forest":
 		_setup_frost(rng, cols)
 		return
@@ -134,6 +152,41 @@ func _setup_frost(rng: RandomNumberGenerator, cols: int) -> void:
 					})
 
 
+## Embers rising, ash and smoke drifting, and glowing spots on the ground or under the rock.
+func _setup_fire(rng: RandomNumberGenerator, cols: int) -> void:
+	var forge := style == "forge"
+	var area := size_px.x * size_px.y
+	for i in int(area / (1800.0 if forge else 2600.0)):
+		_embers.append({
+			"x": rng.randf() * size_px.x, "y": rng.randf() * size_px.y,
+			"speed": rng.randf_range(10.0, 30.0), "sway": rng.randf_range(3.0, 10.0),
+			"phase": rng.randf() * TAU, "depth": rng.randf(),
+		})
+	if not forge:
+		for i in int(area / 2200.0):
+			_flakes.append({
+				"x": rng.randf() * size_px.x, "y": rng.randf() * size_px.y,
+				"speed": rng.randf_range(5.0, 12.0), "sway": rng.randf_range(6.0, 14.0),
+				"phase": rng.randf() * TAU, "depth": rng.randf(),
+			})
+	for i in int(area / 30000.0) + 3:
+		_smoke.append({
+			"x": rng.randf() * size_px.x, "y": rng.randf_range(0.2, 0.9) * size_px.y,
+			"r": rng.randf_range(24.0, 56.0), "speed": rng.randf_range(4.0, 9.0),
+			"phase": rng.randf() * TAU,
+		})
+	for cy in solid.size():
+		for cx in cols:
+			if not _solid(cx, cy):
+				continue
+			if forge and not _solid(cx, cy + 1) and cy + 1 < solid.size() and rng.randf() < 0.3:
+				_glows.append({"x": (cx + rng.randf_range(0.2, 0.8)) * TILE, "y": (cy + 1) * TILE,
+					"len": rng.randf_range(3.0, 8.0), "phase": rng.randf() * TAU, "drip": true})
+			elif not forge and cy > 0 and not _solid(cx, cy - 1) and rng.randf() < 0.18:
+				_glows.append({"x": (cx + rng.randf_range(0.2, 0.8)) * TILE, "y": cy * TILE,
+					"len": rng.randf_range(2.0, 5.0), "phase": rng.randf() * TAU, "drip": false})
+
+
 func _process(delta: float) -> void:
 	if front:
 		_time += delta
@@ -187,6 +240,9 @@ func _draw_back() -> void:
 
 
 func _draw_front() -> void:
+	if style == "ash" or style == "forge":
+		_draw_fire()
+		return
 	if style != "forest":
 		_draw_frost()
 		return
@@ -251,6 +307,56 @@ func _draw_frost() -> void:
 		alpha *= lerpf(0.35, 0.85, depth)
 		draw_circle(Vector2(x, y), radius + 0.5, Color(color, alpha * 0.35))
 		draw_circle(Vector2(x, y), radius, Color(color, alpha))
+
+
+func _draw_fire() -> void:
+	var forge := style == "forge"
+	# Heat glowing up from below the room, breathing slowly.
+	var breathe := 0.8 + 0.2 * sin(_time * 0.8)
+	var band := 70.0 if forge else 50.0
+	for i in 4:
+		var h := band * (1.0 - i * 0.22)
+		draw_rect(Rect2(0, size_px.y - h, size_px.x, h), Color(COLOR_HEAT, (0.035 if forge else 0.025) * breathe))
+	for s in _smoke:
+		var x: float = fmod(s.x + _time * s.speed, size_px.x + s.r * 2.0) - s.r
+		var y: float = s.y + sin(_time * 0.3 + s.phase) * 6.0
+		draw_circle(Vector2(x, y), s.r, Color(COLOR_SMOKE, 0.1))
+		draw_circle(Vector2(x + s.r * 0.5, y - s.r * 0.2), s.r * 0.7, Color(COLOR_SMOKE, 0.08))
+	for g in _glows:
+		var pulse := 0.55 + 0.45 * sin(_time * 1.7 + g.phase)
+		if g.drip:
+			# A bead of molten metal hanging off the rock, swelling and glowing.
+			var x: float = g.x
+			var y: float = g.y
+			var drop: float = g.len * (0.8 + 0.2 * pulse)
+			draw_circle(Vector2(x, y + drop * 0.5), 3.5, Color(COLOR_HEAT, 0.12 * pulse))
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(x - 1.5, y), Vector2(x + 1.5, y), Vector2(x + 1.0, y + drop), Vector2(x - 1.0, y + drop),
+			]), Color(COLOR_EMBER, 0.9))
+			draw_circle(Vector2(x, y + drop), 1.3, Color(COLOR_EMBER_HOT, 0.6 + 0.4 * pulse))
+		else:
+			# Embers smouldering in the ash on the ground.
+			var p := Vector2(g.x, g.y - 0.5)
+			_draw_ellipse(p, Vector2(g.len + 3.0, 2.0), Color(COLOR_HEAT, 0.12 * pulse))
+			draw_rect(Rect2(p.x - g.len * 0.5, p.y - 1.0, g.len, 1.0), Color(COLOR_EMBER, 0.5 + 0.5 * pulse))
+	for f in _flakes:
+		# Ash drifting down, slower and lazier than snow.
+		var fall: float = f.speed * lerpf(0.5, 1.2, f.depth)
+		var y: float = fmod(f.y + _time * fall, size_px.y)
+		var x: float = fmod(f.x + _time * fall * 0.6 + sin(_time * 0.6 + f.phase) * f.sway + size_px.x * 4.0, size_px.x)
+		draw_rect(Rect2(x, y, 1.0, 1.0), Color(COLOR_ASH, lerpf(0.25, 0.6, f.depth)))
+	for e in _embers:
+		# Rising and weaving, flickering as they go.
+		var rise: float = e.speed * lerpf(0.6, 1.3, e.depth)
+		var y: float = fmod(e.y - _time * rise + size_px.y * 8.0, size_px.y)
+		var x: float = e.x + sin(_time * 1.1 + e.phase) * e.sway + sin(_time * 2.9 + e.phase * 2.0) * 1.5
+		var flicker := 0.45 + 0.55 * maxf(0.0, sin(_time * 4.0 + e.phase * 5.0))
+		# Fading out near the top of their climb.
+		var fade := clampf(y / (size_px.y * 0.25), 0.0, 1.0)
+		var alpha := flicker * fade * lerpf(0.4, 1.0, e.depth)
+		var r := lerpf(0.5, 1.1, e.depth)
+		draw_circle(Vector2(x, y), r + 1.5, Color(COLOR_EMBER, alpha * 0.2))
+		draw_circle(Vector2(x, y), r, Color(COLOR_EMBER_HOT if e.depth > 0.7 else COLOR_EMBER, alpha))
 
 
 func _draw_ellipse(center: Vector2, radii: Vector2, color: Color) -> void:

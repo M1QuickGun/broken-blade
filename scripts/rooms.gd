@@ -3,7 +3,7 @@ extends RefCounted
 ## tools/build_rooms.py: edit the rooms there and rerun it.
 ##
 ## Legend:  #  solid stone      .  empty          ^  spikes
-##          P  start position   E  the region's enemy (beetle / thrall)  *  shockline anchor
+##          P  start position   E  the region's enemy (beetle / thrall / ash bat)  *  shockline anchor
 ##          U  a burrow grub, waiting in the earth
 ##          I / F / L  ice, fire and lightning blade pieces (dash, double jump, shockline)
 ##          W          the sword catcher technique (wall jump)
@@ -36,8 +36,10 @@ const ICE_ROOMS := [
 	"village_square", "ice_caverns", "frost_arena", "frozen_depths", "frost_throne", "ice_climb",
 	"frozen_cellar", "frozen_bridge", "crossroads", "high_pass",
 ]
-## The two faces past the Crossroads (for their own looks, still to come).
+## The Fire slopes, west of the Crossroads: charred stone, the burned village under the sky
+## and the forge under the rock, ash bats.
 const FIRE_ROOMS := ["ashen_road", "burning_homes", "forge", "cinder_steps", "drake_roost", "fire_shaft"]
+## The Lightning peaks, east of the Crossroads (their own looks still to come).
 const STORM_ROOMS := ["cliff_road", "storm_bridges", "spire", "anchor_gorge", "thunder_eyrie", "storm_tower"]
 
 ## Boss fights. The doors lock until the boss falls; `reward` (a map letter) appears where
@@ -67,6 +69,11 @@ const PROPS := {
 	],
 	"frozen_bridge": [["frozen_villager_c", 10, 15], ["frozen_villager", 45, 15]],
 	"crossroads": [["house_ruined", 47, 23], ["frozen_villager_b", 36, 23]],
+	"ashen_road": [["burned_house_c", 14, 15], ["burned_house", 55, 15]],
+	"burning_homes": [
+		["burned_house_b", 5, 19], ["burned_house", 22, 19], ["burned_house_c", 39, 19],
+		["burned_house_b", 49, 16], ["burned_house", 59, 19],
+	],
 }
 
 ## Sign text for each "?" in a room, in reading order (top to bottom, left to right).

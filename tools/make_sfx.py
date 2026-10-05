@@ -209,6 +209,22 @@ def main():
     save("menu_move", tone(1200, 0.04, "tri") * env(0.04, 0.002, 2.0), 0.3)
     save("menu_pick", chime([880, 1320], 0.04, 0.2, "tri"), 0.4)
 
+    # The Ash bat's screech before it dives: a thin wavering shriek.
+    d = 0.4
+    shriek = tone(sweep(2600, 3400, d, 0.5) + 180 * np.sin(t_axis(d) * 2 * np.pi * 38), d, "saw")
+    save("screech", bandpass(shriek, 1800, 6000) * env(d, 0.03, 1.6), 0.4)
+
+    # Fire breath: a long roaring rush of flame.
+    d = 1.4
+    rush = bandpass(noise(d), 150, sweep(2500, 1200, d)) * (0.75 + 0.25 * np.sin(t_axis(d) * 2 * np.pi * 11))
+    crackle = highpass(noise(d), 3500) * (rng.uniform(0, 1, int(RATE * d)) > 0.93)
+    save("fire_breath", mix(rush, crackle * 0.5) * env(d, 0.15, 0.8), 0.8)
+
+    # A great wingbeat: a deep whump of air.
+    d = 0.5
+    whump = lowpass(noise(d), sweep(900, 150, d)) * env(d, 0.06, 2.0)
+    save("wing", mix(whump, tone(sweep(70, 40, d), d) * env(d, 0.05, 2.0) * 0.5), 0.75)
+
 
 if __name__ == "__main__":
     main()
