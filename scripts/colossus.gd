@@ -7,7 +7,8 @@ extends Node2D
 ## the fight is about its reach. In a fixed order:
 ## - Double slam: it raises its near arm; a shadow and falling frost mark where the fist will
 ##   land. Then the far fist comes down where Storm has moved to, and that one stays wedged in
-##   the floor for a moment: a step up to the glowing crack in its chest, its weak point.
+##   the floor for a moment, its arm a stair of footholds up to the glowing crack in its
+##   chest, its weak point. A fist planted in the floor can be struck as well.
 ## - Icicle roar: icicles fall from the ceiling; shadows on the floor show where. They stick
 ##   in the floor as spikes of ice in the way, until its next slam or sweep shatters them.
 ## - Floor sweep: frost gathers along its forearm far out on the floor, then the fist rakes
@@ -170,6 +171,8 @@ var _body_box: Hitbox
 var _leg_boxes: Array[Hitbox] = []
 var _fist_ledge: StaticBody2D
 var _fist_2: Hitbox
+var _knuckles: Hitbox
+var _knuckles_2: Hitbox
 ## Phase 1: its far arm's own angle and stretch (it slams second); below half health it
 ## reaches further and moves faster (its waits and wind-ups scaled by _pace).
 var _back_angle := deg_to_rad(160.0) - 0.25
@@ -213,9 +216,12 @@ func _ready() -> void:
 	_floor = position.y
 	_measure()
 	_x = position.x
-	_chest = _make_box(Vector2(28, 28), true)
+	_chest = _make_box(Vector2(40, 40), true)
 	_fist = _make_box(Vector2(40, 30), false)
 	_fist_2 = _make_box(Vector2(40, 30), false)
+	# A fist planted in the floor is there to be struck too.
+	_knuckles = _make_box(Vector2(36, 28), true)
+	_knuckles_2 = _make_box(Vector2(36, 28), true)
 	for i in 4:
 		var step := StaticBody2D.new()
 		step.collision_layer = 0
@@ -249,6 +255,8 @@ func _ready() -> void:
 	_set_box(_chest, false)
 	_set_box(_fist, false)
 	_set_box(_fist_2, false)
+	_set_box(_knuckles, false)
+	_set_box(_knuckles_2, false)
 	_set_box(_charge_box, false)
 	_set_box(_burst_box, false)
 	_set_box(_body_box, false)
@@ -332,7 +340,7 @@ func take_hit(damage: int, _from_dir: Vector2) -> void:
 		hp = 0
 		remove_from_group("shock_target")
 		remove_from_group("boss")
-		for box in [_chest, _fist, _fist_2, _charge_box, _body_box] + _feet + _leg_boxes:
+		for box in [_chest, _fist, _fist_2, _knuckles, _knuckles_2, _charge_box, _body_box] + _feet + _leg_boxes:
 			_set_box(box, false)
 		_fist_ledge.collision_layer = 0
 		_set_steps(false)
@@ -633,6 +641,12 @@ func _phase_1(p: Vector2, delta: float) -> void:
 	_set_box(_chest, _state not in [St.DORMANT, St.WAKE, St.SLUMP], _chest_point())
 	_set_box(_fist, fist_on, _fist_point())
 	_set_box(_fist_2, _state == St.STRIKE_2, _back_fist_point())
+	_set_box(_knuckles, _state in [St.AIM_2, St.STRIKE_2], _fist_point())
+	_set_box(_knuckles_2, _state == St.WEDGED, _back_fist_point())
+	if _state == St.WEDGED:
+		_set_steps(true, _back_fist_point(), _back_shoulder() + Vector2(6, 0), 3)
+	elif _state not in [St.SLUMP, St.SLUMPED]:
+		_set_steps(false)
 	_set_box(_burst_box, _state == St.BURST, Vector2(_face - 65.0, _floor - 35.0))
 	var wedged := _state == St.WEDGED
 	_fist_ledge.collision_layer = LAYER_WORLD if wedged else 0
@@ -872,7 +886,8 @@ func _phase_2(p: Vector2, delta: float) -> void:
 		St.REACH_WEDGED, St.STUNNED]
 	_set_box(_body_box, standing, _torso_center() + Vector2(0, HIP_DROP - 20.0))
 	_set_box(_fist, _state == St.REACH_STRIKE, _fist_point())
-	_set_steps(_state == St.REACH_WEDGED)
+	_set_steps(_state == St.REACH_WEDGED, _fist_point(), _shoulder())
+	_set_box(_knuckles, _state == St.REACH_WEDGED, _fist_point())
 	# Charging, its body is low but clears the floor by less than Storm stands: slide under.
 	_set_box(_charge_box, charge_on, Vector2(_x, _floor - 14.0 - 40.0))
 	_set_box(_chest, _state not in [St.DORMANT, St.WAKE, St.SHATTER], _chest_point())
@@ -967,14 +982,16 @@ func _slid_under(p: Vector2) -> bool:
 	return side != _charge_side and absf(p.x - _x) < 60.0 and player.is_on_floor() and player._is_small()
 
 
-## Footholds along its planted arm (phase 2's reach), from the fist up toward its shoulder.
-func _set_steps(on: bool) -> void:
+## Footholds along a planted arm, from its fist up toward its shoulder (`count` of them, the
+## rest off).
+func _set_steps(on: bool, fist := Vector2.ZERO, shoulder := Vector2.ZERO, count := 4) -> void:
 	for i in _steps.size():
 		var step := _steps[i]
-		step.collision_layer = LAYER_WORLD if on else 0
-		if on:
-			var f := 0.18 + i * 0.2
-			step.global_position = get_parent().to_global(_fist_point().lerp(_shoulder(), f) + Vector2(0, -6))
+		var used := on and i < count
+		step.collision_layer = LAYER_WORLD if used else 0
+		if used:
+			var f := 0.18 + i * (0.8 / count)
+			step.global_position = get_parent().to_global(fist.lerp(shoulder, f) + Vector2(0, -6))
 
 
 ## The top of the ground under x (the floor, or the ice it rests on).

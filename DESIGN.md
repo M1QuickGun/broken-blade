@@ -207,7 +207,8 @@ of the ice; it can't move, so the fight is about its reach.
 - *Icicle roar:* it roars and icicles fall from the ceiling; their shadows show where. They
   stick in the floor as spikes of ice in the way until its next slam or sweep shatters them.
 - *Double slam:* the near fist comes down, then the far one where Storm has moved to; only
-  the second stays wedged as a step.
+  the second stays wedged, its arm a stair of footholds up to the chest. Planted fists can be
+  struck too.
 - *Greed:* three hits on its chest in one opening and the crack bursts out a spray of ice
   shards.
 - *Second half:* at half health it roars and tears its arm further out of the wall: it reaches
@@ -238,8 +239,8 @@ fixed order:
 - *Lunge:* it crouches with its head drawn back, then lunges forward and snaps. Its head
   stays low afterwards, panting smoke: the opening.
 - *Breath:* it crouches with its head low and level and its throat glows, then a jet of fire
-  roars straight out at chest height to the far wall. Slide under it (or be behind it, or up
-  on a ledge).
+  roars straight out at chest height to the far wall. Slide under it, or under the drake
+  itself (it doesn't hurt to touch while it breathes) and come out behind it.
 - *Stomp:* it rears up and slams down; embers rain from the roof, their glow on the floor
   showing where.
 - *Tail lash:* if Storm gets behind it, it raises its tail and lashes it down; a wave of fire

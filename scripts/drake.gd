@@ -11,8 +11,8 @@ extends Node2D
 ## - Lunge: it crouches, head drawn back, then lunges forward and snaps. Its head stays low
 ##   afterwards, panting smoke: the opening to hit it.
 ## - Breath: it lowers its head and its throat glows, then a jet of fire roars straight out
-##   at chest height all the way to the far wall. Slide under it (or be behind it, or up on a
-##   ledge).
+##   at chest height all the way to the far wall. Slide under it, or under the drake itself
+##   (its body doesn't hurt while it breathes) and come out behind it.
 ## - Stomp: it rears up and slams its forefeet down; embers rain from the forge's roof,
 ##   their glow on the floor showing where.
 ## And if Storm gets behind it, it raises its tail and lashes it down: a wave of fire runs
@@ -945,8 +945,11 @@ func _update_boxes() -> void:
 	var alive := _fighting()
 	var head_angle := (_neck + _tilt) * _dir
 	_set_box(_head_box, alive, _head_point(), head_angle)
+	# Braced and breathing fire, it doesn't hurt to touch: there's room to slide under it.
+	var braced := _state in [St.BREATH_WINDUP, St.BREATH]
+	_body_box.harmless = braced
 	_set_box(_body_box, alive, _body_point(), _tilt * _dir)
-	_set_box(_legs_box, alive, _w(Vector2(160, 118 - 10.0 * _tuck)), _tilt * _dir)
+	_set_box(_legs_box, alive and not braced, _w(Vector2(160, 118 - 10.0 * _tuck)), _tilt * _dir)
 	var tail_mid := _on_part(TAIL_PIVOT, _tail_angle(), Vector2(50, 98))
 	var tail_angle := (_tail_angle() + _tilt) * _dir
 	_set_box(_tail_box, _state == St.TAIL_LASH, tail_mid, tail_angle)
