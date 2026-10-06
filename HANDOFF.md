@@ -51,8 +51,9 @@ controls are in `README.md`.
   drake): the king's court sorcerer, taken by the evil. Needs a playtest.
 - The mountain was rebuilt to 45 rooms (3+ new per region) with each face switching back so
   the fire and lightning roads meet at the Crossroads (bottom) and the High pass (top). The
-  Crossroads and the summit rooms are a separate area whose theme is still to be chosen;
-  they use the Frozen village look for now.
+  Crossroads area (Storm's pick): the Refuge below (survivors' camp under the crossroads,
+  talking NPCs in `Rooms.NPCS`, "N" in layouts) and the Last Stand above (the summit
+  battlefield, hollow knights). Shops are a possible next step (needs a currency).
 - Props are drawn flat, straight-on (Storm disliked three-quarter views); keep new ones so.
 - The burned houses were removed from the fire rooms (Storm didn't like them, flat or not);
   the fire village has no scenery props for now.
