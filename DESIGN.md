@@ -357,7 +357,9 @@ rods; the shockline reaches it there. Touching it doesn't hurt; its spells do:
   Storm in arcs.
 - **Frost hound** (Frozen village): a wolf grown through with ice crystals. It runs Storm
   down, crouches, and leaps at him.
-- **Frost bat** (Frozen village): an ash bat the cold got into; it hunts the same way.
+- **Frost bat** (Frozen village): the ash bat's frostbitten kin, pale blue with ice glowing
+  where the embers were; it hunts the same way. Reused enemies always wear their region's
+  colours.
 - **Cinder husk** (Fire slopes): a burnt villager, still smouldering. It shambles after him;
   close in its embers flare faster and faster and it bursts in fire: kill it first or get
   clear.
@@ -379,6 +381,9 @@ Shocklined to a ring, Storm hangs from it by his blade. Jumping off is always a 
 works for a moment.
 
 ### Healing: flasks
+Rest shrines stand by the way into every boss fight, and a shrine kindles in the arena the
+moment a boss falls (Storm wakes there from then on).
+
 Storm carries flasks of a shrine's pale flame (3 to start). Drinking one (F or Q, or B on a
 controller) roots him in place for a moment and mends 2 masks; a hit before it lands spills
 it. Every flask refills when he rests at a shrine or wakes at one after dying. More flasks

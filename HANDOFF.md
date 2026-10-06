@@ -12,7 +12,8 @@ controls are in `README.md`.
 - Checks that are fine to run: `--headless --path . --import`, then
   `--headless --path . --quit-after 3` (compile check), and throwaway headless scenes that
   build rooms or run boss fights with a stand-in player (delete them afterwards, and delete
-  `%APPDATA%/Godot/app_userdata/Broken Blade/save.json` if a test wrote one).
+  `%APPDATA%/Godot/app_userdata/Broken Blade/save.json` only if a test wrote one: it is
+  Storm's playtest save, so back it up before any test that would overwrite it).
 - `press/` (press and portfolio images) and `tools/make_press_images.py` /
   `make_portfolio_images.py` come from other chats working on the same repo: commit them
   along with everything else.
@@ -23,6 +24,8 @@ controls are in `README.md`.
   `EXTRA` places each region's second creature ("Y": toad, frost hound, cinder husk,
   conductor, hollow archer) and flier ("V": frost bat, carrion crow) on the nearest open
   floor to the spot given; room.gd picks which by region.
+  `SHRINES` puts a rest shrine by the door into every boss; `AFTER_SHRINES` an "S" in each
+  boss room, a shrine that kindles (and becomes the wake point) the moment the boss falls.
 - `tools/check_reach.py`: reachability check (jump, double jump, wall climb, shockline,
   slide limits) for the fire and lightning regions' gates and secrets.
 - `tools/make_sfx.py`: synthesizes every sound effect into `audio/sfx/`.

@@ -7,6 +7,7 @@ signal sign_read(text: String)
 signal boss_defeated(title: String)
 
 const Rooms := preload("res://scripts/rooms.gd")
+const Effects := preload("res://scripts/effects.gd")
 const Crawler := preload("res://scripts/crawler.gd")
 const Shard := preload("res://scripts/shard.gd")
 const Anchor := preload("res://scripts/anchor.gd")
@@ -89,6 +90,8 @@ var _gate: StaticBody2D
 var _boss_spawn := Vector2.ZERO
 var _sign_count := 0
 var _ice := false
+## Where a shrine kindles the moment this room's boss falls (NAN = none).
+var _after_shrine := Vector2(NAN, NAN)
 var _forest := false
 ## Trees and light behind and in front of the tiles (forest and overgrown rooms).
 var _woods := false
@@ -427,6 +430,15 @@ func _scan_cells() -> void:
 						shard.ability = ability
 						shard.position = Vector2((x + 0.5) * TILE, (y + 0.5) * TILE)
 						add_child(shard)
+				"S":
+					# A shrine that kindles once the room's boss falls.
+					if Game.defeated.has(Rooms.BOSSES[room_name].id):
+						var kept := Shrine.new()
+						kept.room_name = room_name
+						kept.position = feet
+						add_child(kept)
+					else:
+						_after_shrine = feet
 				"R":
 					var shrine := Shrine.new()
 					shrine.room_name = room_name
@@ -656,6 +668,17 @@ func _on_boss_defeated(info: Dictionary, where: Vector2, exact := false) -> void
 	queue_redraw()
 	if info.has("reward"):
 		_add_reward(info.reward, where if exact else Vector2(where.x, _boss_spawn.y - TILE))
+	if not is_nan(_after_shrine.x):
+		# A shrine kindles where the fight ended, and Storm will wake here from now on.
+		var shrine := Shrine.new()
+		shrine.room_name = room_name
+		shrine.position = _after_shrine
+		shrine.kindle = true
+		add_child(shrine)
+		Game.rest_room = room_name
+		Game.rest_point = shrine.global_position
+		Effects.sparks(self, _after_shrine + Vector2(0, -14), Color("9fe6ff"), 14, 90.0)
+		Sfx.play("rest", -4.0, 0.0)
 	boss_defeated.emit(info.title)
 
 

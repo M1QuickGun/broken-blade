@@ -122,6 +122,8 @@ func _draw_map() -> void:
 		var rows: Array = Rooms.LAYOUTS[room]
 		for y in rows.size():
 			var x := String(rows[y]).find("R")
+			if x == -1 and Rooms.BOSSES.has(room) and Game.defeated.has(Rooms.BOSSES[room].id):
+				x = String(rows[y]).find("S")  # kindled when its boss fell
 			if x != -1:
 				var p := r.position + (Vector2(x, y) + Vector2(0.5, 0.5)) * ZOOM
 				_canvas.draw_circle(p, 3.5, COLOR_SHRINE)

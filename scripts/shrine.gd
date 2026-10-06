@@ -9,6 +9,8 @@ const COLOR_FLAME_CORE := Color("f2fbff")
 
 ## Set by the room that builds it.
 var room_name := ""
+## Kindled the moment a boss falls: it rises out of the floor, already lit.
+var kindle := false
 
 var _time := 0.0
 var _lit := false
@@ -24,7 +26,10 @@ func _ready() -> void:
 	col.position = Vector2(0, -10)
 	add_child(col)
 	body_entered.connect(_on_body_entered)
-	_lit = Game.rest_room == room_name and Game.rest_point == global_position
+	_lit = kindle or (Game.rest_room == room_name and Game.rest_point == global_position)
+	if kindle:
+		scale = Vector2(1, 0)
+		create_tween().tween_property(self, "scale", Vector2.ONE, 0.8).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func _process(delta: float) -> void:

@@ -13,6 +13,9 @@ const LAYER_ENEMY := 4
 const TEX := preload("res://art/enemies/ash_bat.png")
 ## The carrion crow of the Last Stand flies the same way, in its own feathers.
 const CROW_TEX := preload("res://art/enemies/crow.png")
+## The frost bat: the same bat in the Frozen village's colours, frostbitten, glowing ice-blue.
+const FROST_TEX := preload("res://art/enemies/frost_bat.png")
+const COLOR_FROST := Color(0.6, 0.9, 1.0)
 const FRAME := 64
 const DRAW := 38.0
 const FPS := 12.0
@@ -38,7 +41,7 @@ const COLOR_EMBER := Color(1.0, 0.55, 0.18)
 enum St { HOVER, SCREECH, DIVE, CLIMB }
 
 var hp := 2
-## "ash" (the Fire slopes), "frost" (an ash bat the cold got into: the Frozen village) or
+## "ash" (the Fire slopes), "frost" (its frostbitten kin in the Frozen village's colours) or
 ## "crow" (the Last Stand).
 var kind := "ash"
 var dir := -1
@@ -150,8 +153,15 @@ func take_hit(damage: int, from_dir: Vector2) -> void:
 	Effects.sparks(get_parent(), global_position, Color(1, 0.8, 0.5))
 	if hp <= 0:
 		Sfx.play("enemy_die", -4.0)
-		Effects.puff(get_parent(), global_position, Color(0.4, 0.36, 0.34))
-		Effects.sparks(get_parent(), global_position, COLOR_EMBER, 12, 90.0)
+		match kind:
+			"frost":
+				Effects.puff(get_parent(), global_position, Color(0.75, 0.9, 1.0))
+				Effects.sparks(get_parent(), global_position, COLOR_FROST, 12, 90.0)
+			"crow":
+				Effects.puff(get_parent(), global_position, Color(0.18, 0.18, 0.22))
+			_:
+				Effects.puff(get_parent(), global_position, Color(0.4, 0.36, 0.34))
+				Effects.sparks(get_parent(), global_position, COLOR_EMBER, 12, 90.0)
 		queue_free()
 		return
 	if from_dir != Vector2.ZERO:
@@ -162,10 +172,8 @@ func take_hit(damage: int, from_dir: Vector2) -> void:
 func _draw() -> void:
 	var tint := Color(3, 3, 3) if _flash > 0.0 else Color.WHITE
 	if _state == St.SCREECH and fmod(_anim, 0.12) < 0.06:
-		tint = Color(1.8, 1.2, 0.8)
-	var tex: Texture2D = CROW_TEX if kind == "crow" else TEX
-	if kind == "frost":
-		tint = tint * Color(0.6, 0.85, 1.35)
+		tint = Color(0.9, 1.4, 1.8) if kind == "frost" else Color(1.8, 1.2, 0.8)
+	var tex: Texture2D = CROW_TEX if kind == "crow" else FROST_TEX if kind == "frost" else TEX
 	var frames := tex.get_width() / FRAME
 	var frame := int(_anim * FPS * (1.6 if _state == St.SCREECH else 1.0)) % frames
 	var angle := 0.0
@@ -175,10 +183,11 @@ func _draw() -> void:
 		frame = mini(DIVE_FRAME, frames - 1)
 		flip = 1.0 if _dive_dir.x >= 0.0 else -1.0
 		angle = atan2(_dive_dir.y, absf(_dive_dir.x)) * flip
-		# A trail of embers behind it.
-		for i in 3:
+		# A trail of embers behind it (frost off the frost bat; the crow leaves none).
+		var trail := COLOR_FROST if kind == "frost" else COLOR_EMBER
+		for i in (0 if kind == "crow" else 3):
 			var p := -_dive_dir * (8.0 + i * 7.0) + Vector2(randf_range(-2, 2), randf_range(-2, 2))
-			draw_circle(p, 1.5 - i * 0.3, Color(COLOR_EMBER, 0.7 - i * 0.2))
+			draw_circle(p, 1.5 - i * 0.3, Color(trail, 0.7 - i * 0.2))
 	var shake := Vector2(randf_range(-1, 1), randf_range(-1, 1)) if _state == St.SCREECH else Vector2.ZERO
 	draw_set_transform(shake, angle, Vector2(flip, 1))
 	draw_texture_rect_region(tex, Rect2(-DRAW / 2.0, -DRAW / 2.0, DRAW, DRAW),

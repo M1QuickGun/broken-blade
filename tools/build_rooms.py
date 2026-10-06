@@ -109,7 +109,6 @@ r.fill(0, 13, 0, 15, "a")
 r.fill(49, 13, 49, 15, "b")
 r.put(5, 15, "?")
 r.put(18, 18, "U")
-r.put(32, 18, "U")
 r.put(25, 18, "E")
 
 # The stone ring. The golden hilt glints in the middle of solid ground; pulling at it wakes the
@@ -186,7 +185,6 @@ r.put(5, 16, "?")
 r.box(23, 15, 26, 16)
 r.box(28, 13, 31, 13)
 r.put(16, 16, "E")
-r.put(40, 16, "E")
 
 r = Room("village_square", 60, 19)
 r.open_sky()
@@ -207,7 +205,6 @@ r.box(44, 0, 50, 4)
 r.air(44, 5, 50, 5)
 r.fill(59, 3, 59, 5, "j")
 r.put(14, 16, "E")
-r.put(48, 16, "E")
 
 # The icefall hall: a cavern of icicles, climbed ledge by ledge over spikes to where the
 # wind comes in, up in its far corner.
@@ -268,7 +265,6 @@ r.put(5, 15, "?")
 r.box(12, 1, 14, 14)
 r.air(20, 16, 23, 16)
 r.fill(20, 17, 23, 17, "^")
-r.put(26, 15, "E")
 r.air(30, 16, 33, 16)
 r.fill(30, 17, 33, 17, "^")
 r.box(40, 1, 42, 14)
@@ -332,7 +328,6 @@ r.box(24, 0, 30, 13)
 r.put(33, 14, "E")
 r.air(37, 15, 41, 16)
 r.fill(37, 17, 41, 17, "^")
-r.put(46, 14, "E")
 r.box(50, 0, 54, 13)
 r.put(55, 14, "E")
 r.fill(63, 12, 63, 14, "p")
@@ -459,7 +454,6 @@ r.put(46, 17, "?")
 for x in (10, 24, 38):
     r.air(x, 18, x + 3, 18)
     r.fill(x, 19, x + 3, 19, "^")
-r.put(21, 17, "E")
 r.put(33, 17, "E")
 
 r = Room("forge", 44, 18)
@@ -521,7 +515,6 @@ r.box(0, 18, 8, 20)
 for x in (13, 25, 37):
     r.box(x, 18, x + 7, 18)
 r.box(49, 18, 63, 20)
-r.put(28, 17, "E")
 r.put(40, 17, "E")
 
 # The cinder ridge: up and over a ridge of cinders toward the drake's roost, ledges too far
@@ -624,7 +617,6 @@ r.fill(14, 17, 17, 17, "^")
 r.box(26, 0, 28, 14)
 r.put(10, 15, "E")
 r.put(40, 15, "E")
-r.put(47, 15, "E")
 
 r = Room("spire", 44, 18)
 r.floor(16)
@@ -694,7 +686,6 @@ for x in (14, 32, 48):
     r.fill(x, 19, x + 3, 19, "^")
 r.box(24, 0, 26, 14)
 r.box(40, 0, 42, 14)
-r.put(20, 15, "E")
 r.put(37, 15, "E")
 r.put(54, 15, "E")
 
@@ -737,7 +728,6 @@ r.put(40, 16, "?")
 r.box(18, 15, 22, 16)
 r.box(57, 15, 61, 16)
 r.put(28, 16, "E")
-r.put(52, 16, "E")
 
 # The windward pass and the summit ledge: the high pass runs on east along the top of the
 # mountain, stepping down toward the head of the storm tower (wall jump back up the steps).
@@ -749,7 +739,6 @@ r.fill(0, 2, 0, 4, "z")
 r.fill(71, 14, 71, 16, "y")
 r.put(4, 4, "?")
 r.put(21, 7, "E")
-r.put(49, 13, "E")
 
 r = Room("summit_ledge", 74, 24)
 r.open_sky()
@@ -757,7 +746,6 @@ for i, (x0, top) in enumerate([(0, 5), (18, 9), (36, 12), (52, 15), (64, 19)]):
     r.box(x0, top, [17, 35, 51, 63, 73][i], 23)
 r.fill(0, 2, 0, 4, "z")
 r.fill(73, 16, 73, 18, "y")
-r.put(26, 8, "E")
 r.put(56, 14, "E")
 
 # The old lift shaft, its lift long gone: a straight drop from the summit to the crossroads.
@@ -825,7 +813,7 @@ LINKS = {
 EXTRA = {
     "rockfall": [(16, 14, "Y")],
     "sunken_glade": [(8, 15, "Y")],
-    "fern_gully": [(14, 27, "Y"), (30, 27, "Y")],
+    "fern_gully": [(30, 27, "Y")],
     "thicket": [(26, 14, "Y")],
     "frozen_street": [(30, 16, "V"), (48, 16, "Y")],
     "village_square": [(38, 16, "Y"), (24, 16, "V")],
@@ -840,16 +828,55 @@ EXTRA = {
     "slag_works": [(16, 17, "Y")],
     "bellows_hall": [(28, 22, "Y")],
     "ember_span": [(18, 17, "Y")],
-    "cinder_ridge": [(46, 11, "Y")],
     "cliff_road": [(12, 14, "Y")],
     "lookout": [(30, 17, "Y")],
     "storm_bridges": [(46, 18, "Y")],
     "rod_field": [(25, 15, "Y")],
-    "aqueduct": [(10, 15, "Y")],
+    "aqueduct": [(25, 15, "Y")],
     "high_pass": [(66, 16, "Y"), (14, 16, "V")],
     "windward_pass": [(36, 10, "Y"), (60, 16, "V")],
     "summit_ledge": [(42, 11, "Y"), (34, 8, "V")],
 }
+
+
+# Shrines by the way into every boss ("R", in the room before it) and in every boss room
+# ("S": it kindles the moment the boss falls). Each goes on the floor nearest the door named,
+# a few tiles in from it and clear of enemies.
+SHRINES = {
+    "fern_gully": "e", "ice_caverns": "k", "frozen_depths": "m", "slag_works": "u",
+    "cinder_ridge": "b", "rod_field": "u", "aqueduct": "b",
+}
+AFTER_SHRINES = {
+    "gate_cavern": "g", "frost_arena": "l", "frost_throne": "n", "forge": "v",
+    "drake_roost": "x", "spire": "u", "thunder_eyrie": "w",
+}
+
+
+def place_shrines():
+    for table, ch in [(SHRINES, "R"), (AFTER_SHRINES, "S")]:
+        for name, letter in table.items():
+            room = ROOMS[name]
+            g = room.g
+            cells = [(x, y) for y, row in enumerate(g) for x, c in enumerate(row) if c == letter]
+            cx = sum(c[0] for c in cells) / len(cells)
+            cy = sum(c[1] for c in cells) / len(cells)
+            best = None
+            for y in range(2, room.h - 1):
+                for x in range(2, room.w - 2):
+                    if g[y][x] != "." or g[y + 1][x] != "#" or g[y - 1][x] != ".":
+                        continue
+                    if not all(g[y + 1][x + k] == "#" and g[y][x + k] == "." for k in (-1, 1)):
+                        continue
+                    d = abs(x - cx) + abs(y - cy) * 1.5
+                    if d < 4:
+                        continue
+                    if any(g[yy][xx] in "EUYVB" for yy in range(max(0, y - 4), min(room.h, y + 5))
+                           for xx in range(max(0, x - 8), min(room.w, x + 9))):
+                        continue
+                    if best is None or d < best[0]:
+                        best = (d, x, y)
+            assert best, "%s: no floor for a shrine by door %s" % (name, letter)
+            g[best[2]][best[1]] = ch
 
 
 def place_extra():
@@ -1011,6 +1038,7 @@ def gd_block():
 
 def main():
     place_extra()
+    place_shrines()
     check()
     path = "scripts/rooms.gd"
     src = open(path, encoding="utf-8").read()
