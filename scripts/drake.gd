@@ -203,12 +203,13 @@ var _jet_box: Hitbox
 
 ## One of its hurtful or strikable parts. `weak`: struck, it hurts the drake. `harmless`:
 ## touched, it doesn't hurt Storm. `slide_through`: Storm's slide passes under it instead of
-## striking it and bouncing off.
+## striking it and bouncing off. `slide_safe`: it doesn't hurt him while he slides.
 class Hitbox extends Area2D:
 	var boss: Node
 	var weak := false
 	var harmless := false
 	var slide_through := false
+	var slide_safe := false
 
 	func take_hit(damage: int, from_dir: Vector2) -> void:
 		if weak:
@@ -227,6 +228,10 @@ func _ready() -> void:
 	_tail_box = _make_box(Vector2(92, 20), false, false)
 	_jet_box = _make_box(Vector2(10, JET_WIDTH), false, false)
 	_jet_box.slide_through = true
+	# Storm can always slide under its belly and legs and out the other side.
+	for box in [_head_box, _body_box, _legs_box]:
+		box.slide_through = true
+		box.slide_safe = true
 	for box in [_head_box, _body_box, _legs_box, _tail_box, _jet_box]:
 		_set_box(box, false)
 	if phase == 1:
@@ -951,8 +956,6 @@ func _update_boxes() -> void:
 	# Braced and breathing fire, it doesn't hurt to touch: there's room to slide under it.
 	var braced := _state in [St.BREATH_WINDUP, St.BREATH]
 	_body_box.harmless = braced
-	_body_box.slide_through = braced
-	_head_box.slide_through = braced
 	_set_box(_body_box, alive, _body_point(), _tilt * _dir)
 	_set_box(_legs_box, alive and not braced, _w(Vector2(160, 118 - 10.0 * _tuck)), _tilt * _dir)
 	var tail_mid := _on_part(TAIL_PIVOT, _tail_angle(), Vector2(50, 98))
@@ -1098,9 +1101,9 @@ func _draw_drake(tint: Color) -> void:
 	if _state == St.BREATH_WINDUP or _state == St.AIR_BREATH_WINDUP:
 		var total := 1.1 if _state == St.BREATH_WINDUP else 1.4
 		var grow := clampf(1.0 - _timer / total, 0.0, 1.0)
-		var throat := _on_part(HEAD_PIVOT, _neck, Vector2(200, 78)) - position
-		draw_circle(throat, 8.0 + 10.0 * grow, Color(COLOR_FIRE, 0.25 * grow))
-		draw_circle(_mouth() - position, 4.0 + 5.0 * grow, Color(COLOR_FIRE_HOT, 0.5 * grow))
+		# A glow kept inside its open jaws (the inside of the mouth is lit up too).
+		var inside := (_on_part(HEAD_PIVOT, _neck, Vector2(238, 64)) + _jaw_point(Vector2(236, 66))) / 2.0 - position
+		draw_circle(inside, 2.0 + 2.5 * grow, Color(COLOR_FIRE_HOT, 0.55 * grow))
 
 
 ## A spread wing from its shoulder; small while it's still unfolding.
@@ -1163,9 +1166,11 @@ func _draw_jet() -> void:
 	var steps := int(length / 6.0)
 	for i in steps:
 		var t := float(i) / maxf(1.0, steps - 1)
-		var at := from.lerp(to, t) + Vector2(randf_range(-2, 2), randf_range(-2, 2))
-		var r := lerpf(3.0, JET_WIDTH * 0.6, t) * randf_range(0.8, 1.2)
-		draw_circle(at, r + 2.0, Color(COLOR_FIRE, 0.35))
+		# Narrow at the lips (no wider than its open mouth), swelling as it goes.
+		var jitter := lerpf(0.3, 2.0, t)
+		var at := from.lerp(to, t) + Vector2(randf_range(-jitter, jitter), randf_range(-jitter, jitter))
+		var r := lerpf(1.5, JET_WIDTH * 0.6, sqrt(t)) * randf_range(0.85, 1.15)
+		draw_circle(at, r + lerpf(0.5, 2.0, t), Color(COLOR_FIRE, 0.35))
 		draw_circle(at, r, Color(COLOR_FIRE_HOT if randf() < 0.4 else COLOR_FIRE, 0.85))
 	# A splash of fire where it lands.
 	for i in 5:

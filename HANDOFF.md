@@ -50,6 +50,8 @@ controls are in `README.md`.
 - The lightning boss is the Stormcaller (Storm chose it over a Thunderbird, too like the
   drake): the king's court sorcerer, taken by the evil. Needs a playtest.
 - Props are drawn flat, straight-on (Storm disliked three-quarter views); keep new ones so.
+- The burned houses were removed from the fire rooms (Storm didn't like them, flat or not);
+  the fire village has no scenery props for now.
 - The drake is cut from one drawing (`art/bosses/drake_full.png`, and `drake_bare_full.png`
   with its folded wings painted out) into parts on the same 256x144 canvas; recut from them
   if a part needs changing. Its spread wing is `drake_wing.png`.

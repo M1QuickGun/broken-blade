@@ -244,8 +244,8 @@ fixed order:
 - *Lunge:* it crouches with its head drawn back, then lunges forward and snaps. Its head
   stays low afterwards, panting smoke: the opening.
 - *Breath:* it crouches with its head low and level and its throat glows, then a jet of fire
-  roars straight out at chest height to the far wall. Slide under it, or under the drake
-  itself (it doesn't hurt to touch while it breathes) and come out behind it.
+  roars straight out at chest height to the far wall. Slide under it, and under the drake
+  itself (a slide always passes under its belly safely) to come out behind it.
 - *Stomp:* it rears up and slams down; embers rain from the roof, their glow on the floor
   showing where.
 - *Tail lash:* if Storm gets behind it, it raises its tail and lashes it down; a wave of fire
@@ -289,9 +289,9 @@ rods; the shockline reaches it there. Touching it doesn't hurt; its spells do:
   lines flicker first); then it sinks to the ground, spent.
 - *Beam:* it locks on to Storm's height and fires across the whole arena.
 - *Copies:* two fainter copies at other rods (one blow pops one); all three send an orb.
-- *Rod strike:* the rod nearest Storm glows, then lightning strikes it, twice.
-- Below half health a third row of bolts and quicker casting. Beaten, it unravels into the
-  storm, leaving a mask shard.
+- Below half health a third row of bolts and quicker casting. Beaten, the storm turns on it:
+  bolt after bolt strikes it, faster and faster, until a last great one blasts it apart,
+  leaving a mask shard.
 
 ### Enemies
 - **Mossback beetle** (Foothills): as big as Storm. Patrols; spotting him ahead, it braces
@@ -314,6 +314,11 @@ rods; the shockline reaches it there. Touching it doesn't hurt; its spells do:
 When his last mask breaks, time slows and his blade bursts apart in his hand, shards of
 steel and of each piece he'd won back flying; Storm crumples where he stands (falling if he's
 in the air), sinking to his knees and collapsing face down. Then the screen fades and he wakes at the last shrine.
+
+### Rings
+Shocklined to a ring, Storm hangs from it by his blade. Jumping off is always a full jump
+(the double jump, once he has it, is still there after it), and letting go, a jump still
+works for a moment.
 
 ### Healing: flasks
 Storm carries flasks of a shrine's pale flame (3 to start). Drinking one (F or Q, or B on a

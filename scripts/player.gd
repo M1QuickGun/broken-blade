@@ -162,6 +162,13 @@ const SWORD_POINT_PULL := Vector2(27, 1)
 ## Hanging from a ring (art/storm/<stage>/hang.png): where the art sits so its blade passes
 ## through the ring (measured from the art).
 const HANG_POSE_OFFSET := Vector2(-5.5, 22)
+## The hang art draws Storm smaller than the rest: it's shown this much bigger, grown about
+## the point where the blade passes through the ring (art pixels), so he hangs from the same
+## spot at his usual size.
+const HANG_SCALE := 1.4
+const HANG_HOOK := Vector2(48, 14)
+## Letting go of a ring, a jump still works for this long (like stepping off a ledge).
+const RING_COYOTE := 0.3
 ## While the tip is out on the shockline, Storm's sword is shown without it: the stages
 ## that hold the tip look exactly like these once it's gone.
 const TIPLESS_STAGE := {"ice_lightning": "ice", "full": "ice_fire"}
@@ -895,13 +902,19 @@ func _update_shock_hang() -> void:
 		_end_shockline(0.0)
 		return
 	if not controls_locked and Input.is_action_just_pressed("jump"):
+		# A full jump off the ring, whatever the blade; the double jump (if he has it) is
+		# still there after it.
 		_end_shockline(0.0)
 		velocity.y = JUMP_VELOCITY
-		_no_jump_cut = false
+		_no_jump_cut = true
+		_jump_buffer = 0.0
+		_air_jump = true
 		Sfx.play("jump", -6.0)
 		return
 	if not controls_locked and Input.is_action_just_pressed("look_down"):
-		_end_shockline(0.0)  # let go and drop
+		_end_shockline(0.0)  # let go and drop (a jump still works for a moment)
+		_coyote = RING_COYOTE
+		_air_jump = true
 		return
 	_snap_to_ring()
 
@@ -1038,6 +1051,8 @@ func _check_damage() -> void:
 			return
 		if source.get("harmless") == true:
 			continue  # a weak point: there to be struck, not to hurt
+		if _is_small() and source.get("slide_safe") == true:
+			continue  # sliding under it, like under the drake's belly
 		if _invuln <= 0.0 and _strike_guard <= 0.0 and source.has_method("take_hit"):
 			_hurt_by_enemy(source.global_position.x)
 			return
@@ -1240,6 +1255,7 @@ func _update_sprite() -> void:
 	var size := int(_sprite.sprite_frames.get_frame_texture(_sprite.animation, 0).get_height())
 	var body_x: float = BODY_X_BY_FRAME.get(size, size / 2.0)
 	_sprite.offset = Vector2((size / 2.0 - body_x) * facing, -size / 2.0)
+	_sprite.scale = Vector2.ONE / Game.ART_SCALE
 	_sprite.visible = not (_invuln > 0.0 and fmod(_invuln, 0.16) < 0.08)
 	if _dead:
 		# Crumpling to the ground, then lying still on the last frame.
@@ -1291,7 +1307,10 @@ func _update_sprite() -> void:
 		# Hanging from the ring by the sword hooked through it; the art is placed so the
 		# blade passes through the ring.
 		_sprite.play("hang")
-		_sprite.position = HANG_POSE_OFFSET * Vector2(facing, 1)
+		_sprite.scale = Vector2.ONE * HANG_SCALE / Game.ART_SCALE
+		# Grown about the hook, so the blade stays through the ring.
+		var hook := (HANG_HOOK - Vector2(body_x, size)) * (1.0 - HANG_SCALE) / Game.ART_SCALE
+		_sprite.position = (HANG_POSE_OFFSET + hook) * Vector2(facing, 1)
 		return
 	if not is_on_floor() and _shock != Shock.HANGING:
 		_sprite.animation = "jump"

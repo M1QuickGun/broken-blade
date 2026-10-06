@@ -25,9 +25,9 @@ extends Node2D
 ## - Beam: it locks on to Storm's height and fires a beam across the whole arena.
 ## - Copies: two copies of it appear at other rods (fainter: one blow pops one) and all three
 ##   send an orb after him.
-## - Rod strike: the rod nearest Storm glows, then lightning strikes it: don't hang there.
-## Below half health it rains a third row of bolts and casts faster. Beaten, it unravels into
-## the storm.
+## Below half health it rains a third row of bolts and casts faster. Beaten, the storm turns
+## on it: bolt after bolt strikes it, faster and faster, until a last great one blasts it
+## apart.
 ##
 ## The node's origin is the room's B marker: phase 1, on top of the plinth; phase 2, on the
 ## floor in the middle.
@@ -64,7 +64,7 @@ const ROD_DROP := 54.0
 const ROD_SIDE := 40.0
 const BOLT_SPACING := 64.0
 const BEAM_WIDTH := 10.0
-const PATTERN_2 := ["bolts", "beam", "copies", "rods", "beam", "bolts", "rods"]
+const PATTERN_2 := ["bolts", "beam", "copies", "beam", "bolts", "copies"]
 ## Its pace: every wind-up, recovery and pause it takes is this share of what it says.
 const TEMPO := 0.7
 ## How long a blink takes, and how long its bolts give warning.
@@ -81,7 +81,7 @@ const COLOR_SHADOW := Color(0.02, 0.02, 0.06, 0.45)
 
 enum St {
 	DORMANT, WAKE, IDLE, BLINK, CAST, RECOVER, SPENT, LASH_CHARGE, LASH_SWING,
-	SLUMP, SWELL, ESCAPE, ARRIVE, BOLT_WAIT, BEAM_AIM, BEAM, ROD_AIM, UNRAVEL,
+	SLUMP, SWELL, ESCAPE, ARRIVE, BOLT_WAIT, BEAM_AIM, BEAM, UNRAVEL,
 }
 
 ## Set by the room before it's added (see Rooms.BOSSES).
@@ -122,14 +122,15 @@ var _state_time := 1.0
 ## Bolts waiting to strike: {x, t, top, height}.
 var _strikes: Array[Dictionary] = []
 ## Phase 2: the lightning rods (where the "*" anchors stand); the copies: {pos, life, box};
-## the beam's height and length; the rod about to be struck; rod strikes left.
+## the beam's height and length.
 var _rods: Array[Vector2] = []
 var _copies: Array[Dictionary] = []
 var _beam_y := 0.0
 var _beam_end := 0.0
-var _rod := Vector2.ZERO
-var _rod_strikes := 0
 var _bolt_rows := 2
+## Its death: the bolts striking it, {from, to, life}.
+var _death_bolts: Array[Dictionary] = []
+var _final_bolt := false
 var _pace := 1.0
 ## The lightning tip: still in its back (-1), flying free (0 to 1); where it comes to rest.
 var _piece_t := -1.0
@@ -331,7 +332,7 @@ func _enter(state: St, time := 0.0) -> void:
 	match state:
 		St.WAKE, St.ARRIVE, St.SWELL:
 			Sfx.play("roar", -2.0, 0.1)
-		St.CAST, St.LASH_CHARGE, St.BEAM_AIM, St.ROD_AIM:
+		St.CAST, St.LASH_CHARGE, St.BEAM_AIM:
 			Sfx.play("shock_charge", -6.0, 0.05)
 		St.LASH_SWING, St.BEAM:
 			Sfx.play("zap", -3.0)
@@ -558,10 +559,6 @@ func _phase_2(p: Vector2, delta: float) -> void:
 						_blink(_rod_spot(_far_rod(p), p), St.BEAM_AIM, 0.9 * _pace)
 					"copies":
 						_blink(_rod_spot(_far_rod(p), p), St.CAST, 0.8 * _pace)
-					"rods":
-						_rod_strikes = 3
-						_rod = _near_rod(p)
-						_blink(_rod_spot(_far_rod(p), p), St.ROD_AIM, 0.8 * _pace)
 		St.CAST:
 			_pos += bob * delta
 			if _timer <= 0.0:
@@ -591,27 +588,24 @@ func _phase_2(p: Vector2, delta: float) -> void:
 		St.BEAM:
 			if _timer <= 0.0:
 				_enter(St.RECOVER, 0.6)
-		St.ROD_AIM:
-			# The rod glows, crackling; then lightning strikes it.
-			if fmod(_time, 0.05) < delta:
-				Effects.sparks(get_parent(), _rod + Vector2(randf_range(-8, 8), randf_range(-8, 8)), COLOR_HOT, 1, 50.0)
-			if _timer <= 0.0:
-				_strike(_rod.x, 0.0, _rod.y + 46.0)
-				_rod_strikes -= 1
-				if _rod_strikes > 0:
-					_rod = _near_rod(p)
-					_enter(St.ROD_AIM, 0.7 * _pace)
-				else:
-					_enter(St.RECOVER, 0.6)
 		St.UNRAVEL:
-			# Beaten: it comes apart into the storm.
-			_alpha = clampf(_timer / 2.6, 0.0, 1.0)
-			_pos.y += 12.0 * delta
-			if fmod(_time, 0.04) < delta:
-				var at := _center() + Vector2(randf_range(-30, 30), randf_range(-60, 50))
-				Effects.sparks(get_parent(), at, COLOR_SPARK, 2, 70.0)
+			# Beaten: the storm it called turns on it. Bolt after bolt strikes it, faster and
+			# faster, each one jolting it; then a last great one blasts it apart.
+			var left := _timer
+			var every := lerpf(0.06, 0.28, clampf((left - 0.6) / 2.0, 0.0, 1.0))
+			if left > 0.5 and fmod(_time, every) < delta:
+				_bolt_on_it(false)
+			if left <= 0.5 and not _final_bolt:
+				_final_bolt = true
+				_bolt_on_it(true)
+			if left <= 0.5:
+				_alpha = move_toward(_alpha, 0.0, delta * 2.5)
+			for bolt in _death_bolts:
+				bolt.life -= delta
+			_death_bolts = _death_bolts.filter(func(b: Dictionary) -> bool: return b.life > 0.0)
 			if _timer <= 0.0:
 				_piece_rest = Vector2(clampf(_pos.x, _left + 40.0, _right - 40.0), _floor - TILE)
+				_death_bolts.clear()
 				_finish()
 
 
@@ -630,14 +624,6 @@ func _middle_rod() -> Vector2:
 	var best := _rods[0]
 	for rod in _rods:
 		if absf(rod.x - middle) < absf(best.x - middle):
-			best = rod
-	return best
-
-
-func _near_rod(p: Vector2) -> Vector2:
-	var best := _rods[0]
-	for rod in _rods:
-		if rod.distance_to(p) < best.distance_to(p):
 			best = rod
 	return best
 
@@ -754,6 +740,23 @@ func _tip_point() -> Vector2:
 	return _pos + Vector2(-_dir * 8.0, -30.0)
 
 
+## A bolt out of the storm into it; `last`: the great one that finishes it.
+func _bolt_on_it(last: bool) -> void:
+	var to := _center() + Vector2(randf_range(-20, 20), randf_range(-40, 30))
+	var from := Vector2(to.x + randf_range(-80, 80), -TILE * 4.0)
+	_death_bolts.append({"from": from, "to": to, "life": 0.5 if last else 0.14, "big": last})
+	_flash = 0.1
+	_kick = Vector2(randf_range(-8, 8), randf_range(-4, 4))
+	_shake = maxf(_shake, 0.6 if last else 0.15)
+	Sfx.play("thunder" if last or randf() < 0.3 else "zap", 0.0 if last else -6.0, 0.25)
+	Effects.sparks(get_parent(), to, COLOR_HOT, 20 if last else 5, 180.0 if last else 90.0)
+	if last:
+		Effects.slow_motion(get_tree(), 0.3, 0.5)
+		for i in 24:
+			Effects.sparks(get_parent(), _center() + Vector2(randf_range(-40, 40), randf_range(-60, 50)),
+				COLOR_SPARK, 2, 140.0)
+
+
 func _finish() -> void:
 	_alpha = 0.0
 	_done = true
@@ -855,14 +858,25 @@ func _draw() -> void:
 			pts.append(from.lerp(to, float(i) / steps) + Vector2(0, randf_range(-3, 3) if i > 0 and i < steps else 0.0))
 		draw_polyline(pts, Color(COLOR_SPARK, 0.5), BEAM_WIDTH)
 		draw_polyline(pts, COLOR_HOT, 2.5)
-	if _state == St.ROD_AIM:
-		var grow := clampf(1.0 - _timer / _state_time, 0.0, 1.0)
-		draw_circle(_rod - position, 8.0 + 16.0 * grow, Color(COLOR_SPARK, 0.2 + 0.3 * grow))
+	for bolt in _death_bolts:
+		var from: Vector2 = bolt.from - position
+		var to: Vector2 = bolt.to - position
+		var pts := PackedVector2Array()
+		var steps := 8
+		for i in steps + 1:
+			var t := float(i) / steps
+			var off := Vector2.ZERO if i == 0 or i == steps else Vector2(randf_range(-7, 7), 0)
+			pts.append(from.lerp(to, t) + off)
+		var width := 9.0 if bolt.big else 4.0
+		draw_polyline(pts, Color(COLOR_SPARK, 0.6), width * 2.0)
+		draw_polyline(pts, COLOR_HOT, width * 0.5)
+		if bolt.big:
+			draw_circle(to, 50.0 * bolt.life / 0.5, Color(COLOR_HOT, 0.5 * bolt.life / 0.5))
 
 
 ## The bound form, or the freed one (swelling into it at the end of phase 1), casting or not.
 func _draw_sprite(at: Vector2, tint: Color, copy: bool) -> void:
-	var casting := _state in [St.CAST, St.LASH_CHARGE, St.BEAM_AIM, St.BEAM, St.ROD_AIM, St.LASH_SWING] and not copy
+	var casting := _state in [St.CAST, St.LASH_CHARGE, St.BEAM_AIM, St.BEAM, St.LASH_SWING] and not copy
 	var freed := phase == 2 or _grow > 0.0
 	var tex: Texture2D
 	var frame_px: int

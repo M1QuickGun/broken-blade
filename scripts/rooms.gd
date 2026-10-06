@@ -82,11 +82,6 @@ const PROPS := {
 	],
 	"frozen_bridge": [["frozen_villager_c", 10, 15], ["frozen_villager", 45, 15]],
 	"crossroads": [["house_ruined", 47, 23], ["frozen_villager_b", 36, 23]],
-	"ashen_road": [["burned_house_c", 14, 15], ["burned_house", 55, 15]],
-	"burning_homes": [
-		["burned_house_b", 5, 19], ["burned_house", 22, 19], ["burned_house_c", 39, 19],
-		["burned_house_b", 49, 16], ["burned_house_d", 59, 19],
-	],
 	"cliff_road": [["lightning_rod", 9, 15], ["lightning_rod", 36, 15], ["watchtower", 53, 15]],
 	"storm_bridges": [
 		["lightning_rod", 7, 19], ["bridge_post", 30, 19], ["watchtower", 41, 16], ["lightning_rod", 58, 19],
