@@ -169,6 +169,18 @@ const HANG_SCALE := 1.4
 const HANG_HOOK := Vector2(48, 14)
 ## Letting go of a ring, a jump still works for this long (like stepping off a ledge).
 const RING_COYOTE := 0.3
+## Dying, the blade cracks and comes apart in his hand for this long before it bursts.
+const BREAK_TIME := 0.42
+## The sword's art for each blade stage (32x96, point up), and where its grip is.
+const BLADE_ART := {
+	"bare": preload("res://art/blade/blade_bare.png"),
+	"hilt": preload("res://art/blade/blade_0_hilt.png"),
+	"ice": preload("res://art/blade/blade_1_ice.png"),
+	"ice_fire": preload("res://art/blade/blade_2_ice_fire.png"),
+	"ice_lightning": preload("res://art/blade/blade_2_ice_lightning.png"),
+	"full": preload("res://art/blade/blade_3_full.png"),
+}
+const BLADE_GRIP := Vector2(16, 84)
 ## While the tip is out on the shockline, Storm's sword is shown without it: the stages
 ## that hold the tip look exactly like these once it's gone.
 const TIPLESS_STAGE := {"ice_lightning": "ice", "full": "ice_fire"}
@@ -238,6 +250,9 @@ var _dead := false
 ## The blade bursting apart as he falls: shards {pos (in the room), vel, rot, spin, size,
 ## color, life}.
 var _shards: Array[Dictionary] = []
+## Before it bursts, the blade cracks and comes apart in his hand (seconds into it, or -1).
+var _blade_break := -1.0
+var _break_hand := Vector2.ZERO
 ## Fire sparks thrown off by the spin: [{pos, vel, age}] in global coordinates.
 var _embers: Array[Dictionary] = []
 
@@ -330,7 +345,7 @@ func _shatter_blade() -> void:
 		colors.append(COLOR_FIRE)
 	if Game.has_ability("shockline"):
 		colors.append(Color(0.8, 0.68, 1.0))
-	var hand := global_position + Vector2(facing * 8.0, _body.get_center().y + 3.0)
+	var hand := global_position + _break_hand
 	var length := Game.blade_reach() * 0.8
 	for i in 22:
 		var along := randf()
@@ -339,6 +354,38 @@ func _shatter_blade() -> void:
 		_shards.append({"pos": at, "vel": out, "rot": randf() * TAU, "spin": randf_range(-14, 14),
 			"size": randf_range(1.5, 3.5), "color": colors[i % colors.size()], "life": 1.6, "floor": global_position.y})
 	Effects.sparks(get_parent(), hand + Vector2(facing * length * 0.5, 0), Color(1, 1, 1), 16, 140.0)
+
+
+## Where his sword hand is (local), and the angle his blade points out from it.
+func _blade_hand() -> Vector2:
+	return Vector2(facing * 6.0, _body.get_center().y + 4.0)
+
+
+## The blade breaking in his hand: cracks of light run across it, then it splits into pieces
+## that drift apart, just before they burst.
+func _draw_blade_break() -> void:
+	var tex: Texture2D = BLADE_ART.get(Game.blade_stage(), BLADE_ART["hilt"])
+	var t := clampf(_blade_break / BREAK_TIME, 0.0, 1.0)
+	var crack := clampf(t / 0.45, 0.0, 1.0)
+	var apart := clampf((t - 0.45) / 0.55, 0.0, 1.0)
+	var angle := facing * (PI / 2.0 + 0.25)  # point forward and a little down
+	var bands := [Vector2(4, 22), Vector2(22, 40), Vector2(40, 58), Vector2(58, 76), Vector2(76, 96)]
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 11
+	for i in bands.size():
+		var band: Vector2 = bands[i]
+		var middle := Vector2(16, (band.x + band.y) / 2.0)
+		var spread := float(bands.size() - 1 - i) * 3.0 * apart
+		var off := ((middle - BLADE_GRIP) * 0.5 + Vector2(rng.randf_range(-2, 2) * apart, -spread)).rotated(angle)
+		var turn := angle + rng.randf_range(-0.35, 0.35) * apart
+		draw_set_transform(_break_hand + off, turn, Vector2(0.5, 0.5))
+		var h := band.y - band.x
+		draw_texture_rect_region(tex, Rect2(-16, -h / 2.0, 32, h), Rect2(0, band.x, 32, h),
+			Color(1.0 + crack * 0.6, 1.0 + crack * 0.6, 1.0 + crack * 0.6))
+		if i < bands.size() - 1 and crack > 0.0:
+			# A crack of light across the blade where it'll split.
+			draw_line(Vector2(-6, h / 2.0), Vector2(6 * crack, h / 2.0 + 1), Color(1, 1, 1, crack), 1.5)
+	draw_set_transform(Vector2.ZERO)
 
 
 func _update_shards(delta: float) -> void:
@@ -369,6 +416,7 @@ func heal_full() -> void:
 	if _dead:
 		_dead = false
 		_shards.clear()
+		_blade_break = -1.0
 		_sprite.play("idle")
 	velocity = Vector2.ZERO
 	_reset_moves()
@@ -392,6 +440,11 @@ func _physics_process(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, 0.0, 900.0 * delta)
 		_apply_gravity(delta)
 		move_and_slide()
+		if _blade_break >= 0.0:
+			_blade_break += delta
+			if _blade_break >= BREAK_TIME:
+				_blade_break = -1.0
+				_shatter_blade()
 		_update_shards(delta)
 		_update_sprite()
 		queue_redraw()
@@ -1161,7 +1214,9 @@ func _die() -> void:
 	_invuln = 0.0
 	velocity = Vector2(velocity.x * 0.3, minf(velocity.y, 0.0))
 	Effects.slow_motion(get_tree(), 0.3, 0.9)
-	_shatter_blade()
+	_blade_break = 0.0
+	_break_hand = _blade_hand()
+	Sfx.play("shatter", -10.0, 0.0)
 	_sprite.play("die" if _sprite.sprite_frames.has_animation("die") else "idle")
 	_sprite.frame = 0
 
@@ -1328,6 +1383,8 @@ func _update_sprite() -> void:
 
 
 func _draw() -> void:
+	if _blade_break >= 0.0:
+		_draw_blade_break()
 	for shard in _shards:
 		var fade := clampf(shard.life / 0.6, 0.0, 1.0)
 		draw_set_transform(shard.pos - global_position, shard.rot)

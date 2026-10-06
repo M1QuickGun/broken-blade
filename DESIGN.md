@@ -151,6 +151,12 @@ upgrade (the blade piece). The second half of the region then works as the tutor
 new ability, building up to the rematch at the end with the boss at full strength.
 
 ### The bosses: each one is held back by a blade piece
+The piece is part of the boss's own art (the ice piece in the colossus's chest crack, the
+fire piece driven through the drake's folded wing, the lightning tip jutting from the
+Stormcaller's back). Each first fight ends with the piece tearing free and floating up into
+the middle of the arena, where Storm takes it, as the hilt does after the centipede. Pickups
+show the piece itself, cut from the sword's art (art/blade/piece_*.png).
+
 Every boss is a part of the evil with a piece of the blade lodged in it. The piece is what
 holds it back: while it's there the boss is bound, weakened or trapped. Winning the first
 fight means prying the piece loose, which frees the boss at full strength for the rematch.
@@ -265,8 +271,9 @@ to spin up onto. It drops out of the smoke and fights on the wing. In a fixed or
   along the floor. Then it stays down, panting: the big opening.
 - *Gust:* it hangs facing him and beats its wings three times, each beat pushing him away and
   throwing embers.
-- Below half health its slams shake embers down too. Below a third it heats up: its scales
-  glow, its wings catch fire, and it fights faster.
+- Below half health its slams shake embers down too. Below 40% it heats up: it bursts into
+  flame, its scales glowing ember-orange in a haze of heat, its wings on fire, and it fights
+  faster.
 - Beaten, it makes one last attack: white-hot, wings ablaze, it climbs high over the roost
   while a ring of fire on the floor follows Storm, locks on, and dives at the ring, blowing
   itself apart. Be out of the ring. It's left as ash, with a mask shard in it.
@@ -314,8 +321,8 @@ rods; the shockline reaches it there. Touching it doesn't hurt; its spells do:
 - **Hatchlings**: the centipede's young, dropped into its second fight.
 
 ### Death
-When his last mask breaks, time slows and his blade bursts apart in his hand, shards of
-steel and of each piece he'd won back flying; Storm crumples where he stands (falling if he's
+When his last mask breaks, time slows; cracks of light run across his blade and it comes
+apart in his hand, then bursts, shards of steel and of each piece he'd won back flying; Storm crumples where he stands (falling if he's
 in the air), sinking to his knees and collapsing face down. Then the screen fades and he wakes at the last shrine.
 
 ### Rings

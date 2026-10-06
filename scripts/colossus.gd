@@ -47,6 +47,7 @@ signal engaged
 
 const Effects := preload("res://scripts/effects.gd")
 const Projectile := preload("res://scripts/projectile.gd")
+const Shard := preload("res://scripts/shard.gd")
 const TORSO := preload("res://art/bosses/colossus_torso.png")
 ## Its chest once the ice piece is out of it: an empty, cracked hole where the shard was.
 const TORSO_HOLLOW := preload("res://art/bosses/colossus_torso_hollow.png")
@@ -1210,7 +1211,7 @@ func reward_point() -> Vector2:
 
 ## Where the ice piece floats down to wait when phase 1 ends: out in front of it, in reach.
 func _piece_rest() -> Vector2:
-	return Vector2(_face - 150.0, _floor - TILE)
+	return Vector2((_left + _face) / 2.0, _floor - 48.0)
 
 
 # --- Art ---
@@ -1263,13 +1264,9 @@ func _draw_phase_1(tint: Color) -> void:
 	if not _arms_off[0]:
 		_draw_arm(_shoulder(), _arm_angle, ARM_SCALE_1, _arm_stretch, body_tint, true, ARM_LEFT)
 	if _piece_t >= 0.0 and _piece_t < 1.0:
-		# Arcing out and spinning, then settling where it'll wait.
-		var at := _piece_from.lerp(_piece_rest(), ease(_piece_t, -1.8)) - Vector2(0, sin(_piece_t * PI) * 50.0) - position
-		var spin := _piece_t * TAU * 3.0
-		draw_circle(at, 9.0, Color(COLOR_PIECE, 0.3))
-		draw_set_transform(at, spin)
-		draw_colored_polygon(PackedVector2Array([Vector2(0, -8), Vector2(3, 0), Vector2(0, 8), Vector2(-3, 0)]), COLOR_PIECE)
-		draw_set_transform(Vector2.ZERO)
+		# Floating up and out into the middle of the cavern, turning upright as it settles.
+		var at := _piece_from.lerp(_piece_rest(), ease(_piece_t, -1.8)) - Vector2(0, sin(_piece_t * PI) * 40.0) - position
+		Shard.draw_piece(self, "dash", at, (1.0 - ease(_piece_t, 0.5)) * TAU * 1.5)
 	if _state == St.BURST:
 		var up := clampf(1.0 - (_timer - 0.35) / 0.15, 0.0, 1.0)
 		for i in 9:

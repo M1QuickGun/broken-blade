@@ -38,10 +38,14 @@ signal engaged
 
 const Effects := preload("res://scripts/effects.gd")
 const Projectile := preload("res://scripts/projectile.gd")
+const Shard := preload("res://scripts/shard.gd")
 
 ## Sprite sheets: horizontal strips, facing right.
 const BOUND := preload("res://art/bosses/stormcaller_bound.png")
 const BOUND_CAST := preload("res://art/bosses/stormcaller_bound_cast.png")
+## The bound form with the lightning tip still through it.
+const BOUND_PINNED := preload("res://art/bosses/stormcaller_bound_pinned.png")
+const BOUND_CAST_PINNED := preload("res://art/bosses/stormcaller_bound_cast_pinned.png")
 const FREED := preload("res://art/bosses/stormcaller.png")
 const FREED_CAST := preload("res://art/bosses/stormcaller_cast.png")
 const BOUND_FRAME := 64
@@ -72,6 +76,8 @@ const BLINK_TIME := 0.42
 const BOLT_WARNING := 0.75
 ## Phase 2: the time between rows of bolt rain.
 const ROW_GAP := 0.75
+## Its death in the eyrie: how long the bolts strike it as it sinks to the ground.
+const UNRAVEL_TIME := 3.6
 
 const COLOR_SPARK := Color(0.78, 0.66, 1.0)
 const COLOR_HOT := Color(0.95, 0.92, 1.0)
@@ -292,7 +298,7 @@ func take_hit(damage: int, _from_dir: Vector2) -> void:
 		if phase == 1:
 			_enter(St.SLUMP, 2.0)
 		else:
-			_enter(St.UNRAVEL, 2.6)
+			_enter(St.UNRAVEL, UNRAVEL_TIME)
 
 
 func _fighting() -> bool:
@@ -417,9 +423,11 @@ func _phase_1(p: Vector2, delta: float) -> void:
 						_blink(_anchor + Vector2(0, -2), St.CAST, 1.0)
 						_call_bolts(p, [0.0, -64.0, 64.0, -128.0, 128.0], 0.08, TILE)
 					"lash":
-						_lash_side = 1 if p.x > _anchor.x else -1
+						# From the far side, over the plinth and down onto his side last: time to
+						# get out of its reach.
+						_lash_side = -1 if p.x > _anchor.x else 1
 						var x := _anchor.x + _lash_side * REACH * 0.95
-						_blink(Vector2(x, _ground(x)), St.LASH_CHARGE, 0.8)
+						_blink(Vector2(x, _ground(x)), St.LASH_CHARGE, 1.2)
 		St.CAST:
 			if _timer <= 0.0:
 				_cast_now()
@@ -455,8 +463,7 @@ func _phase_1(p: Vector2, delta: float) -> void:
 			if _piece_t < 0.0 and _timer < 1.3:
 				_piece_t = 0.0
 				_piece_from = _tip_point()
-				var side := 1.0 if _pos.x < _anchor.x else -1.0
-				_piece_rest = Vector2(_anchor.x + side * 70.0, _ground(_anchor.x + side * 70.0) - TILE)
+				_piece_rest = Vector2(_anchor.x, _ground(_anchor.x) - 40.0)
 				_shake = 0.5
 				Sfx.play("burst", -2.0)
 				Effects.sparks(get_parent(), _piece_from, COLOR_HOT, 16, 140.0)
@@ -592,7 +599,11 @@ func _phase_2(p: Vector2, delta: float) -> void:
 			# Beaten: the storm it called turns on it. Bolt after bolt strikes it, faster and
 			# faster, each one jolting it; then a last great one blasts it apart.
 			var left := _timer
-			var every := lerpf(0.06, 0.28, clampf((left - 0.6) / 2.0, 0.0, 1.0))
+			# Sinking slowly to the ground, reaching it just before the last bolt.
+			var to_ground := _floor - _pos.y
+			if left > 0.6 and to_ground > 0.0:
+				_pos.y += minf(to_ground, to_ground / (left - 0.5) * delta)
+			var every := lerpf(0.06, 0.28, clampf((left - 0.6) / (UNRAVEL_TIME - 1.0), 0.0, 1.0))
 			if left > 0.5 and fmod(_time, every) < delta:
 				_bolt_on_it(false)
 			if left <= 0.5 and not _final_bolt:
@@ -835,13 +846,11 @@ func _draw() -> void:
 		_draw_sprite(copy.pos, Color(0.7, 0.7, 1.0, 0.6 * clampf(copy.life, 0.0, 1.0)), true)
 	if _alpha > 0.0:
 		_draw_sprite(_pos, Color(tint, tint.a * _alpha), false)
-	if phase == 1 and _piece_t < 0.0 and _alpha > 0.0 and _grow <= 0.0:
-		_draw_tip(_tip_point() - position, (deg_to_rad(-60.0) if _dir > 0 else deg_to_rad(-120.0)), _alpha)
-	elif phase == 1 and _piece_t >= 0.0:
+	if phase == 1 and _piece_t >= 0.0 and not _done:
+		# Torn out of it: floating up over the plinth, turning upright as it settles.
 		var t := _piece_t
-		var at := _piece_from.lerp(_piece_rest, ease(t, -1.8)) - Vector2(0, sin(t * PI) * 50.0) - position
-		draw_circle(at, 10.0, Color(COLOR_PIECE, 0.3))
-		_draw_tip(at, t * TAU * 3.0, 1.0)
+		var at := _piece_from.lerp(_piece_rest, ease(t, -1.8)) - Vector2(0, sin(t * PI) * 40.0) - position
+		Shard.draw_piece(self, "shockline", at, (1.0 - ease(t, 0.5)) * TAU * 1.5)
 	if _state == St.BEAM_AIM:
 		var from := Vector2(_hands().x, _beam_y) - position
 		var to := Vector2(_beam_end, _beam_y) - position
@@ -888,7 +897,11 @@ func _draw_sprite(at: Vector2, tint: Color, copy: bool) -> void:
 		size = FREED_DRAW * _scale()
 		feet = FREED_FEET
 	else:
-		tex = BOUND_CAST if casting else BOUND
+		var pinned := _piece_t < 0.0
+		if casting:
+			tex = BOUND_CAST_PINNED if pinned else BOUND_CAST
+		else:
+			tex = BOUND_PINNED if pinned else BOUND
 		frame_px = BOUND_FRAME
 		size = BOUND_DRAW
 		feet = BOUND_FEET
@@ -938,17 +951,6 @@ func _draw_chain() -> void:
 	draw_polyline(pts, Color(COLOR_CHAIN, (0.9 if hot else 0.5) * alpha), 4.0 if hot else 2.0)
 	if hot:
 		draw_polyline(pts, Color(COLOR_HOT, alpha), 1.5)
-
-
-## The lightning tip: a short length of blade with a point, glowing.
-func _draw_tip(at: Vector2, angle: float, alpha: float) -> void:
-	draw_circle(at, 7.0, Color(COLOR_PIECE, 0.2 * alpha))
-	draw_set_transform(at, angle)
-	draw_colored_polygon(PackedVector2Array([
-		Vector2(12, 0), Vector2(2, -3), Vector2(-8, -3), Vector2(-6, 0), Vector2(-9, 2), Vector2(2, 3),
-	]), Color(COLOR_PIECE, alpha))
-	draw_line(Vector2(-6, 0), Vector2(10, 0), Color(1, 1, 1, alpha), 1.0)
-	draw_set_transform(Vector2.ZERO)
 
 
 func _draw_ellipse(center: Vector2, radii: Vector2, color: Color) -> void:

@@ -46,8 +46,11 @@ signal engaged
 
 const Effects := preload("res://scripts/effects.gd")
 const Projectile := preload("res://scripts/projectile.gd")
+const Shard := preload("res://scripts/shard.gd")
 
 const BODY := preload("res://art/bosses/drake_body.png")
+## The body with the fire piece still driven through its folded wing.
+const BODY_PINNED := preload("res://art/bosses/drake_body_pinned.png")
 ## The body with its wings spread out of the way (drawn on their own instead).
 const BODY_BARE := preload("res://art/bosses/drake_body_bare.png")
 const HEAD := preload("res://art/bosses/drake_head.png")
@@ -109,7 +112,7 @@ const SLAM_ALT := 200.0
 const AIR_JET_REACH := 380.0
 const GUST_WIND := 150.0
 ## Heated (below this share of its health): how much faster it fights.
-const HOT_AT := 0.33
+const HOT_AT := 0.4
 const HOT_PACE := 0.75
 ## The last attack: how high it climbs, how fast it dives, and the blast's reach.
 const FINAL_ALT := 210.0
@@ -335,9 +338,15 @@ func take_hit(damage: int, _from_dir: Vector2) -> void:
 	if phase == 2 and not _hot and hp > 0 and hp <= int(max_hp * HOT_AT):
 		# Heating up: it roars, its scales glowing and its wings catching.
 		_hot = true
-		_shake = 0.6
+		_shake = 0.8
 		Sfx.play("roar", 0.0, 0.0)
-		Sfx.play("fire_breath", -4.0, 0.0)
+		Sfx.play("fire_breath", -2.0, 0.0)
+		Sfx.play("burst", -2.0, 0.0)
+		# It bursts into flame: a ring of fire off its body, its wings catching at once.
+		for i in 30:
+			var at := _body_point() + Vector2.from_angle(TAU * i / 30.0) * randf_range(30, 70)
+			Effects.sparks(get_parent(), at, COLOR_FIRE if i % 2 else COLOR_FIRE_HOT, 2, 140.0)
+			_puff(at, (at - _body_point()).normalized() * 30.0, 6.0)
 	if hp <= 0:
 		hp = 0
 		Effects.slow_motion(get_tree())
@@ -430,8 +439,8 @@ func _physics_process(delta: float) -> void:
 	_update_wings(delta)
 	if _hot:
 		var final := _state in [St.FINAL_RISE, St.FINAL_AIM, St.FINAL_DIVE]
-		_heat = move_toward(_heat, 1.0 if final else 0.55, delta * 0.6)
-		_wing_fire = move_toward(_wing_fire, 1.0, delta * (0.8 if final else 0.35))
+		_heat = move_toward(_heat, 1.0 if final else 0.75, delta * 1.2)
+		_wing_fire = move_toward(_wing_fire, 1.0, delta * 1.5)
 		if fmod(_time, 0.08) < delta and _alpha > 0.0:
 			_puff(_w(SHOULDER) + Vector2(randf_range(-40, 40), randf_range(-50, 0)), Vector2(randf_range(-10, 10), -24.0), 4.0)
 	if phase == 1:
@@ -624,7 +633,7 @@ func _phase_1(p: Vector2, delta: float) -> void:
 			if _piece_t < 0.0 and _timer < 1.8:
 				_piece_t = 0.0
 				_piece_from = _pin_point()
-				_piece_rest = Vector2(clampf(_x - _dir * 40.0, _left + 40.0, _right - 40.0), _floor - TILE)
+				_piece_rest = Vector2((_left + _right) / 2.0, _floor - 48.0)
 				_shake = 0.5
 				Sfx.play("burst", -2.0)
 				for i in 8:
@@ -1127,8 +1136,9 @@ func _draw() -> void:
 	if _state == St.DORMANT:
 		tint = Color(0.7, 0.66, 0.64)
 	if _heat > 0.0:
-		# Heating up: its scales glow orange, then white-hot.
-		tint = Color(tint.r + 0.7 * _heat, tint.g + 0.25 * _heat + 0.3 * maxf(0.0, _heat - 0.6), tint.b + 0.1 * _heat)
+		# Heating up: its scales glow ember-orange, then white-hot.
+		var hot := Color(2.1, 1.05, 0.55).lerp(Color(2.6, 2.1, 1.5), clampf((_heat - 0.75) / 0.25, 0.0, 1.0))
+		tint = Color(tint.r, tint.g, tint.b).lerp(hot, clampf(_heat, 0.0, 1.0) * 0.85)
 	tint.a = _alpha
 	if _state in [St.FINAL_RISE, St.FINAL_AIM, St.FINAL_DIVE]:
 		# The ring of fire on the floor where it'll strike.
@@ -1156,10 +1166,15 @@ func _draw() -> void:
 		var shadow_x := _w(Vector2(150, 131)).x
 		_draw_ellipse(Vector2(shadow_x, _floor) - position, Vector2(lerpf(80.0, 36.0, high), lerpf(5.0, 3.0, high)),
 			Color(COLOR_SHADOW, COLOR_SHADOW.a * _alpha * lerpf(1.0, 0.6, high)))
+		if _heat > 0.0:
+			# A haze of heat and fire around it.
+			var flicker := 0.85 + 0.15 * sin(_time * 13.0)
+			var core := _body_point() - position
+			draw_circle(core, 90.0 * flicker, Color(COLOR_FIRE, 0.07 * _heat * _alpha))
+			draw_circle(core, 60.0 * flicker, Color(COLOR_FIRE, 0.1 * _heat * _alpha))
+			draw_circle(core, 34.0 * flicker, Color(COLOR_FIRE_HOT, 0.1 * _heat * _alpha))
 		_draw_drake(tint)
-	if phase == 1 and _piece_t < 0.0:
-		_draw_piece_pinned()
-	elif phase == 1:
+	if phase == 1 and _piece_t >= 0.0:
 		_draw_piece_free()
 	for s in _smoke:
 		draw_circle(s.pos - position, s.size, Color(COLOR_SMOKE, 0.5 * clampf(s.life, 0.0, 1.0)))
@@ -1195,7 +1210,8 @@ func _draw_drake(tint: Color) -> void:
 	draw_set_transform(jaw_pivot - position, (_neck + _jaw + _tilt) * _dir, Vector2(SCALE * _dir, SCALE))
 	draw_texture(JAW, -JAW_PIVOT, tint)
 	_draw_part(HEAD, HEAD_PIVOT, _neck, tint)
-	_draw_part(BODY_BARE if spread else BODY, BODY_PIVOT, 0.0, tint)
+	var body: Texture2D = BODY_BARE if spread else (BODY_PINNED if phase == 1 and _piece_t < 0.0 else BODY)
+	_draw_part(body, BODY_PIVOT, 0.0, tint)
 	if spread:
 		_draw_wing(_flap, tint, Vector2.ZERO)
 		if _wing_fire > 0.0:
@@ -1259,33 +1275,12 @@ func _draw_part(tex: Texture2D, pivot: Vector2, angle: float, tint: Color, squas
 	draw_set_transform(Vector2.ZERO)
 
 
-## The fire piece driven down through its wing, glowing.
-func _draw_piece_pinned() -> void:
-	var at := _pin_point() - position
-	var angle := (deg_to_rad(110.0) + _tilt) * _dir
-	var pulse := 0.6 + 0.4 * sin(_time * 3.0)
-	draw_circle(at, 10.0, Color(COLOR_PIECE, 0.18 * pulse * _alpha))
-	draw_set_transform(at, angle if _dir > 0 else PI - angle)
-	_draw_blade(Color(COLOR_PIECE, _alpha))
-	draw_set_transform(Vector2.ZERO)
-
-
-## Torn free: arcing out and spinning, then settling where it waits.
+## Torn free of its wing: floating up and out into the middle of the forge, turning upright
+## as it settles.
 func _draw_piece_free() -> void:
 	var t := _piece_t
-	var at := _piece_from.lerp(_piece_rest, ease(t, -1.8)) - Vector2(0, sin(t * PI) * 50.0) - position
-	draw_circle(at, 10.0, Color(COLOR_PIECE, 0.3))
-	draw_set_transform(at, t * TAU * 3.0)
-	_draw_blade(COLOR_PIECE)
-	draw_set_transform(Vector2.ZERO)
-
-
-## A length of broken blade: point one way, jagged break the other.
-func _draw_blade(color: Color) -> void:
-	draw_colored_polygon(PackedVector2Array([
-		Vector2(14, 0), Vector2(4, -3), Vector2(-10, -3), Vector2(-8, 0), Vector2(-11, 2), Vector2(4, 3),
-	]), color)
-	draw_line(Vector2(-8, 0), Vector2(12, 0), Color(1, 0.95, 0.8, color.a), 1.0)
+	var at := _piece_from.lerp(_piece_rest, ease(t, -1.8)) - Vector2(0, sin(t * PI) * 40.0) - position
+	Shard.draw_piece(self, "double_jump", at, (1.0 - ease(t, 0.5)) * TAU * 1.5)
 
 
 ## The jet of fire from its mouth to where it lands: flickering blobs swelling outward.
