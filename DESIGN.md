@@ -107,31 +107,39 @@ mountain doubles as the player's mental map for the rest of the game.
    gauntlet; the Throne holds the final boss.
 
 ### Built so far
-The Foothills and the Frozen village are playable end to end (`tools/build_rooms.py`):
-Landing (rest) → Rockfall → Ring (rest; the pit and the first centipede fight: the hilt)
-→ Cliff (rest at the top) → Gate cavern (the risen centipede; the frozen gate) → Village
-square (rest hub) → Ice caverns (the Frozen cellar hides off it, shockline only) → Frost
-arena (Frost Warden, first fight: the ice shard) → Frozen depths (slide tutorial) → Frost
-throne (the rematch: a mask shard) → Ice climb (crawlspace exit) → Frozen bridge (gaps
-over frozen spikes, slides under fallen ice walls) → Crossroads (rest; a hidden ledge with a
-mask shard reached by the double jump or the shockline).
+The mountain is laid out in `tools/build_rooms.py` (45 rooms). The Foothills climb to the
+Frozen village, which climbs to the Crossroads at the bottom middle of the mountain. From
+there each face switches back on itself: a lower road out to its boss, a tall climb at its
+far end, and an upper road back toward the middle, then a last climb onto the High pass,
+which runs along the summit above the Crossroads and joins the two faces' tops.
 
-**Fire slopes (west), with their own look and both drake fights:** Ashen road (slide
-under a fallen beam) → Burning homes (rest; a secret ledge only the shockline reaches) → Forge
-(the Ashen Drake's first fight: the fire piece) → Cinder steps (the
-double jump tutorial: platforms five tiles apart over spikes, walls spiked so the wall jump
-can't skip it) → Drake's roost (the rematch, open to the sky: a mask shard) → Fire shaft (climbed
-with the double jump) → High pass.
+**Foothills:** Landing (rest) → Thicket (logs and branches, no enemies yet) → Rockfall →
+Sunken glade (grubs in a dip) → Ring (rest; the pit and the first centipede fight: the hilt)
+→ Cliff (rest at the top) → Fern gully (drop in, wall jump out) → Gate cavern (the risen
+centipede; the frozen gate).
 
-**Lightning peaks (east), with their own look, spark wisps and both Stormcaller fights:** Cliff road (slide under a
-rockfall) → Storm bridges (rest; a secret ledge only the double jump reaches) → Spire (the
-Stormcaller, bound: the lightning tip) → Anchor gorge (the
-shockline tutorial: a spiked chasm crossed ring to ring) → the eyrie (the Stormcaller freed, open
-to the sky: a mask shard) → Storm tower (climbed ring to ring with the shockline, walls
-spiked) → High pass.
+**Frozen village:** Frozen street (the gate, frozen villagers) → Village square (rest hub) →
+Icefall hall (ledges up over spikes) → Ice caverns (the Frozen cellar hides off it,
+shockline only) → Frost arena (the Frost Colossus: the ice piece) → Glacier run → Frozen
+depths (slide tutorial) → Frost throne (the rematch) → Ice climb → Frozen bridge →
+Crossroads (rest; a hidden ledge with a mask shard for the double jump or the shockline).
 
-**High pass:** joins the tops of both faces; the castle gate above it (double jump and
-shockline together) is still to come.
+**Fire slopes (west face):** lower road west: Ashen road → Smoke hollow → Burning homes (rest;
+a secret ledge for the shockline) → Slag works → Forge (the Ashen Drake: the fire piece); the
+Cinder steps climb (the double jump tutorial) turns it back; upper road east: Bellows hall →
+Ember span → Cinder ridge → Drake's roost (the rematch) → Fire shaft (double jump) → High
+pass.
+
+**Lightning peaks (east face):** lower road east: Cliff road → Lookout → Storm bridges (rest; a
+secret ledge for the double jump) → Rod field → Spire (the Stormcaller, bound: the lightning
+tip) → Anchor gorge (the shockline tutorial); the Chain ravine climb (ring to ring) turns it
+back; upper road west: Gale ledges → Aqueduct → the eyrie (the Stormcaller freed) → Storm
+tower (shockline) → the summit.
+
+**High pass (summit):** High pass → Windward pass → Summit ledge, stepping down east to the
+head of the Storm tower. The castle gate above the High pass (double jump and shockline
+together) is still to come. The Crossroads and the summit are their own area (theme still to
+choose).
 
 `tools/check_reach.py` checks the layouts: that each room can be crossed with the abilities
 it needs, and that every ability gate and secret really needs its ability.

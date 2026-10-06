@@ -136,6 +136,8 @@ def can_reach(name, frm, to, abilities):
 
 
 SETS = {
+    "none": {"wall_jump": False, "dash": False, "double_jump": False, "shockline": False},
+    "hilt": {"wall_jump": True, "dash": False, "double_jump": False, "shockline": False},
     "base": {"wall_jump": True, "dash": True, "double_jump": False, "shockline": False},
     "fire": {"wall_jump": True, "dash": True, "double_jump": True, "shockline": False},
     "storm": {"wall_jump": True, "dash": True, "double_jump": False, "shockline": True},
@@ -143,6 +145,27 @@ SETS = {
 
 # (room, from, to, abilities that should make it, abilities that shouldn't)
 EXPECT = [
+    ("thicket", "a", "b", ["none"], []),
+    ("sunken_glade", "a", "b", ["none"], []),
+    ("fern_gully", "f", "e", ["hilt"], ["none"]),
+    ("frozen_street", "g", "h", ["hilt"], []),
+    ("icefall_hall", "h", "i", ["hilt"], []),
+    ("glacier_run", "l", "m", ["base"], []),
+    ("smoke_hollow", "s", "t", ["base"], []),
+    ("smoke_hollow", "t", "s", ["base"], []),
+    ("slag_works", "t", "u", ["base"], []),
+    ("bellows_hall", "w", "x", ["base"], []),
+    ("bellows_hall", "x", "w", ["fire"], []),
+    ("lookout", "s", "t", ["base"], []),
+    ("lookout", "t", "s", ["base"], []),
+    ("rod_field", "t", "u", ["base"], []),
+    ("chain_ravine", "v", "w", ["storm"], ["base", "fire"]),
+    ("ember_span", "a", "b", ["base"], []),
+    ("cinder_ridge", "a", "b", ["fire"], ["base"]),
+    ("cinder_ridge", "b", "a", ["base"], []),
+    ("gale_ledges", "a", "b", ["storm"], ["base"]),
+    ("aqueduct", "a", "b", ["base"], []),
+    ("aqueduct", "b", "a", ["base"], []),
     ("ashen_road", "q", "s", ["base"], []),
     ("burning_homes", "s", "t", ["base"], []),
     ("burning_homes", "s", "H", ["storm"], ["base", "fire"]),
@@ -158,6 +181,10 @@ EXPECT = [
     ("thunder_eyrie", "v", "w", ["base"], []),
     ("storm_tower", "w", "z", ["storm"], ["base", "fire"]),
     ("high_pass", "y", "z", ["base"], []),
+    ("windward_pass", "z", "y", ["base"], []),
+    ("windward_pass", "y", "z", ["base"], []),
+    ("summit_ledge", "z", "y", ["base"], []),
+    ("summit_ledge", "y", "z", ["base"], []),
 ]
 
 

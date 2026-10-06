@@ -49,6 +49,10 @@ controls are in `README.md`.
   Storm likes fight 2 now.
 - The lightning boss is the Stormcaller (Storm chose it over a Thunderbird, too like the
   drake): the king's court sorcerer, taken by the evil. Needs a playtest.
+- The mountain was rebuilt to 45 rooms (3+ new per region) with each face switching back so
+  the fire and lightning roads meet at the Crossroads (bottom) and the High pass (top). The
+  Crossroads and the summit rooms are a separate area whose theme is still to be chosen;
+  they use the Frozen village look for now.
 - Props are drawn flat, straight-on (Storm disliked three-quarter views); keep new ones so.
 - The burned houses were removed from the fire rooms (Storm didn't like them, flat or not);
   the fire village has no scenery props for now.
