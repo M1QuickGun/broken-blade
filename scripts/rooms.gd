@@ -78,7 +78,7 @@ const PROPS := {
 	"ashen_road": [["burned_house_c", 14, 15], ["burned_house", 55, 15]],
 	"burning_homes": [
 		["burned_house_b", 5, 19], ["burned_house", 22, 19], ["burned_house_c", 39, 19],
-		["burned_house_b", 49, 16], ["burned_house", 59, 19],
+		["burned_house_b", 49, 16], ["burned_house_d", 59, 19],
 	],
 }
 

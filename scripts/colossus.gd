@@ -1164,11 +1164,12 @@ func _draw() -> void:
 	for ice in _icicles:
 		var grow := clampf(1.0 - ice.t / 0.9, 0.2, 1.0)
 		_draw_ellipse(Vector2(ice.x, _floor) - position, Vector2(4.0 + 6.0 * grow, 2.0), COLOR_SHADOW)
+	# The footholds first, so its arm is drawn over them.
+	_draw_steps()
 	if phase == 1:
 		_draw_phase_1(tint)
 	else:
 		_draw_phase_2(tint)
-	_draw_steps()
 
 
 func _draw_phase_1(tint: Color) -> void:
