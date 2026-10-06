@@ -590,8 +590,8 @@ func _slide_strike() -> bool:
 	var rect := Rect2(0.0 if _dash_dir > 0 else -width, -SMALL_HEIGHT, width, SMALL_HEIGHT)
 	for hit in _query(rect, LAYER_ENEMY):
 		var target: Object = hit.collider
-		if not target.has_method("take_hit"):
-			continue
+		if not target.has_method("take_hit") or target.get("slide_through") == true:
+			continue  # (something a slide passes under, like a drake's breath or belly)
 		target.take_hit(1, Vector2(_dash_dir, 0))
 		_dash_time = 0.0
 		velocity = Vector2(-_dash_dir * SLIDE_BOUNCE.x, SLIDE_BOUNCE.y)

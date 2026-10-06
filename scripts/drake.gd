@@ -202,11 +202,13 @@ var _jet_box: Hitbox
 
 
 ## One of its hurtful or strikable parts. `weak`: struck, it hurts the drake. `harmless`:
-## touched, it doesn't hurt Storm.
+## touched, it doesn't hurt Storm. `slide_through`: Storm's slide passes under it instead of
+## striking it and bouncing off.
 class Hitbox extends Area2D:
 	var boss: Node
 	var weak := false
 	var harmless := false
+	var slide_through := false
 
 	func take_hit(damage: int, from_dir: Vector2) -> void:
 		if weak:
@@ -224,6 +226,7 @@ func _ready() -> void:
 	_legs_box = _make_box(Vector2(104, 22), false, false)
 	_tail_box = _make_box(Vector2(92, 20), false, false)
 	_jet_box = _make_box(Vector2(10, JET_WIDTH), false, false)
+	_jet_box.slide_through = true
 	for box in [_head_box, _body_box, _legs_box, _tail_box, _jet_box]:
 		_set_box(box, false)
 	if phase == 1:
@@ -948,6 +951,8 @@ func _update_boxes() -> void:
 	# Braced and breathing fire, it doesn't hurt to touch: there's room to slide under it.
 	var braced := _state in [St.BREATH_WINDUP, St.BREATH]
 	_body_box.harmless = braced
+	_body_box.slide_through = braced
+	_head_box.slide_through = braced
 	_set_box(_body_box, alive, _body_point(), _tilt * _dir)
 	_set_box(_legs_box, alive and not braced, _w(Vector2(160, 118 - 10.0 * _tuck)), _tilt * _dir)
 	var tail_mid := _on_part(TAIL_PIVOT, _tail_angle(), Vector2(50, 98))
