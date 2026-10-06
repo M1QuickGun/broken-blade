@@ -30,8 +30,9 @@ controls are in `README.md`.
 ## State
 - Playable: Foothills (forest; the Guardian Centipede twice), Frozen village (the Frost
   Colossus twice), the Crossroads, the Fire slopes (their own art and weather, ash bats, the
-  Ashen Drake twice: grounded in the Forge, flying in the Drake's roost), and the laid-out Lightning peaks (rooms, rest points, secrets, tutorials and
-  climbs; their piece waits on a plinth) up to the High pass.
+  Ashen Drake twice: grounded in the Forge, flying in the Drake's roost), and the Lightning
+  peaks (their own art and weather, spark wisps; the bosses still to come, so the tip waits
+  on a plinth in the Spire) up to the High pass.
 - Systems: saving (autosaves at shrines, pickups, bosses, new rooms), title screen with
   intro, pause menu (volume, fullscreen), colour-coded map, flasks, sound effects, hit
   effects, Silksong-style rings with region skins.
@@ -43,12 +44,16 @@ controls are in `README.md`.
   him stay right-handed needs left-facing versions of every animation (~80 generations);
   offered, not yet decided.
 - The fire region has no music of its own yet (it plays `exploration`).
-- Frost Colossus reworked after feedback (fight 1 too easy, fight 2's chest out of reach):
-  fight 1 got a second half, double slams, a floor sweep, a greed burst and icicles that
-  stick; fight 2 trips when slid under, kneels lower, and plants an arm as footholds. Needs
-  a playtest.
-- Lightning peaks need their art (backdrop, tileset, weather, enemy: the Spark wisp) and both
-  fights (the bound thing / Thunderbird).
+- Frost Colossus reworked after feedback (fight 1 too easy, fight 2's chest out of reach);
+  Storm likes fight 2 now.
+- Lightning peaks bosses, agreed plan: fight 1 in the Spire is the bound thing, a Thunderbird
+  fledgling with the lightning tip driven through it and chained to the plinth (blink, a
+  tether that sweeps the room, floor arcs, static orbs; winnable with dash and wall jump;
+  beaten, it swells into the Thunderbird and bursts out through the roof). Fight 2 in the
+  eyrie (to be widened and opened to the sky): lightning strikes, low swoops, feathers that
+  stick as shockline anchors to reach its back, a thunderclap. Built from parts like the
+  drake.
+- Props are drawn flat, straight-on (Storm disliked three-quarter views); keep new ones so.
 - The drake is cut from one drawing (`art/bosses/drake_full.png`, and `drake_bare_full.png`
   with its folded wings painted out) into parts on the same 256x144 canvas; recut from them
   if a part needs changing. Its spread wing is `drake_wing.png`.
