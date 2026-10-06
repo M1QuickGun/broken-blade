@@ -360,6 +360,44 @@ r.box(21, 14, 27, 14)
 r.put(24, 13, "H")
 r.box(40, 20, 44, 20)
 r.fill(55, 20, 55, 22, "r")
+# A gap in the road drops into the refuge below.
+r.fill(35, 23, 37, 23, "e")
+
+# ---------------------------------------------------------------- The Refuge (crossroads)
+# The survivors' camp in a sheltered hollow under the crossroads: dropped into through the
+# gap in the road above, climbed back out up the ledges. The barracks lies east, the
+# storehouse west.
+r = Room("refuge", 56, 22)
+r.floor(20)
+r.fill(25, 0, 27, 0, "e")
+r.fill(55, 17, 55, 19, "f")
+r.fill(0, 17, 0, 19, "g")
+r.put(21, 19, "?")
+r.put(9, 19, "N")
+r.put(16, 19, "N")
+r.put(46, 19, "N")
+for (x, y) in [(30, 17), (36, 14), (30, 11), (36, 8), (30, 5)]:
+    r.box(x, y, x + 4, y)
+
+# The old barracks, where the camp keeps its watch; a mask shard left on a high shelf.
+r = Room("old_barracks", 48, 20)
+r.floor(18)
+r.fill(0, 15, 0, 17, "f")
+r.put(12, 17, "N")
+r.box(20, 15, 24, 15)
+r.box(28, 12, 32, 12)
+r.box(40, 5, 46, 5)
+r.put(43, 4, "H")
+
+# The storehouse: what the camp has left, and something wedged in behind the crates that
+# only a slide fits after.
+r = Room("storehouse", 36, 18)
+r.floor(16)
+r.fill(35, 13, 35, 15, "g")
+r.put(30, 15, "?")
+r.box(8, 1, 20, 14)
+r.put(4, 15, "H")
+r.box(24, 13, 27, 15)
 
 # ---------------------------------------------------------------- Fire slopes (west)
 # The west face of the mountain, where the fire evil burned the homes and took the forge.
@@ -744,7 +782,11 @@ LINKS = {
     "ice_climb": {"n": ("frost_throne", "n"), "j": ("village_square", "j"), "o": ("frozen_bridge", "o")},
     "frozen_cellar": {"i": ("ice_caverns", "i")},
     "frozen_bridge": {"o": ("ice_climb", "o"), "p": ("crossroads", "p")},
-    "crossroads": {"p": ("frozen_bridge", "p"), "q": ("ashen_road", "q"), "r": ("cliff_road", "r")},
+    "crossroads": {"p": ("frozen_bridge", "p"), "q": ("ashen_road", "q"), "r": ("cliff_road", "r"),
+                   "e": ("refuge", "e")},
+    "refuge": {"e": ("crossroads", "e"), "f": ("old_barracks", "f"), "g": ("storehouse", "g")},
+    "old_barracks": {"f": ("refuge", "f")},
+    "storehouse": {"g": ("refuge", "g")},
     "ashen_road": {"q": ("crossroads", "q"), "s": ("smoke_hollow", "s")},
     "smoke_hollow": {"s": ("ashen_road", "s"), "t": ("burning_homes", "s")},
     "burning_homes": {"s": ("smoke_hollow", "t"), "t": ("slag_works", "t")},

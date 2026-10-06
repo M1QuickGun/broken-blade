@@ -16,6 +16,10 @@ extends Node2D
 ## - "static" (the Lightning peaks, under rock: the spire and the tower): static drifting and
 ##   flickering in the dark, water dripping from the overhangs, and arcs of lightning
 ##   jumping across the rock now and then.
+## - "refuge" (the Crossroads and the survivors' camp): snow drifting down slowly, warm
+##   firelight low in the room, embers drifting up from the campfires.
+## - "battlefield" (the Last Stand, on the summit): mist rolling low over the ground, ash and
+##   snow blowing across, and now and then a distant flash, fire or lightning, over the pass.
 ## The room adds one of each (front = false / true) and hands over its size and cells.
 
 const TILE := 16
@@ -27,6 +31,8 @@ const BACKDROPS := {
 	"forge": preload("res://art/world/forge_bg.png"),
 	"rain": preload("res://art/world/storm_peaks_bg.png"),
 	"static": preload("res://art/world/spire_bg.png"),
+	"refuge": preload("res://art/world/refuge_bg.png"),
+	"battlefield": preload("res://art/world/last_stand_bg.png"),
 }
 ## How much the backdrop follows the camera's movement across the room: 0 would pin it
 ## to the screen, 1 to the room.
@@ -59,7 +65,7 @@ const COLOR_ARC := Color(0.92, 0.88, 1.0)
 ## Seconds between lightning flashes outdoors (at random within this range).
 const FLASH_EVERY := Vector2(5.0, 11.0)
 
-## "forest", "snow", "cave", "ash", "forge", "rain" or "static".
+## "forest", "snow", "cave", "ash", "forge", "rain", "static", "refuge" or "battlefield".
 var style := "forest"
 var front := false
 var size_px := Vector2.ZERO
@@ -118,6 +124,9 @@ func _ready() -> void:
 		return
 	if style == "rain" or style == "static":
 		_setup_storm(rng, cols)
+		return
+	if style == "refuge" or style == "battlefield":
+		_setup_pass(rng)
 		return
 	if style != "forest":
 		_setup_frost(rng, cols)
@@ -215,6 +224,26 @@ func _setup_fire(rng: RandomNumberGenerator, cols: int) -> void:
 					"len": rng.randf_range(2.0, 5.0), "phase": rng.randf() * TAU, "drip": false})
 
 
+## Snow and embers at the refuge; mist, blowing ash and far-off flashes on the battlefield.
+func _setup_pass(rng: RandomNumberGenerator) -> void:
+	_rng.seed = rng.randi()
+	var area := size_px.x * size_px.y
+	for i in int(area / (2400.0 if style == "refuge" else 1600.0)):
+		_flakes.append({"x": rng.randf() * size_px.x, "y": rng.randf() * size_px.y,
+			"speed": rng.randf_range(8.0, 18.0), "sway": rng.randf_range(4.0, 12.0),
+			"phase": rng.randf() * TAU, "depth": rng.randf()})
+	if style == "refuge":
+		for i in int(area / 9000.0):
+			_embers.append({"x": rng.randf() * size_px.x, "y": rng.randf() * size_px.y,
+				"speed": rng.randf_range(8.0, 18.0), "sway": rng.randf_range(3.0, 8.0),
+				"phase": rng.randf() * TAU, "depth": rng.randf()})
+	else:
+		for i in int(size_px.x / 90.0) + 2:
+			_smoke.append({"x": rng.randf() * size_px.x, "y": size_px.y - rng.randf_range(10.0, 70.0),
+				"r": rng.randf_range(30.0, 70.0), "speed": rng.randf_range(5.0, 12.0), "phase": rng.randf() * TAU})
+		_next_flash = rng.randf_range(4.0, 10.0)
+
+
 ## Rain and splashes outdoors; drips, static and arcs under the rock.
 func _setup_storm(rng: RandomNumberGenerator, cols: int) -> void:
 	_rng.seed = rng.randi()
@@ -283,6 +312,13 @@ func _process(delta: float) -> void:
 		_time += delta
 		if style == "rain" or style == "static":
 			_update_storm(delta)
+		elif style == "battlefield":
+			_next_flash -= delta
+			_flash = maxf(0.0, _flash - delta * 1.5)
+			if _next_flash <= 0.0:
+				_next_flash = _rng.randf_range(6.0, 12.0)
+				_flash = 1.0
+				_thunder_in = 1.0 if _rng.randf() < 0.5 else -1.0  # (which: fire or lightning)
 		queue_redraw()
 	else:
 		_update_backdrop()
@@ -333,6 +369,9 @@ func _draw_back() -> void:
 
 
 func _draw_front() -> void:
+	if style == "refuge" or style == "battlefield":
+		_draw_pass()
+		return
 	if style == "rain" or style == "static":
 		_draw_storm()
 		return
@@ -453,6 +492,40 @@ func _draw_fire() -> void:
 		var r := lerpf(0.5, 1.1, e.depth)
 		draw_circle(Vector2(x, y), r + 1.5, Color(COLOR_EMBER, alpha * 0.2))
 		draw_circle(Vector2(x, y), r, Color(COLOR_EMBER_HOT if e.depth > 0.7 else COLOR_EMBER, alpha))
+
+
+func _draw_pass() -> void:
+	var refuge := style == "refuge"
+	if refuge:
+		# Firelight low in the hollow, breathing.
+		var breathe := 0.85 + 0.15 * sin(_time * 1.3)
+		for i in 3:
+			var h := 60.0 * (1.0 - i * 0.3)
+			draw_rect(Rect2(0, size_px.y - h, size_px.x, h), Color(COLOR_HEAT, 0.022 * breathe))
+	else:
+		for s in _smoke:
+			# Mist rolling low over the field.
+			var x: float = fmod(s.x + _time * s.speed, size_px.x + s.r * 2.0) - s.r
+			var y: float = s.y + sin(_time * 0.4 + s.phase) * 4.0
+			_draw_ellipse(Vector2(x, y), Vector2(s.r * 1.6, s.r * 0.35), Color(0.7, 0.72, 0.78, 0.07))
+			_draw_ellipse(Vector2(x + s.r * 0.6, y - 4.0), Vector2(s.r, s.r * 0.25), Color(0.75, 0.77, 0.82, 0.05))
+		if _flash > 0.0:
+			var tint := COLOR_EMBER if _thunder_in > 0.0 else COLOR_SPARK
+			draw_rect(Rect2(Vector2.ZERO, size_px), Color(tint, 0.08 * _flash))
+	for f in _flakes:
+		# Snow at the refuge; ash and snow blowing across the battlefield.
+		var fall: float = f.speed * lerpf(0.5, 1.2, f.depth)
+		var y: float = fmod(f.y + _time * fall, size_px.y)
+		var drift: float = 0.2 if refuge else 1.4
+		var x: float = fmod(f.x + _time * fall * drift + sin(_time * 0.7 + f.phase) * f.sway + size_px.x * 8.0, size_px.x)
+		var color := COLOR_SNOW if refuge or int(f.phase * 10.0) % 3 != 0 else COLOR_ASH
+		draw_circle(Vector2(x, y), lerpf(0.4, 0.9, f.depth), Color(color, lerpf(0.25, 0.7, f.depth)))
+	for e in _embers:
+		var rise: float = e.speed * lerpf(0.6, 1.2, e.depth)
+		var y: float = fmod(e.y - _time * rise + size_px.y * 8.0, size_px.y)
+		var x: float = e.x + sin(_time * 1.1 + e.phase) * e.sway
+		var flicker := 0.4 + 0.6 * maxf(0.0, sin(_time * 4.0 + e.phase * 5.0))
+		draw_circle(Vector2(x, y), 0.8, Color(COLOR_EMBER, flicker * clampf(y / (size_px.y * 0.4), 0.0, 1.0)))
 
 
 func _draw_storm() -> void:

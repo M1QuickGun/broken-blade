@@ -35,9 +35,13 @@ const CAVE_ROOMS := ["gate_cavern"]
 ## Rooms of the Frozen village: drawn with the ice tileset and frost-crawlers.
 const ICE_ROOMS := [
 	"village_square", "ice_caverns", "frost_arena", "frozen_depths", "frost_throne", "ice_climb",
-	"frozen_cellar", "frozen_bridge", "crossroads", "high_pass",
-	"frozen_street", "icefall_hall", "glacier_run", "windward_pass", "summit_ledge",
+	"frozen_cellar", "frozen_bridge", "frozen_street", "icefall_hall", "glacier_run",
 ]
+## The Crossroads area, where the two faces meet. Below, the refuge: the crossroads and the
+## survivors' camp under it (road stone, snow and firelight). Above, the Last Stand: the
+## summit pass under the castle gate where the royal army fell (mist, banners, hollow knights).
+const CROSS_ROOMS := ["crossroads", "refuge", "old_barracks", "storehouse"]
+const SUMMIT_ROOMS := ["high_pass", "windward_pass", "summit_ledge"]
 ## The Fire slopes, west of the Crossroads: charred stone, the burned village under the sky
 ## and the forge under the rock, ash bats.
 const FIRE_ROOMS := [
@@ -89,7 +93,6 @@ const PROPS := {
 		["house_drift", 35, 17], ["frozen_villager_c", 44, 17], ["house", 54, 17], ["frozen_villager_b", 52, 6],
 	],
 	"frozen_bridge": [["frozen_villager_c", 10, 15], ["frozen_villager", 45, 15]],
-	"crossroads": [["house_ruined", 47, 23], ["frozen_villager_b", 36, 23]],
 	"cliff_road": [["lightning_rod", 9, 15], ["lightning_rod", 36, 15], ["watchtower", 53, 15]],
 	"frozen_street": [
 		["house_drift", 10, 17], ["frozen_villager", 20, 17], ["house", 35, 17], ["frozen_villager_c", 45, 17],
@@ -98,6 +101,14 @@ const PROPS := {
 	"lookout": [["watchtower", 30, 18], ["lightning_rod", 46, 18]],
 	"rod_field": [["lightning_rod", 6, 16], ["lightning_rod", 21, 16], ["lightning_rod", 34, 16], ["lightning_rod", 51, 16]],
 	"aqueduct": [["lightning_rod", 8, 16], ["lightning_rod", 58, 16]],
+	"crossroads": [["wagon", 8, 23], ["banner", 34, 23], ["crates", 48, 23]],
+	"refuge": [["tent", 5, 20], ["campfire", 13, 20], ["tent", 20, 20], ["crates", 42, 20], ["tent", 50, 20]],
+	"old_barracks": [["crates", 6, 18], ["armor_pile", 38, 18]],
+	"storehouse": [["crates", 30, 16], ["wagon", 14, 16]],
+	"high_pass": [["banner", 8, 17], ["grave", 26, 17], ["armor_pile", 34, 17], ["catapult", 46, 17],
+		["grave", 66, 17], ["banner", 74, 17]],
+	"windward_pass": [["banner", 6, 5], ["grave", 20, 8], ["grave", 34, 11], ["armor_pile", 48, 14], ["banner", 62, 17]],
+	"summit_ledge": [["catapult", 8, 5], ["grave", 24, 9], ["banner", 42, 12], ["armor_pile", 58, 15]],
 	"storm_bridges": [
 		["lightning_rod", 7, 19], ["bridge_post", 30, 19], ["watchtower", 41, 16], ["lightning_rod", 58, 19],
 	],
@@ -151,6 +162,8 @@ const SIGNS := {
 	"gale_ledges": ["Ring to ring across the gap. Don't look down."],
 	"aqueduct": ["The old aqueduct that carried the snowmelt to the castle. Broken now."],
 	"windward_pass": ["The high pass runs on along the top of the mountain. The castle is above."],
+	"refuge": ["The refuge. What's left of the kingdom keeps its fires lit here."],
+	"storehouse": ["The camp's stores. Something glints behind the crates, wedged in low."],
 	"ashen_road": ["The road west, to the burning homes. A fallen beam blocks the way: slide under it."],
 	"burning_homes": ["The homes burned when the fire piece broke loose. The old forge lies west."],
 	"forge": ["The great forge, where the blade was made. Something huge sleeps in the ashes at its far end."],
@@ -164,6 +177,36 @@ const SIGNS := {
 	"thunder_eyrie": ["The eyrie, open to the storm. Lightning rods stand high around it: cast the shockline up at them."],
 	"storm_tower": ["The tower climbs to the high pass, ring above ring. Cast up at them from across the room."],
 	"high_pass": ["The high pass. Above it, the castle gate: it will take the spin and the shockline together. (Still to come.)"],
+}
+
+## The survivors at the refuge, for each "N" in a room in reading order: their name, their
+## art (art/npcs/<art>.png, an idle strip of 64 px frames facing right), and what they say
+## (a new line each time Storm walks up to them).
+const NPCS := {
+	"refuge": [
+		{"name": "Sister Maud", "art": "healer", "lines": [
+			"Sit by the fire a while. You look like the ones the soldiers carried down from the pass.",
+			"The army went up to the castle gate and never came back. Only their armor walks up there now.",
+			"Your flasks hold a shrine's flame. Rest at one and they fill again.",
+		]},
+		{"name": "Old Bram", "art": "smith", "lines": [
+			"That blade... I'd know that steel anywhere. I forged it, forty years gone, for your grandfather.",
+			"Find the pieces and bring them home to the hilt. A blade's only broken until someone mends it.",
+			"The fire in the great forge, west of here, is the fire that made it. What lives there now is wrong.",
+		]},
+		{"name": "Wren", "art": "mapmaker", "lines": [
+			"Maps are all I have left. The mountain hasn't changed. Only what lives on it.",
+			"West, the fire. East, the storm. Both roads climb, and both meet again at the top, under the castle.",
+			"Rest at a shrine and look at your map. Where you've walked is all on it.",
+		]},
+	],
+	"old_barracks": [
+		{"name": "Hale", "art": "soldier", "lines": [
+			"I was at the gate the night the blade broke. I ran. The rest of them stayed.",
+			"Up on the pass they still march, what's left of them. Empty armor, burned and struck. Don't pity them. Put them down.",
+			"Their shields still hold. Get round behind them, or wait for the swing.",
+		]},
+	],
 }
 
 const LINKS := {
@@ -186,7 +229,10 @@ const LINKS := {
 	"ice_climb": {"n": ["frost_throne", "n"], "j": ["village_square", "j"], "o": ["frozen_bridge", "o"]},
 	"frozen_cellar": {"i": ["ice_caverns", "i"]},
 	"frozen_bridge": {"o": ["ice_climb", "o"], "p": ["crossroads", "p"]},
-	"crossroads": {"p": ["frozen_bridge", "p"], "q": ["ashen_road", "q"], "r": ["cliff_road", "r"]},
+	"crossroads": {"p": ["frozen_bridge", "p"], "q": ["ashen_road", "q"], "r": ["cliff_road", "r"], "e": ["refuge", "e"]},
+	"refuge": {"e": ["crossroads", "e"], "f": ["old_barracks", "f"], "g": ["storehouse", "g"]},
+	"old_barracks": {"f": ["refuge", "f"]},
+	"storehouse": {"g": ["refuge", "g"]},
 	"ashen_road": {"q": ["crossroads", "q"], "s": ["smoke_hollow", "s"]},
 	"smoke_hollow": {"s": ["ashen_road", "s"], "t": ["burning_homes", "s"]},
 	"burning_homes": {"s": ["smoke_hollow", "t"], "t": ["slag_works", "t"]},
@@ -261,6 +307,9 @@ const MAP := {
 	"summit_ledge": Vector2i(968, -166),
 	"windward_pass": Vector2i(896, -178),
 	"frozen_cellar": Vector2i(500, -28),
+	"refuge": Vector2i(870, -59),
+	"old_barracks": Vector2i(926, -57),
+	"storehouse": Vector2i(834, -55),
 }
 
 const LAYOUTS := {
@@ -761,7 +810,73 @@ const LAYOUTS := {
 		"p.......####..####......................#####..........r",
 		"p......................................................r",
 		"p.......................?...R..........................r",
+		"###################################eee##################",
+	],
+	"refuge": [
+		"#########################eee############################",
+		"#......................................................#",
+		"#......................................................#",
+		"#......................................................#",
+		"#......................................................#",
+		"#.............................#####....................#",
+		"#......................................................#",
+		"#......................................................#",
+		"#...................................#####..............#",
+		"#......................................................#",
+		"#......................................................#",
+		"#.............................#####....................#",
+		"#......................................................#",
+		"#......................................................#",
+		"#...................................#####..............#",
+		"#......................................................#",
+		"#......................................................#",
+		"g.............................#####....................f",
+		"g......................................................f",
+		"g........N......N....?........................N........f",
 		"########################################################",
+		"########################################################",
+	],
+	"old_barracks": [
+		"################################################",
+		"#..............................................#",
+		"#..............................................#",
+		"#..............................................#",
+		"#..........................................H...#",
+		"#.......................................########",
+		"#..............................................#",
+		"#..............................................#",
+		"#..............................................#",
+		"#..............................................#",
+		"#..............................................#",
+		"#..............................................#",
+		"#...........................#####..............#",
+		"#..............................................#",
+		"#..............................................#",
+		"f...................#####......................#",
+		"f..............................................#",
+		"f...........N..................................#",
+		"################################################",
+		"################################################",
+	],
+	"storehouse": [
+		"####################################",
+		"#.......#############..............#",
+		"#.......#############..............#",
+		"#.......#############..............#",
+		"#.......#############..............#",
+		"#.......#############..............#",
+		"#.......#############..............#",
+		"#.......#############..............#",
+		"#.......#############..............#",
+		"#.......#############..............#",
+		"#.......#############..............#",
+		"#.......#############..............#",
+		"#.......#############..............#",
+		"#.......#############...####.......g",
+		"#.......#############...####.......g",
+		"#...H...................####..?....g",
+		"####################################",
+		"####################################",
 	],
 	"ashen_road": [
 		"#...........................................####...........#",

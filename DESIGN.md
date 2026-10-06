@@ -136,10 +136,18 @@ tip) → Anchor gorge (the shockline tutorial); the Chain ravine climb (ring to 
 back; upper road west: Gale ledges → Aqueduct → the eyrie (the Stormcaller freed) → Storm
 tower (shockline) → the summit.
 
-**High pass (summit):** High pass → Windward pass → Summit ledge, stepping down east to the
-head of the Storm tower. The castle gate above the High pass (double jump and shockline
-together) is still to come. The Crossroads and the summit are their own area (theme still to
-choose).
+**The Crossroads area** is where the two faces meet, below and above:
+- *The Refuge (below):* the Crossroads (rest) and, through a gap in its road, the survivors'
+  camp in a sheltered hollow underneath: Sister Maud the healer, Old Bram the king's smith
+  (who forged the blade), and Wren the mapmaker; the Old barracks east (Hale, who ran from
+  the gate; a mask shard on a high shelf, wall jump) and the Storehouse west (a mask shard
+  behind the crates, slide). Road stone and snow, firelight and embers from the campfires.
+  The survivors only talk for now; shops would need a currency.
+- *The Last Stand (above):* High pass → Windward pass → Summit ledge, the battlefield under
+  the castle gate where the royal army fell: torn banners, wrecked siege engines, graves and
+  heaped armor, mist rolling over it, far-off flashes of fire and lightning. Hollow knights
+  walk it. The castle gate above the High pass (double jump and shockline together) is
+  still to come.
 
 `tools/check_reach.py` checks the layouts: that each room can be crossed with the abilities
 it needs, and that every ability gate and secret really needs its ability.
@@ -323,6 +331,10 @@ rods; the shockline reaches it there. Touching it doesn't hurt; its spells do:
   hangs in the air drifting after Storm, then charges, a thin line showing its aim (it stops
   tracking just before it fires), and zaps a beam along it to the rock. The shockline can
   catch it like a ring.
+- **Hollow knight** (the Last Stand): the empty armor of the royal army, scorched and
+  storm-struck. It advances behind its shield (blows from the front glance off), raises its
+  sword and brings it down hard close in, and is slow to recover: hit it then, from behind,
+  or from above.
 - **Ash bat** (Fire slopes): a bat of charred flesh with embers in its wings. It hangs in the
   air above its roost, drifting after Storm; then it screeches, flaring up, and dives at
   where he stood in a straight line, and swoops back up. A small lesson in the drake's dives.
@@ -370,7 +382,7 @@ The goal is a commercial release on **Steam** someday.
 
 ## Open questions
 - Are the fire and lightning regions villages too, or wilder terrain (volcano, storm peaks)?
-- Do the villages have survivors or NPCs (shops, rest keepers)?
+- Should the survivors at the refuge become shops (a currency to collect)?
 - Does Storm wake right where the tutorial starts, or wander a little first?
 - How does the game end? Reforge the blade and reseal the evil, or something darker?
 - Engine, art style, and scope of the first playable build.

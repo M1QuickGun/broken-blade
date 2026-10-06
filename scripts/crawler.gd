@@ -8,6 +8,10 @@ extends CharacterBody2D
 ## - "hatchling": the Guardian Centipede's young, dropped into its fight. Just crawls.
 ## - "grub" (the Foothills): a centipede larva that hides in the earth. When Storm comes near
 ##   the ground rumbles; it bursts out at him, crawls about for a while, then burrows again.
+## - "knight" (the Last Stand, on the summit): a hollow knight, the empty armor of the royal
+##   army, scorched down one side and storm-struck down the other. It advances behind its
+##   shield (blows from the front glance off it), and close in it raises its sword and brings
+##   it down hard; then it's slow to recover: hit it then, or from behind, or from above.
 ## The node's origin is at its feet.
 
 const Effects := preload("res://scripts/effects.gd")
@@ -32,7 +36,15 @@ const KINDS := {
 		"tex": preload("res://art/enemies/hatchling.png"), "frame": 32, "fps": 9.0},
 	"grub": {"size": Vector2(28, 20), "draw": 28.0, "hp": 2, "speed": 45.0, "sink": 4.0,
 		"tex": preload("res://art/enemies/hatchling.png"), "frame": 32, "fps": 12.0},
+	"knight": {"size": Vector2(16, 30), "draw": 46.0, "hp": 5, "speed": 24.0,
+		"tex": preload("res://art/enemies/knight.png"), "frame": 64, "fps": 6.0,
+		"attack": preload("res://art/enemies/knight_attack.png")},
 }
+## The knight's sword: how far it reaches ahead, and its timing.
+const KNIGHT_REACH := Vector2(34, 30)
+const KNIGHT_WINDUP := 0.6
+const KNIGHT_SWING := 0.2
+const KNIGHT_RECOVER := 0.8
 
 enum St { WALK, WINDUP, CHARGE, STUN, BURIED, RUMBLE, LEAP, DIG }
 
@@ -50,6 +62,14 @@ var _flash := 0.0
 var _anim := 0.0
 var _info: Dictionary
 var _cooldown := 0.0
+## The knight's sword, live only as it comes down.
+var _blade: Blade
+
+
+## A knight's sword stroke: hurts to touch, nothing to strike.
+class Blade extends Area2D:
+	func take_hit(_damage: int, _from_dir: Vector2) -> void:
+		pass
 
 
 func _ready() -> void:
@@ -67,6 +87,17 @@ func _ready() -> void:
 		_bury()
 	else:
 		add_to_group("shock_target")
+	if kind == "knight":
+		_blade = Blade.new()
+		_blade.collision_layer = 0
+		_blade.collision_mask = 0
+		_blade.monitoring = false
+		var blade_shape := RectangleShape2D.new()
+		blade_shape.size = KNIGHT_REACH
+		var blade_col := CollisionShape2D.new()
+		blade_col.shape = blade_shape
+		_blade.add_child(blade_col)
+		add_child(_blade)
 
 
 ## Where the shockline latches on.
@@ -98,6 +129,8 @@ func _physics_process(delta: float) -> void:
 				_thrall(to)
 			"grub":
 				_grub(to)
+			"knight":
+				_knight(to)
 			_:
 				_patrol(_info.speed)
 	move_and_slide()
@@ -162,6 +195,45 @@ func _thrall(to: Vector2) -> void:
 				_cooldown = 1.2
 
 
+## Advances on Storm behind its shield; close in, raises its sword and brings it down.
+func _knight(to: Vector2) -> void:
+	var near := absf(to.x) < 170.0 and absf(to.y) < 50.0
+	match _state:
+		St.WALK:
+			if near:
+				dir = 1 if to.x > 0.0 else -1
+				var blocked := is_on_floor() and (_facing_wall() or not _ground_ahead() or _at_limit())
+				velocity.x = 0.0 if blocked or absf(to.x) < 26.0 else dir * _info.speed * 1.4
+				if _cooldown <= 0.0 and absf(to.x) < 44.0:
+					_state = St.WINDUP
+					_timer = KNIGHT_WINDUP
+					Sfx.play("swing", -10.0, 0.0)
+			else:
+				_patrol(_info.speed)
+		St.WINDUP:
+			velocity.x = 0.0
+			if _timer <= 0.0:
+				_state = St.CHARGE
+				_timer = KNIGHT_SWING
+				velocity.x = dir * 60.0
+				Sfx.play("swing", -2.0)
+		St.CHARGE:
+			velocity.x = move_toward(velocity.x, 0.0, 600.0 * get_physics_process_delta_time())
+			if _timer <= 0.0:
+				_state = St.STUN
+				_timer = KNIGHT_RECOVER
+				Sfx.play("slam", -12.0)
+		St.STUN:
+			velocity.x = 0.0
+			if _timer <= 0.0:
+				_state = St.WALK
+				_cooldown = 0.9
+	if _blade:
+		var swinging := _state == St.CHARGE
+		_blade.collision_layer = LAYER_ENEMY if swinging else 0
+		_blade.position = Vector2(dir * (_info.size.x / 2.0 + KNIGHT_REACH.x / 2.0 - 4.0), -_info.size.y / 2.0)
+
+
 ## Waits buried; rumbles when Storm comes near, bursts out at him, crawls, burrows again.
 func _grub(to: Vector2) -> void:
 	match _state:
@@ -217,6 +289,13 @@ func _spray() -> void:
 func take_hit(damage: int, from_dir: Vector2) -> void:
 	if _state == St.BURIED or _state == St.RUMBLE:
 		return
+	if kind == "knight" and _state == St.WALK and from_dir.x * dir < 0.0:
+		# Struck from the front while it advances: the blow glances off its shield.
+		Sfx.play("hit", -8.0, 0.0)
+		Sfx.play("shatter", -18.0, 0.3)
+		Effects.sparks(get_parent(), global_position + Vector2(dir * 10.0, -_info.size.y / 2), Color(1, 1, 0.9), 6, 120.0)
+		_flash = 0.05
+		return
 	hp -= damage
 	_flash = 0.1
 	var middle := global_position + Vector2(0, -_info.size.y / 2)
@@ -224,7 +303,12 @@ func take_hit(damage: int, from_dir: Vector2) -> void:
 	Effects.sparks(get_parent(), middle, Color(1, 0.95, 0.8))
 	if hp <= 0:
 		Sfx.play("enemy_die", -4.0)
-		Effects.puff(get_parent(), middle, Color(0.75, 0.9, 1.0) if kind == "thrall" else Color(0.45, 0.5, 0.4))
+		var dust := Color(0.45, 0.5, 0.4)
+		if kind == "thrall":
+			dust = Color(0.75, 0.9, 1.0)
+		elif kind == "knight":
+			dust = Color(0.5, 0.5, 0.55)
+		Effects.puff(get_parent(), middle, dust)
 		queue_free()
 		return
 	if from_dir.x != 0.0 and _state != St.CHARGE:
@@ -268,6 +352,17 @@ func _draw() -> void:
 	var frames := tex.get_width() / frame_px
 	var fps: float = _info.fps * (2.0 if _state == St.CHARGE else 0.0 if _state == St.STUN else 1.0)
 	var frame := int(_anim * fps) % frames
+	if kind == "knight" and _state in [St.WINDUP, St.CHARGE, St.STUN]:
+		# Raising the sword through the wind-up, bringing it down, then holding there.
+		tex = _info.attack
+		frames = tex.get_width() / frame_px
+		var half := frames / 2
+		if _state == St.WINDUP:
+			frame = mini(int((1.0 - _timer / KNIGHT_WINDUP) * half), half - 1)
+		elif _state == St.CHARGE:
+			frame = half + mini(int((1.0 - _timer / KNIGHT_SWING) * (frames - half)), frames - half - 1)
+		else:
+			frame = frames - 1
 	var side: float = _info.draw
 	var shake := Vector2(randf_range(-1, 1), 0) if _state == St.WINDUP else Vector2.ZERO
 	shake.y += _info.get("sink", 0.0)

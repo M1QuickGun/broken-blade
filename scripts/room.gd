@@ -20,6 +20,7 @@ const Bat := preload("res://scripts/bat.gd")
 const Drake := preload("res://scripts/drake.gd")
 const Wisp := preload("res://scripts/wisp.gd")
 const Stormcaller := preload("res://scripts/stormcaller.gd")
+const Npc := preload("res://scripts/npc.gd")
 
 const PIECE_ABILITIES := {"I": "dash", "F": "double_jump", "L": "shockline", "W": "wall_jump"}
 
@@ -50,6 +51,8 @@ const SPIKE_TEX := preload("res://art/world/spikes.png")
 const FOREST_SHEET := preload("res://art/world/forest_tileset.png")
 ## The Fire slopes' charred stone, ash on top; same corner layout as STONE_SHEET.
 const FIRE_SHEET := preload("res://art/world/fire_tileset.png")
+## The Crossroads' old road stone and packed earth; same corner layout as STONE_SHEET.
+const CROSS_SHEET := preload("res://art/world/cross_tileset.png")
 ## The Lightning peaks' storm-worn slate; same corner layout as STONE_SHEET.
 const STORM_SHEET := preload("res://art/world/storm_tileset.png")
 const Atmosphere := preload("res://scripts/atmosphere.gd")
@@ -92,6 +95,10 @@ var _woods := false
 var _cave := false
 var _fire := false
 var _storm := false
+## The Crossroads area: the refuge around the crossroads, and the Last Stand on the summit.
+var _cross := false
+var _summit := false
+var _npc_count := 0
 ## The breakable earth lid ("=") and the frozen gate ("G"), while they stand.
 var _lid: StaticBody2D
 var _backdrop: Node2D
@@ -107,7 +114,9 @@ func build(name_: String) -> void:
 	_cave = room_name in Rooms.CAVE_ROOMS
 	_fire = room_name in Rooms.FIRE_ROOMS
 	_storm = room_name in Rooms.STORM_ROOMS
-	_woods = _woods or _fire or _storm
+	_summit = room_name in Rooms.SUMMIT_ROOMS
+	_cross = room_name in Rooms.CROSS_ROOMS or _summit
+	_woods = _woods or _fire or _storm or _cross
 	_grid = PackedStringArray(Rooms.LAYOUTS[name_])
 	# Once the room's boss is beaten, its lid has fallen in and its frozen gate is broken.
 	if Rooms.BOSSES.has(room_name) and Game.defeated.has(Rooms.BOSSES[room_name].id):
@@ -137,7 +146,9 @@ func build(name_: String) -> void:
 			woods.size_px = size_px
 			woods.solid = _grid
 			woods.seed_text = room_name
-			if _storm:
+			if _cross:
+				woods.backdrop_tint = Color(0.66, 0.66, 0.7) if roof_px == 0.0 else Color(0.5, 0.48, 0.5)
+			elif _storm:
 				# Dimmed and cooled to sit behind the slate; the spire's inside darker still.
 				woods.backdrop_tint = Color(0.62, 0.62, 0.72) if woods.style == "rain" else Color(0.45, 0.45, 0.55)
 			elif _fire:
@@ -161,7 +172,8 @@ func door_spawn(door: String) -> Vector2:
 		return Vector2((size_tiles.x - 2) * TILE, r.end.y * TILE)
 	if r.position.y == 0:
 		return Vector2(center_x, 3 * TILE)
-	return Vector2(center_x, (size_tiles.y - 2) * TILE)
+	# Up through a gap in the floor: standing on the ground just beside it.
+	return Vector2((r.end.x + 1) * TILE, r.position.y * TILE)
 
 
 ## Past the edge, a room carries on as its edge does: walled rooms stay walled, and rooms
@@ -217,7 +229,7 @@ func _add_props() -> void:
 	layer.z_index = -1
 	# Lit like the painted backdrop behind them, a touch brighter as they stand nearer.
 	layer.modulate = Color(0.78, 0.82, 0.88) if _ice else (Color(0.9, 0.82, 0.76) if _fire
-		else (Color(0.74, 0.74, 0.84) if _storm else Color(0.85, 0.88, 0.86)))
+		else (Color(0.74, 0.74, 0.84) if _storm else (Color(0.82, 0.8, 0.82) if _cross else Color(0.85, 0.88, 0.86))))
 	add_child(layer)
 	for prop: Array in list:
 		var tex: Texture2D = load("res://art/world/props/%s.png" % prop[0])
@@ -250,6 +262,8 @@ func _atmosphere_style() -> String:
 		return "ash" if roof_px == 0.0 else "forge"
 	if _storm:
 		return "rain" if roof_px == 0.0 else "static"
+	if _cross:
+		return "battlefield" if _summit else "refuge"
 	if not _ice:
 		return "forest"
 	return "snow" if roof_px == 0.0 else "cave"
@@ -365,6 +379,25 @@ func _scan_cells() -> void:
 			match c:
 				"P":
 					spawn_point = feet
+				"E" when _summit:
+					var knight := Crawler.new()
+					knight.kind = "knight"
+					knight.min_x = DOOR_CLEARANCE
+					knight.max_x = size_px.x - DOOR_CLEARANCE
+					knight.position = feet
+					add_child(knight)
+				"N":
+					var info: Array = Rooms.NPCS.get(room_name, [])
+					if _npc_count < info.size():
+						var who: Dictionary = info[_npc_count]
+						var npc := Npc.new()
+						npc.title = who.name
+						npc.art = load("res://art/npcs/%s.png" % who.art)
+						npc.lines = who.lines
+						npc.position = feet
+						npc.read.connect(func(text: String) -> void: sign_read.emit(text))
+						add_child(npc)
+					_npc_count += 1
 				"E" when _storm:
 					var wisp := Wisp.new()
 					wisp.position = feet
@@ -542,7 +575,8 @@ func _draw_backdrop() -> void:
 
 
 func _draw() -> void:
-	var sheet: Texture2D = ICE_SHEET if _ice else FIRE_SHEET if _fire else STORM_SHEET if _storm 		else (FOREST_SHEET if _forest or _cave else STONE_SHEET)
+	var sheet: Texture2D = ICE_SHEET if _ice else FIRE_SHEET if _fire else STORM_SHEET if _storm \
+		else CROSS_SHEET if _cross else (FOREST_SHEET if _forest or _cave else STONE_SHEET)
 
 	for vy in range(-int(roof_px / TILE), size_tiles.y + 1):
 		for vx in size_tiles.x + 1:
