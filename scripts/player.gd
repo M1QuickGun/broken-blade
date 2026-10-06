@@ -5,6 +5,7 @@ signal hp_changed(hp: int, max_hp: int)
 signal died
 signal hit_hazard
 
+const Effects := preload("res://scripts/effects.gd")
 const LAYER_WORLD := 1
 const LAYER_PLAYER := 2
 const LAYER_ENEMY := 4
@@ -216,6 +217,9 @@ var _spin_time := 0.0
 var _spin_hit: Array[Object] = []
 ## Sideways push from a boss's wingbeats (units per second); the boss sets it and clears it.
 var wind := 0.0
+## Struck down: he crumples where he stands (falling if he's in the air) until Main wakes him
+## at a shrine.
+var _dead := false
 ## Fire sparks thrown off by the spin: [{pos, vel, age}] in global coordinates.
 var _embers: Array[Dictionary] = []
 
@@ -241,6 +245,7 @@ const ANIMS := {
 	"pull": [10.0, true],
 	"hang": [5.0, true],
 	"point": [24.0, false],
+	"die": [11.0, false],
 }
 ## Where Storm's body sits across each frame size, in art pixels. Larger frames leave
 ## room for the blade ahead of him, so he's off-centre and the flip has to account for it.
@@ -307,6 +312,9 @@ func heal_full() -> void:
 	hp = Game.max_hp
 	_invuln = 0.0
 	_frozen = false
+	if _dead:
+		_dead = false
+		_sprite.play("idle")
 	velocity = Vector2.ZERO
 	_reset_moves()
 	hp_changed.emit(hp, Game.max_hp)
@@ -325,6 +333,13 @@ func _reset_moves() -> void:
 
 func _physics_process(delta: float) -> void:
 	_tick_timers(delta)
+	if _dead:
+		velocity.x = move_toward(velocity.x, 0.0, 900.0 * delta)
+		_apply_gravity(delta)
+		move_and_slide()
+		_update_sprite()
+		queue_redraw()
+		return
 	if _frozen:
 		queue_redraw()
 		return
@@ -1046,7 +1061,25 @@ func _take_damage() -> void:
 	hp_changed.emit(hp, Game.max_hp)
 	if hp <= 0:
 		controls_locked = true
+		_die()
 		died.emit()
+
+
+## His last mask breaks: everything he was doing stops, time slows, and he crumples.
+func _die() -> void:
+	if _shock != Shock.NONE:
+		_end_shockline()
+	_dead = true
+	_dash_time = 0.0
+	_spin_time = 0.0
+	_drink_time = 0.0
+	_attack_anim = 0.0
+	_invuln = 0.0
+	velocity = Vector2(velocity.x * 0.3, minf(velocity.y, 0.0))
+	Effects.slow_motion(get_tree(), 0.3, 0.9)
+	Effects.sparks(get_parent(), _center(), Color(0.85, 0.85, 1.0), 14, 90.0)
+	_sprite.play("die" if _sprite.sprite_frames.has_animation("die") else "idle")
+	_sprite.frame = 0
 
 
 func _query(local_rect: Rect2, mask: int) -> Array[Dictionary]:
@@ -1139,6 +1172,13 @@ func _update_sprite() -> void:
 	var body_x: float = BODY_X_BY_FRAME.get(size, size / 2.0)
 	_sprite.offset = Vector2((size / 2.0 - body_x) * facing, -size / 2.0)
 	_sprite.visible = not (_invuln > 0.0 and fmod(_invuln, 0.16) < 0.08)
+	if _dead:
+		# Crumpling to the ground, then lying still on the last frame.
+		_sprite.rotation = 0.0
+		_sprite.position = Vector2.ZERO
+		if _sprite.animation != "die" and _sprite.sprite_frames.has_animation("die"):
+			_sprite.play("die")
+		return
 	_sprite.position.x = -facing * WALL_POSE_BACK.get(_shown_stage, 0.0) if _wall_dir != 0 else 0.0
 
 	# The spin art whirls around the middle of its frame (half a frame above the feet, in

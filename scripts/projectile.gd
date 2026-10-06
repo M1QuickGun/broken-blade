@@ -15,8 +15,8 @@ const COLOR_FIRE_HOT := Color(1.0, 0.85, 0.45)
 const COLOR_SPARK := Color(0.78, 0.66, 1.0)
 const COLOR_SPARK_HOT := Color(0.95, 0.92, 1.0)
 ## How fast an orb turns after Storm, and its top speed.
-const ORB_STEER := 140.0
-const ORB_SPEED := 60.0
+const ORB_STEER := 170.0
+const ORB_SPEED := 78.0
 
 ## "icicle", "clod" or "ember" (falls or is thrown, breaks on the ground), "frost_wave",
 ## "dust_wave", "fire_wave" or "spark_wave" (runs along the floor), "flame" (the floor

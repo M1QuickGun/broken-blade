@@ -231,7 +231,8 @@ the slide.
 - While it's down (stunned, tripped, or planted on its arm), a blow anywhere on its upper body
   finds the crack.
 - *Core:* after its big slams the armor on its chest cracks open, showing a glowing core.
-- Beaten, it shatters into blocks of ice.
+- Beaten, it drops to its knees as cracks spread from the hole in its chest, light pouring
+  out of them and chunks breaking away; then it bursts into blocks of ice.
 
 ### Fight plan: the Ashen Drake
 A dragon of charred scales cracked with embers, with the fire piece driven through its wing.
@@ -307,6 +308,11 @@ rods; the shockline reaches it there. Touching it doesn't hurt; its spells do:
   air above its roost, drifting after Storm; then it screeches, flaring up, and dives at
   where he stood in a straight line, and swoops back up. A small lesson in the drake's dives.
 - **Hatchlings**: the centipede's young, dropped into its second fight.
+
+### Death
+When his last mask breaks, time slows and Storm crumples where he stands (falling if he's
+in the air), sinking to his knees and collapsing face down with his blade slipping from his
+hand. Then the screen fades and he wakes at the last shrine.
 
 ### Healing: flasks
 Storm carries flasks of a shrine's pale flame (3 to start). Drinking one (F or Q, or B on a

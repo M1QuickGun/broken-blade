@@ -231,7 +231,8 @@ func _on_player_hit_hazard() -> void:
 
 func _on_player_died() -> void:
 	_transitioning = true
-	await get_tree().create_timer(0.4).timeout
+	# Let him fall: the death plays out (in slow motion at first) before the fade.
+	await get_tree().create_timer(1.6, true, false, true).timeout
 	await hud.fade_out(0.6)
 	player.heal_full()
 	Game.refill_flasks()

@@ -65,6 +65,13 @@ const ROD_SIDE := 40.0
 const BOLT_SPACING := 64.0
 const BEAM_WIDTH := 10.0
 const PATTERN_2 := ["bolts", "beam", "copies", "rods", "beam", "bolts", "rods"]
+## Its pace: every wind-up, recovery and pause it takes is this share of what it says.
+const TEMPO := 0.7
+## How long a blink takes, and how long its bolts give warning.
+const BLINK_TIME := 0.42
+const BOLT_WARNING := 0.75
+## Phase 2: the time between rows of bolt rain.
+const ROW_GAP := 0.75
 
 const COLOR_SPARK := Color(0.78, 0.66, 1.0)
 const COLOR_HOT := Color(0.95, 0.92, 1.0)
@@ -110,6 +117,8 @@ var _after_blink := St.IDLE
 var _blink_time := 0.0
 ## The chain lash: which way it swings.
 var _lash_side := 1
+## How long the current state was set to last (after TEMPO), for anything timed across it.
+var _state_time := 1.0
 ## Bolts waiting to strike: {x, t, top, height}.
 var _strikes: Array[Dictionary] = []
 ## Phase 2: the lightning rods (where the "*" anchors stand); the copies: {pos, life, box};
@@ -120,6 +129,7 @@ var _beam_y := 0.0
 var _beam_end := 0.0
 var _rod := Vector2.ZERO
 var _rod_strikes := 0
+var _bolt_rows := 2
 var _pace := 1.0
 ## The lightning tip: still in its back (-1), flying free (0 to 1); where it comes to rest.
 var _piece_t := -1.0
@@ -301,7 +311,10 @@ func _physics_process(delta: float) -> void:
 
 func _enter(state: St, time := 0.0) -> void:
 	_state = state
+	if state not in [St.WAKE, St.ARRIVE, St.BLINK, St.BOLT_WAIT, St.SLUMP, St.SWELL, St.ESCAPE, St.UNRAVEL]:
+		time *= TEMPO
 	_timer = time
+	_state_time = maxf(time, 0.001)
 	match state:
 		St.WAKE, St.ARRIVE, St.SWELL:
 			Sfx.play("roar", -2.0, 0.1)
@@ -338,20 +351,22 @@ func _blink(to: Vector2, then: St, time: float) -> void:
 	_blink_to = to
 	_after_blink = then
 	_blink_time = time
-	_enter(St.BLINK, 0.6)
+	_enter(St.BLINK, BLINK_TIME)
 	Sfx.play("crackle", -6.0)
 	Effects.sparks(get_parent(), _center(), COLOR_SPARK, 8, 90.0)
 
 
 func _update_blink(_delta: float) -> void:
 	# Fading out, a crackle where it'll appear, then fading in there.
-	if _timer > 0.35:
-		_alpha = clampf((_timer - 0.35) / 0.25, 0.0, 1.0)
-	elif _timer > 0.15:
+	var out := BLINK_TIME * 0.6
+	var back := BLINK_TIME * 0.25
+	if _timer > out:
+		_alpha = clampf((_timer - out) / (BLINK_TIME - out), 0.0, 1.0)
+	elif _timer > back:
 		_alpha = 0.0
 		_pos = _blink_to
 	else:
-		_alpha = clampf(1.0 - _timer / 0.15, 0.0, 1.0)
+		_alpha = clampf(1.0 - _timer / back, 0.0, 1.0)
 	if _timer <= 0.0:
 		_alpha = 1.0
 		var player := _player()
@@ -410,7 +425,7 @@ func _phase_1(p: Vector2, delta: float) -> void:
 				_enter(St.LASH_SWING, 1.0)
 		St.LASH_SWING:
 			# Up over the plinth from one side to the other, the chain sweeping all it reaches.
-			var t := clampf(1.0 - _timer / 1.0, 0.0, 1.0)
+			var t := clampf(1.0 - _timer / _state_time, 0.0, 1.0)
 			var start := -0.3 if _lash_side > 0 else PI + 0.3
 			var end := PI + 0.3 if _lash_side > 0 else -0.3
 			var a := lerpf(start, end, ease(t, -1.6))
@@ -472,15 +487,18 @@ func _cast_now() -> void:
 			_shake = 0.3
 			Sfx.play("zap", -4.0)
 			for side in [-1, 1]:
-				_spawn("spark_wave", Vector2(_pos.x + side * 10.0, _ground(_pos.x)), Vector2(side * 160.0, 0), 3.0)
+				_spawn("spark_wave", Vector2(_pos.x + side * 10.0, _ground(_pos.x)), Vector2(side * 200.0, 0), 3.0)
 			_enter(St.RECOVER, 0.8 * _pace)
 		"orbs":
-			for side in [-1, 1]:
-				_spawn("orb", _hands() + Vector2(side * 6.0, 0), Vector2(side * 50.0, -60.0), 5.0)
+			for side in [-1, 0, 1]:
+				_spawn("orb", _hands() + Vector2(side * 6.0, 0), Vector2(side * 60.0, -70.0), 5.0)
 			_enter(St.RECOVER, 0.9 * _pace)
 		"bolts":
 			# Spent from calling them down.
-			_enter(St.SPENT if phase == 1 else St.BOLT_WAIT, 1.8 if phase == 1 else 2.2)
+			if phase == 1:
+				_enter(St.SPENT, 1.8)
+			else:
+				_enter(St.BOLT_WAIT, (_bolt_rows - 1) * ROW_GAP + 0.3)
 		"copies":
 			_make_copies()
 			_enter(St.RECOVER, 1.2 * _pace)
@@ -515,17 +533,20 @@ func _phase_2(p: Vector2, delta: float) -> void:
 						while x < _right:
 							xs.append(x)
 							x += BOLT_SPACING
-						for row in (3 if hp <= max_hp / 2 else 2):
+						var rows := 3 if hp <= max_hp / 2 else 2
+						_bolt_rows = rows
+						var first := BLINK_TIME + 0.9 * _pace * TEMPO
+						for row in rows:
 							for i in xs.size():
 								if i % 2 == row % 2:
-									_strikes.append({"x": xs[i], "t": 1.5 + row * 1.0, "top": 0.0,
+									_strikes.append({"x": xs[i], "t": first + row * ROW_GAP, "top": 0.0,
 										"height": _ground(xs[i])})
 					"beam":
 						_blink(_rod_spot(_far_rod(p), p), St.BEAM_AIM, 0.9 * _pace)
 					"copies":
 						_blink(_rod_spot(_far_rod(p), p), St.CAST, 0.8 * _pace)
 					"rods":
-						_rod_strikes = 2
+						_rod_strikes = 3
 						_rod = _near_rod(p)
 						_blink(_rod_spot(_far_rod(p), p), St.ROD_AIM, 0.8 * _pace)
 		St.CAST:
@@ -661,7 +682,7 @@ func _clear_copies() -> void:
 func _call_bolts(p: Vector2, offsets: Array, step: float, top: float) -> void:
 	for i in offsets.size():
 		var x := clampf(p.x + offsets[i], _left + 12.0, _right - 12.0)
-		_strikes.append({"x": x, "t": 1.0 + i * step, "top": top, "height": _ground(x) - top})
+		_strikes.append({"x": x, "t": BOLT_WARNING + i * step, "top": top, "height": _ground(x) - top})
 
 
 ## A bolt striking now, from `top` down to `bottom`.
@@ -777,7 +798,7 @@ func _draw() -> void:
 		tint = Color(0.65, 0.62, 0.78)
 	# Bolts about to strike: sparks at the top, a faint flickering line down.
 	for s in _strikes:
-		var grow := clampf(1.0 - s.t / 1.0, 0.0, 1.0)
+		var grow := clampf(1.0 - s.t / BOLT_WARNING, 0.0, 1.0)
 		var x: float = s.x - position.x
 		var top: float = s.top - position.y
 		var bottom: float = s.top + s.height - position.y
@@ -811,7 +832,7 @@ func _draw() -> void:
 		var locked := _timer <= 0.3
 		var alpha := 0.8 if locked and fmod(_time, 0.1) < 0.05 else 0.3
 		draw_line(from, to, Color(COLOR_SPARK, alpha), 1.0)
-		draw_circle(_hands() - position, 6.0 + 6.0 * (1.0 - _timer), Color(COLOR_HOT, 0.4))
+		draw_circle(_hands() - position, 6.0 + 6.0 * (1.0 - _timer / _state_time), Color(COLOR_HOT, 0.4))
 	if _state == St.BEAM:
 		var from := Vector2(_hands().x, _beam_y) - position
 		var to := Vector2(_beam_end, _beam_y) - position
@@ -822,7 +843,7 @@ func _draw() -> void:
 		draw_polyline(pts, Color(COLOR_SPARK, 0.5), BEAM_WIDTH)
 		draw_polyline(pts, COLOR_HOT, 2.5)
 	if _state == St.ROD_AIM:
-		var grow := clampf(1.0 - _timer / 0.8, 0.0, 1.0)
+		var grow := clampf(1.0 - _timer / _state_time, 0.0, 1.0)
 		draw_circle(_rod - position, 8.0 + 16.0 * grow, Color(COLOR_SPARK, 0.2 + 0.3 * grow))
 
 
@@ -847,7 +868,7 @@ func _draw_sprite(at: Vector2, tint: Color, copy: bool) -> void:
 	var frames := tex.get_width() / frame_px
 	var frame := int(_time * 9.0) % frames
 	if casting:
-		frame = mini(int((1.0 - clampf(_timer, 0.0, 1.0)) * frames), frames - 1)
+		frame = mini(int((1.0 - clampf(_timer / _state_time, 0.0, 1.0)) * frames), frames - 1)
 	if _state == St.SPENT or _state == St.SLUMP:
 		frame = 0
 	var hover := 0.0 if _state in [St.SPENT, St.SLUMP] else 6.0 + sin(_time * 2.2) * 2.0

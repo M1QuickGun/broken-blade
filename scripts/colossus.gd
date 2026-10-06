@@ -103,7 +103,7 @@ enum St {
 	DORMANT, WAKE, IDLE, AIM, STRIKE, WEDGED, RETRACT, ROAR, BREATH,
 	CROUCH, CHARGE, STUNNED, LIFT, PILLARS, SLUMP, SLUMPED, SHATTER, BURST_WARN, BURST,
 	AIM_2, STRIKE_2, SWEEP_CHARGE, SWEEP, GREED_WARN, ENRAGE, TOPPLE,
-	REACH_AIM, REACH_STRIKE, REACH_WEDGED, REACH_RETRACT,
+	REACH_AIM, REACH_STRIKE, REACH_WEDGED, REACH_RETRACT, DYING,
 }
 
 ## Set by the room before it's added (see Rooms.BOSSES).
@@ -349,9 +349,7 @@ func take_hit(damage: int, _from_dir: Vector2) -> void:
 		_icicles.clear()
 		_landing.clear()
 		_shatter_spikes()
-		_enter(St.SLUMP if phase == 1 else St.SHATTER, 2.6 if phase == 1 else 1.8)
-		if phase >= 2:
-			_shatter()
+		_enter(St.SLUMP if phase == 1 else St.DYING, 2.6 if phase == 1 else 2.6)
 
 
 # --- Geometry ---
@@ -866,6 +864,28 @@ func _phase_2(p: Vector2, delta: float) -> void:
 		St.PILLARS:
 			if _timer <= 0.0:
 				_enter(St.IDLE, 1.2)
+		St.DYING:
+			# Beaten: it drops to its knees, cracks spreading from the hole in its chest, light
+			# pouring out of them, chunks breaking away; then it bursts apart.
+			feet_on = false
+			_crouch = move_toward(_crouch, 0.0, 3.0 * delta)
+			_lift = 0.0
+			_topple = move_toward(_topple, 0.0, 2.0 * delta)
+			_kneel = move_toward(_kneel, 1.0, 1.5 * delta)
+			_shake = maxf(_shake, 0.08 + 0.2 * (1.0 - _timer / 2.6))
+			if fmod(_time, 0.14) < delta:
+				_chip(_torso_center() + Vector2(randf_range(-40, 40), randf_range(-40, 50)))
+				_frost(_chest_point() + Vector2(randf_range(-20, 20), randf_range(-20, 20)))
+			if fmod(_time, 0.5) < delta:
+				Sfx.play("shatter", -12.0, 0.2)
+			_update_pieces(delta)
+			if _timer <= 0.0:
+				Sfx.play("shatter", 0.0, 0.0)
+				Effects.slow_motion(get_tree(), 0.3, 0.6)
+				for i in 16:
+					_frost(_torso_center() + Vector2(randf_range(-60, 60), randf_range(-60, 80)))
+				_enter(St.SHATTER, 1.8)
+				_shatter()
 		St.SHATTER:
 			feet_on = false
 			_update_pieces(delta)
@@ -1280,6 +1300,14 @@ func _draw_phase_2(tint: Color) -> void:
 	draw_texture(TORSO_HOLLOW, -Vector2(64, 64), tint)
 	draw_set_transform(Vector2.ZERO)
 	_draw_eyes(c)
+	if _state == St.DYING:
+		# Cracks spreading over it, the light inside pouring out of them.
+		var amount := clampf(1.0 - _timer / 2.6, 0.0, 1.0)
+		_draw_cracks(c, amount)
+		_draw_cracks(c + Vector2(0, 40), amount * 0.8)
+		var glow := _chest_point() - position
+		draw_circle(glow, 10.0 + 30.0 * amount, Color(COLOR_FROST, 0.15 + 0.3 * amount))
+		draw_circle(glow, 5.0 + 8.0 * amount, Color(1, 1, 1, 0.4 + 0.5 * amount))
 	if _legs_out:
 		# The waist, worn over the bottom of the chest like a belt, the legs hanging from it.
 		draw_set_transform(c + Vector2(0, HIP_DROP - 14.0), 0.0, Vector2(-1 if flip else 1, 1))
