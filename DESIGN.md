@@ -143,6 +143,9 @@ tower (shockline) → the summit.
   the gate; a mask shard on a high shelf, wall jump) and the Storehouse west (a mask shard
   behind the crates, slide). Road stone and snow, firelight and embers from the campfires.
   The survivors only talk for now; shops would need a currency.
+- *The old lift shaft:* from the High pass a gap drops straight down the old lift shaft to
+  the Crossroads: a way back to the refuge once Storm has reached the summit (it can't be
+  climbed from below).
 - *The Last Stand (above):* High pass → Windward pass → Summit ledge, the battlefield under
   the castle gate where the royal army fell: torn banners, wrecked siege engines, graves and
   heaped armor, mist rolling over it, far-off flashes of fire and lightning. Hollow knights
@@ -291,8 +294,9 @@ to spin up onto. It drops out of the smoke and fights on the wing. In a fixed or
 - *Gust:* it hangs facing him and beats its wings three times, each beat pushing him away and
   throwing embers.
 - Below half health its slams shake embers down too. Below 40% it heats up: it bursts into
-  flame, its scales glowing ember-orange in a haze of heat, its wings on fire, and it fights
-  faster.
+  flame, its scales glowing ember-orange, its wings burning, and it flies and fights faster,
+  adding meteors: it hangs over the roost spitting fireballs that arc down around Storm and
+  leave the floor burning.
 - Beaten, it makes one last attack: white-hot, wings ablaze, it climbs high over the roost
   while a ring of fire on the floor follows Storm, locks on, and dives at the ring, blowing
   itself apart. Be out of the ring. It's left as ash, with a mask shard in it.
@@ -314,11 +318,13 @@ floor first) and casts, in a fixed order:
 **Fight 2: freed (the eyrie).** A peak open to the storm with lightning rods standing high
 around it. A towering sorcerer whose robes dissolve into storm cloud, blinking between the
 rods; the shockline reaches it there. Touching it doesn't hurt; its spells do:
-- *Bolt rain:* rows of bolts across the arena, every other column then the others (their
-  lines flicker first); then it sinks to the ground, spent.
+- *Bolts:* bolt after bolt strikes where Storm stands, each flickering a moment first: keep
+  moving.
 - *Beam:* it locks on to Storm's height and fires across the whole arena.
 - *Copies:* two fainter copies at other rods (one blow pops one); all three send an orb.
-- Below half health a third row of bolts and quicker casting. Beaten, the storm turns on it:
+- Below 40% it erupts with light and fights on in a crackling aura, faster, adding the
+  storm surge: a wall of lightning gathers at one side and sweeps the floor end to end; get
+  up on a ring. (The eyrie has no rocks: the rings are the way up to it and out of the surge.) Beaten, the storm turns on it:
   bolt after bolt strikes it, faster and faster, as it sinks slowly to the ground, until a
   last great one blasts it apart, leaving a mask shard.
 

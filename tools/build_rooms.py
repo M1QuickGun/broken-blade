@@ -96,11 +96,9 @@ r.put(25, 14, "?")
 r.fill(28, 15, 32, 15, "^")
 r.box(27, 11, 30, 11)
 r.box(33, 8, 36, 8)
-r.put(35, 7, "E")
 r.put(34, 14, "U")
 r.fill(41, 15, 44, 15, "^")
-r.box(46, 14, 48, 14)
-r.put(47, 13, "E")
+r.put(47, 14, "E")
 
 # The sunken glade: the ground sank here long ago. Grubs nest in the soft earth of the dip.
 r = Room("sunken_glade", 50, 22)
@@ -110,10 +108,9 @@ r.air(14, 16, 35, 18)
 r.fill(0, 13, 0, 15, "a")
 r.fill(49, 13, 49, 15, "b")
 r.put(5, 15, "?")
-r.put(20, 18, "U")
-r.put(30, 18, "U")
-r.box(23, 17, 26, 18)
-r.put(41, 15, "E")
+r.put(18, 18, "U")
+r.put(32, 18, "U")
+r.put(25, 18, "E")
 
 # The stone ring. The golden hilt glints in the middle of solid ground; pulling at it wakes the
 # Guardian Centipede it's stuck in, and the earth under the ring (=) caves in: Storm drops into
@@ -155,7 +152,7 @@ r.put(25, 7, "R")
 r.fill(29, 5, 29, 7, "f")
 
 # The fern gully: a deep cut in the mountain's foot. Drop in, and climb out up the far side
-# with the sword catcher (a ledge on each wall to catch a breath).
+# with the sword catcher, a clean face with nothing sticking out of it.
 r = Room("fern_gully", 44, 30)
 r.open_sky()
 r.floor(28)
@@ -164,8 +161,6 @@ r.box(32, 6, 43, 27)
 r.fill(0, 3, 0, 5, "f")
 r.fill(43, 3, 43, 5, "e")
 r.put(5, 5, "?")
-r.box(12, 18, 13, 18)
-r.box(30, 12, 31, 12)
 r.put(22, 27, "E")
 
 # The gate cavern. Across it, the frozen gate (G) seals the way to the village. The
@@ -362,6 +357,9 @@ r.box(40, 20, 44, 20)
 r.fill(55, 20, 55, 22, "r")
 # A gap in the road drops into the refuge below.
 r.fill(35, 23, 37, 23, "e")
+# Where the old lift shaft from the summit comes down (out of reach from here: it only opens
+# the way back down once Storm has stood on the summit).
+r.fill(30, 0, 32, 0, "k")
 
 # ---------------------------------------------------------------- The Refuge (crossroads)
 # The survivors' camp in a sheltered hollow under the crossroads: dropped into through the
@@ -492,7 +490,7 @@ r.box(37, 6, 42, 6)
 r.fill(43, 3, 43, 5, "w")
 
 # The Drake's roost: a ledge high on the mountain, open to the sky. It swoops down out of the
-# smoke when Storm walks in. Rocks to spin up onto over the floor it burns.
+# smoke when Storm walks in.
 # The bellows hall, where the forge's fire was fed: the road back east above the forge, down
 # from the top of the cinder steps ledge by ledge over the coals (climbing back up takes the
 # double jump).
@@ -548,9 +546,6 @@ r.fill(0, 16, 0, 18, "w")
 r.fill(47, 16, 47, 18, "x")
 r.put(4, 18, "?")
 r.put(24, 18, "B")
-r.box(8, 14, 12, 14)
-r.box(35, 14, 39, 14)
-r.box(21, 9, 26, 9)
 
 r = Room("fire_shaft", 24, 56)
 r.floor(54)
@@ -656,8 +651,8 @@ r.put(3, 12, "?")
 for x in range(12, 56, 8):
     r.put(x, 9, "*")
 
-# The Stormcaller's eyrie, freed: a peak open to the storm, lightning rods standing high
-# around it to swing between, two rocks to stand on.
+# The Stormcaller's eyrie, freed: a peak open to the storm, lightning rods standing around it
+# to swing between (and to hang from while its surge sweeps the floor).
 # The chain ravine: the far end of the lightning road turns back up the mountain here, a
 # deep cleft climbed ring to ring with the shockline, its walls spiked.
 r = Room("chain_ravine", 30, 54)
@@ -710,9 +705,7 @@ r.fill(63, 18, 63, 20, "v")
 r.fill(0, 18, 0, 20, "w")
 r.put(58, 20, "?")
 r.put(32, 20, "B")
-r.box(15, 16, 18, 16)
-r.box(45, 16, 48, 16)
-for x, y in [(10, 10), (21, 6), (32, 10), (43, 6), (54, 10)]:
+for x, y in [(10, 13), (21, 11), (32, 13), (43, 11), (54, 13)]:
     r.put(x, y, "*")
 
 r = Room("storm_tower", 26, 56)
@@ -733,6 +726,11 @@ r.fill(0, 6, 0, 8, "z")
 r = Room("high_pass", 80, 20)
 r.open_sky()
 r.floor(17)
+# The old lift shaft: a gap in the pass dropping straight down to the crossroads, a way back
+# to the refuge.
+r.air(74, 17, 76, 18)
+r.fill(74, 19, 76, 19, "k")
+r.put(70, 16, "?")
 r.fill(0, 14, 0, 16, "y")
 r.fill(79, 14, 79, 16, "z")
 r.put(40, 16, "?")
@@ -762,6 +760,11 @@ r.fill(73, 16, 73, 18, "y")
 r.put(26, 8, "E")
 r.put(56, 14, "E")
 
+# The old lift shaft, its lift long gone: a straight drop from the summit to the crossroads.
+r = Room("lift_shaft", 10, 85)
+r.fill(4, 0, 6, 0, "k")
+r.fill(4, 84, 6, 84, "l")
+
 LINKS = {
     "landing": {"a": ("thicket", "a")},
     "thicket": {"a": ("landing", "a"), "b": ("rockfall", "a")},
@@ -783,7 +786,8 @@ LINKS = {
     "frozen_cellar": {"i": ("ice_caverns", "i")},
     "frozen_bridge": {"o": ("ice_climb", "o"), "p": ("crossroads", "p")},
     "crossroads": {"p": ("frozen_bridge", "p"), "q": ("ashen_road", "q"), "r": ("cliff_road", "r"),
-                   "e": ("refuge", "e")},
+                   "e": ("refuge", "e"), "k": ("lift_shaft", "l")},
+    "lift_shaft": {"k": ("high_pass", "k"), "l": ("crossroads", "k")},
     "refuge": {"e": ("crossroads", "e"), "f": ("old_barracks", "f"), "g": ("storehouse", "g")},
     "old_barracks": {"f": ("refuge", "f")},
     "storehouse": {"g": ("refuge", "g")},
@@ -809,7 +813,7 @@ LINKS = {
     "aqueduct": {"a": ("gale_ledges", "b"), "b": ("thunder_eyrie", "v")},
     "thunder_eyrie": {"v": ("aqueduct", "b"), "w": ("storm_tower", "w")},
     "storm_tower": {"w": ("thunder_eyrie", "w"), "z": ("summit_ledge", "y")},
-    "high_pass": {"y": ("fire_shaft", "y"), "z": ("windward_pass", "z")},
+    "high_pass": {"y": ("fire_shaft", "y"), "z": ("windward_pass", "z"), "k": ("lift_shaft", "k")},
     "windward_pass": {"z": ("high_pass", "z"), "y": ("summit_ledge", "z")},
     "summit_ledge": {"z": ("windward_pass", "y"), "y": ("storm_tower", "z")},
 }

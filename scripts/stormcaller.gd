@@ -20,12 +20,14 @@ extends Node2D
 ## Phase 2, the eyrie (open to the storm, lightning rods standing high around it): free and
 ## towering, a sorcerer whose robes dissolve into storm cloud. It blinks between the rods; the
 ## shockline reaches it there. Touching it doesn't hurt; its spells do. In a fixed order:
-## - Bolt rain: lightning strikes in rows across the arena, every other column, then the
-##   others (their lines flicker first). Then it sinks to the ground, spent: the opening.
+## - Bolts: bolt after bolt strikes where Storm stands, each flickering a moment before it
+##   lands: keep moving.
 ## - Beam: it locks on to Storm's height and fires a beam across the whole arena.
 ## - Copies: two copies of it appear at other rods (fainter: one blow pops one) and all three
 ##   send an orb after him.
-## Below half health it rains a third row of bolts and casts faster. Beaten, the storm turns
+## Below 40% it erupts with light and fights on in a crackling aura, faster, with a new
+## move: the storm surge, a wall of lightning that gathers at one side of the arena and
+## sweeps the whole floor (get up on a ring). Beaten, the storm turns
 ## on it: bolt after bolt strikes it, faster and faster, until a last great one blasts it
 ## apart.
 ##
@@ -64,11 +66,20 @@ const REACH := 150.0
 const PATTERN_1 := ["arcs", "orbs", "bolts", "lash"]
 ## Phase 2: how high it hangs below a rod, how far beside it, and the spacing of the bolt
 ## rows.
-const ROD_DROP := 54.0
+const ROD_DROP := 30.0
 const ROD_SIDE := 40.0
 const BOLT_SPACING := 64.0
 const BEAM_WIDTH := 10.0
 const PATTERN_2 := ["bolts", "beam", "copies", "beam", "bolts", "copies"]
+## Its second stage (below 40%): faster, with the storm surge.
+const EMPOWER_AT := 0.4
+const EMPOWERED_PACE := 0.65
+const PATTERN_EMPOWERED := ["bolts", "surge", "beam", "copies", "surge", "bolts", "beam"]
+## Its hunting bolts: how many, how often, and the storm surge's height and speed.
+const HUNT_BOLTS := 6
+const HUNT_EVERY := 0.32
+const SURGE_HEIGHT := 70.0
+const SURGE_SPEED := 260.0
 ## Its pace: every wind-up, recovery and pause it takes is this share of what it says.
 const TEMPO := 0.7
 ## How long a blink takes, and how long its bolts give warning.
@@ -87,7 +98,7 @@ const COLOR_SHADOW := Color(0.02, 0.02, 0.06, 0.45)
 
 enum St {
 	DORMANT, WAKE, IDLE, BLINK, CAST, RECOVER, SPENT, LASH_CHARGE, LASH_SWING,
-	SLUMP, SWELL, ESCAPE, ARRIVE, BOLT_WAIT, BEAM_AIM, BEAM, UNRAVEL,
+	SLUMP, SWELL, ESCAPE, ARRIVE, BOLT_WAIT, BEAM_AIM, BEAM, UNRAVEL, EMPOWER, SURGE_CHARGE, SURGE,
 }
 
 ## Set by the room before it's added (see Rooms.BOSSES).
@@ -138,6 +149,12 @@ var _bolt_rows := 2
 var _death_bolts: Array[Dictionary] = []
 var _final_bolt := false
 var _pace := 1.0
+## Its second stage; bolts still to call; the storm surge's place and which way it runs.
+var _empowered := false
+var _hunt := 0
+var _surge_x := 0.0
+var _surge_dir := 1
+var _surge_box: Hitbox
 ## The lightning tip: still in its back (-1), flying free (0 to 1); where it comes to rest.
 var _piece_t := -1.0
 var _piece_from := Vector2.ZERO
@@ -179,6 +196,7 @@ func _ready() -> void:
 	_chain_box.slide_through = true
 	_beam_box = _make_box(Vector2(10, BEAM_WIDTH), false, false)
 	_beam_box.slide_through = true
+	_surge_box = _make_box(Vector2(26, SURGE_HEIGHT), false, false)
 	if phase == 1:
 		_anchor = position + Vector2(TILE / 2.0, 0)
 		_pos = _anchor + Vector2(0, -2)
@@ -188,7 +206,7 @@ func _ready() -> void:
 		_grow = 1.0
 		_alpha = 0.0
 		_pos = Vector2(position.x, _floor - 400.0)
-	for box in [_body_box, _chain_box, _beam_box]:
+	for box in [_body_box, _chain_box, _beam_box, _surge_box]:
 		_set_box(box, false)
 
 
@@ -285,7 +303,15 @@ func take_hit(damage: int, _from_dir: Vector2) -> void:
 	Sfx.play("crackle", -8.0, 0.2)
 	Effects.sparks(get_parent(), _center(), COLOR_SPARK, 14)
 	Effects.sparks(get_parent(), _center(), COLOR_HOT, 6, 160.0)
-	if phase == 2 and hp <= max_hp / 2:
+	if phase == 2 and not _empowered and hp > 0 and hp <= int(max_hp * EMPOWER_AT):
+		# Its second stage: it erupts with light and fights on faster.
+		_empowered = true
+		_pace = EMPOWERED_PACE
+		_strikes.clear()
+		_clear_copies()
+		_enter(St.EMPOWER, 1.4)
+		return
+	if phase == 2 and not _empowered and hp <= max_hp / 2:
 		_pace = 0.8
 	if hp <= 0:
 		hp = 0
@@ -302,7 +328,8 @@ func take_hit(damage: int, _from_dir: Vector2) -> void:
 
 
 func _fighting() -> bool:
-	return _state not in [St.DORMANT, St.WAKE, St.ARRIVE, St.SLUMP, St.SWELL, St.ESCAPE, St.UNRAVEL] \
+	return _state not in [St.DORMANT, St.WAKE, St.ARRIVE, St.SLUMP, St.SWELL, St.ESCAPE, St.UNRAVEL,
+		St.EMPOWER] \
 		and _alpha > 0.5
 
 
@@ -355,7 +382,7 @@ func _wake() -> void:
 
 
 func _next_attack() -> String:
-	var pattern: Array = PATTERN_1 if phase == 1 else PATTERN_2
+	var pattern: Array = PATTERN_1 if phase == 1 else (PATTERN_EMPOWERED if _empowered else PATTERN_2)
 	var attack: String = pattern[_move % pattern.size()]
 	_move += 1
 	return attack
@@ -519,7 +546,8 @@ func _cast_now() -> void:
 			if phase == 1:
 				_enter(St.SPENT, 1.8)
 			else:
-				_enter(St.BOLT_WAIT, (_bolt_rows - 1) * ROW_GAP + 0.3)
+				_hunt = HUNT_BOLTS + (2 if _empowered else 0)
+				_enter(St.BOLT_WAIT, 0.0)
 		"copies":
 			_make_copies()
 			_enter(St.RECOVER, 1.2 * _pace)
@@ -548,20 +576,16 @@ func _phase_2(p: Vector2, delta: float) -> void:
 				_attack = _next_attack()
 				match _attack:
 					"bolts":
-						_blink(_rod_spot(_middle_rod(), p), St.CAST, 0.9 * _pace)
-						var xs: Array = []
-						var x := _left + BOLT_SPACING / 2.0
-						while x < _right:
-							xs.append(x)
-							x += BOLT_SPACING
-						var rows := 3 if hp <= max_hp / 2 else 2
-						_bolt_rows = rows
-						var first := BLINK_TIME + 0.9 * _pace * TEMPO
-						for row in rows:
-							for i in xs.size():
-								if i % 2 == row % 2:
-									_strikes.append({"x": xs[i], "t": first + row * ROW_GAP, "top": 0.0,
-										"height": _ground(xs[i])})
+						_blink(_rod_spot(_middle_rod(), p), St.CAST, 0.8 * _pace)
+					"surge":
+						# From whichever end of the arena is further from him.
+						_surge_dir = 1 if p.x > (_left + _right) / 2.0 else -1
+						var end_rod := _rods[0]
+						for rod in _rods:
+							if (rod.x - end_rod.x) * _surge_dir < 0.0:
+								end_rod = rod
+						_surge_x = (_left + 12.0) if _surge_dir > 0 else (_right - 12.0)
+						_blink(_rod_spot(end_rod, p), St.SURGE_CHARGE, 1.0)
 					"beam":
 						_blink(_rod_spot(_far_rod(p), p), St.BEAM_AIM, 0.9 * _pace)
 					"copies":
@@ -571,9 +595,43 @@ func _phase_2(p: Vector2, delta: float) -> void:
 			if _timer <= 0.0:
 				_cast_now()
 		St.BOLT_WAIT:
+			# Calling bolts down on him one after another, each where he stands.
+			_pos += bob * delta
+			_face(p)
+			if _timer <= 0.0 and _hunt > 0:
+				_hunt -= 1
+				_timer = HUNT_EVERY * _pace
+				var x := clampf(p.x, _left + 12.0, _right - 12.0)
+				_strikes.append({"x": x, "t": BOLT_WARNING, "top": 0.0, "height": _ground(x)})
+			elif _hunt <= 0 and _strikes.is_empty():
+				_enter(St.RECOVER, 0.5)
+		St.EMPOWER:
+			# Erupting with light, then fighting on in a crackling aura.
+			_shake = maxf(_shake, 0.1)
+			if fmod(_time, 0.05) < delta:
+				Effects.sparks(get_parent(), _center() + Vector2(randf_range(-30, 30), randf_range(-50, 40)), COLOR_HOT, 2, 120.0)
+			if _timer > 1.2 and _timer - delta <= 1.2:
+				Sfx.play("roar", 0.0, 0.0)
+				Sfx.play("thunder", -2.0, 0.0)
+				_bolt_on_it(false)
 			if _timer <= 0.0:
-				# Spent: it sinks down to the ground.
-				_enter(St.SPENT, 2.4)
+				_enter(St.IDLE, 0.4)
+		St.SURGE_CHARGE:
+			# Lightning gathering at the end of the arena it'll sweep from.
+			_pos += bob * delta
+			if fmod(_time, 0.06) < delta:
+				Effects.sparks(get_parent(), Vector2(_surge_x, _floor - randf_range(0, SURGE_HEIGHT)), COLOR_HOT, 2, 60.0)
+			if _timer <= 0.0:
+				Sfx.play("thunder", -4.0, 0.0)
+				_enter(St.SURGE, 0.0)
+		St.SURGE:
+			# The wall of lightning sweeps the floor end to end: be up on a ring.
+			_pos += bob * delta
+			_surge_x += _surge_dir * SURGE_SPEED * (1.0 / _pace) * delta
+			if fmod(_time, 0.2) < delta:
+				Sfx.play("zap", -8.0, 0.2)
+			if (_surge_dir > 0 and _surge_x > _right - 8.0) or (_surge_dir < 0 and _surge_x < _left + 8.0):
+				_enter(St.RECOVER, 0.6)
 		St.SPENT:
 			_pos.y = move_toward(_pos.y, _floor, 160.0 * delta)
 			if fmod(_time, 0.15) < delta:
@@ -733,6 +791,7 @@ func _update_boxes() -> void:
 		_set_box(_chain_box, true, (from + to) / 2.0, (to - from).angle())
 	else:
 		_set_box(_chain_box, false)
+	_set_box(_surge_box, _state == St.SURGE, Vector2(_surge_x, _floor - SURGE_HEIGHT / 2.0))
 	if _state == St.BEAM:
 		var from := _hands()
 		var shape: RectangleShape2D = _beam_box.get_child(0).shape
@@ -867,6 +926,20 @@ func _draw() -> void:
 			pts.append(from.lerp(to, float(i) / steps) + Vector2(0, randf_range(-3, 3) if i > 0 and i < steps else 0.0))
 		draw_polyline(pts, Color(COLOR_SPARK, 0.5), BEAM_WIDTH)
 		draw_polyline(pts, COLOR_HOT, 2.5)
+	if _state in [St.SURGE_CHARGE, St.SURGE]:
+		# The storm surge: a wall of lightning at the floor, gathering, then sweeping.
+		var x := _surge_x - position.x
+		var floor_y := _floor - position.y
+		var strength := 1.0 if _state == St.SURGE else clampf(1.0 - _timer / _state_time, 0.0, 1.0)
+		var rng := RandomNumberGenerator.new()
+		rng.seed = int(_time * 24.0)
+		draw_rect(Rect2(x - 14.0, floor_y - SURGE_HEIGHT * strength, 28.0, SURGE_HEIGHT * strength),
+			Color(COLOR_SPARK, 0.25 * strength))
+		for k in 4:
+			var pts := PackedVector2Array()
+			for i in 6:
+				pts.append(Vector2(x + rng.randf_range(-12, 12), floor_y - SURGE_HEIGHT * strength * i / 5.0))
+			draw_polyline(pts, Color(COLOR_HOT, 0.9 * strength), 1.5)
 	for bolt in _death_bolts:
 		var from: Vector2 = bolt.from - position
 		var to: Vector2 = bolt.to - position
@@ -925,6 +998,21 @@ func _draw_sprite(at: Vector2, tint: Color, copy: bool) -> void:
 				Color(COLOR_HOT, 0.35 * _flash / 0.14))
 	if freed and not copy:
 		_draw_ellipse(Vector2(at.x - position.x, _ground(at.x) - position.y), Vector2(18.0 * _scale(), 3.0), COLOR_SHADOW)
+	if _empowered and not copy:
+		# Its second stage: a crackling aura, and arcs jumping off it.
+		var core := _center() - position + _kick
+		var pulse := 0.8 + 0.2 * sin(_time * 9.0)
+		draw_circle(core, 54.0 * pulse, Color(COLOR_SPARK, 0.1))
+		draw_circle(core, 36.0 * pulse, Color(COLOR_SPARK, 0.12))
+		var rng := RandomNumberGenerator.new()
+		rng.seed = int(_time * 14.0)
+		for k in 2:
+			var a := rng.randf() * TAU
+			var pts := PackedVector2Array([core + Vector2.from_angle(a) * 20.0])
+			for i in 3:
+				pts.append(pts[-1] + Vector2.from_angle(a + rng.randf_range(-0.8, 0.8)) * 12.0)
+			draw_polyline(pts, COLOR_HOT, 1.0)
+		tint = Color(tint.r * 1.25, tint.g * 1.2, tint.b * 1.45, tint.a)
 	draw_set_transform(origin, 0.0, Vector2(_dir, 1) * squash)
 	draw_texture_rect_region(tex, Rect2(-size / 2.0, -size * feet, size, size),
 		Rect2(frame * frame_px, 0, frame_px, frame_px), tint)
