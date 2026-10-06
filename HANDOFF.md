@@ -20,10 +20,13 @@ controls are in `README.md`.
 ## Tools
 - `tools/build_rooms.py`: every room layout and door link; regenerates `LINKS`, `MAP` and
   `LAYOUTS` in `scripts/rooms.gd`. Checks two-way links and keeps enemies away from doors.
+  `EXTRA` places each region's second creature ("Y": toad, frost hound, cinder husk,
+  conductor, hollow archer) and flier ("V": frost bat, carrion crow) on the nearest open
+  floor to the spot given; room.gd picks which by region.
 - `tools/check_reach.py`: reachability check (jump, double jump, wall climb, shockline,
   slide limits) for the fire and lightning regions' gates and secrets.
 - `tools/make_sfx.py`: synthesizes every sound effect into `audio/sfx/`.
-- PixelLab (MCP) for art: about 1,140 generations left this cycle (resets 2026-10-29).
+- PixelLab (MCP) for art: about 320 generations left this cycle (resets 2026-10-29).
   Bases for animating Storm are in `art/concepts/bases/` and are fetched from the raw
   GitHub URL, so push a base before animating from it.
 

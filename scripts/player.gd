@@ -1107,7 +1107,8 @@ func _check_damage() -> void:
 		if _is_small() and source.get("slide_safe") == true:
 			continue  # sliding under it, like under the drake's belly
 		if _invuln <= 0.0 and _strike_guard <= 0.0 and source.has_method("take_hit"):
-			_hurt_by_enemy(source.global_position.x)
+			var amount = source.get("damage")
+			_hurt_by_enemy(source.global_position.x, amount if amount is int else 1)
 			return
 
 
@@ -1163,9 +1164,9 @@ func _flask_point() -> Vector2:
 	return _center() + Vector2(facing * lerpf(5.0, 3.0, t), lerpf(0.0, -8.0, t))
 
 
-func _hurt_by_enemy(source_x: float) -> void:
+func _hurt_by_enemy(source_x: float, amount := 1) -> void:
 	_drink_time = 0.0
-	_take_damage()
+	_take_damage(amount)
 	if hp <= 0:
 		return
 	if _shock != Shock.NONE:
@@ -1192,9 +1193,9 @@ func _hurt_by_hazard() -> void:
 	hit_hazard.emit()
 
 
-func _take_damage() -> void:
+func _take_damage(amount := 1) -> void:
 	Sfx.play("hurt", -2.0)
-	hp -= 1
+	hp = maxi(0, hp - amount)
 	hp_changed.emit(hp, Game.max_hp)
 	if hp <= 0:
 		controls_locked = true

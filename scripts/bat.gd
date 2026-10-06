@@ -11,6 +11,8 @@ const LAYER_WORLD := 1
 const LAYER_ENEMY := 4
 
 const TEX := preload("res://art/enemies/ash_bat.png")
+## The carrion crow of the Last Stand flies the same way, in its own feathers.
+const CROW_TEX := preload("res://art/enemies/crow.png")
 const FRAME := 64
 const DRAW := 38.0
 const FPS := 12.0
@@ -36,6 +38,9 @@ const COLOR_EMBER := Color(1.0, 0.55, 0.18)
 enum St { HOVER, SCREECH, DIVE, CLIMB }
 
 var hp := 2
+## "ash" (the Fire slopes), "frost" (an ash bat the cold got into: the Frozen village) or
+## "crow" (the Last Stand).
+var kind := "ash"
 var dir := -1
 
 var _state := St.HOVER
@@ -158,13 +163,16 @@ func _draw() -> void:
 	var tint := Color(3, 3, 3) if _flash > 0.0 else Color.WHITE
 	if _state == St.SCREECH and fmod(_anim, 0.12) < 0.06:
 		tint = Color(1.8, 1.2, 0.8)
-	var frames := TEX.get_width() / FRAME
+	var tex: Texture2D = CROW_TEX if kind == "crow" else TEX
+	if kind == "frost":
+		tint = tint * Color(0.6, 0.85, 1.35)
+	var frames := tex.get_width() / FRAME
 	var frame := int(_anim * FPS * (1.6 if _state == St.SCREECH else 1.0)) % frames
 	var angle := 0.0
 	var flip := 1.0 if dir > 0 else -1.0
 	if _state == St.DIVE:
 		# Wings swept back and pointed along the dive.
-		frame = DIVE_FRAME
+		frame = mini(DIVE_FRAME, frames - 1)
 		flip = 1.0 if _dive_dir.x >= 0.0 else -1.0
 		angle = atan2(_dive_dir.y, absf(_dive_dir.x)) * flip
 		# A trail of embers behind it.
@@ -173,6 +181,6 @@ func _draw() -> void:
 			draw_circle(p, 1.5 - i * 0.3, Color(COLOR_EMBER, 0.7 - i * 0.2))
 	var shake := Vector2(randf_range(-1, 1), randf_range(-1, 1)) if _state == St.SCREECH else Vector2.ZERO
 	draw_set_transform(shake, angle, Vector2(flip, 1))
-	draw_texture_rect_region(TEX, Rect2(-DRAW / 2.0, -DRAW / 2.0, DRAW, DRAW),
+	draw_texture_rect_region(tex, Rect2(-DRAW / 2.0, -DRAW / 2.0, DRAW, DRAW),
 		Rect2(frame * FRAME, 0, FRAME, FRAME), tint)
 	draw_set_transform(Vector2.ZERO)

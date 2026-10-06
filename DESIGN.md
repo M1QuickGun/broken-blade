@@ -276,6 +276,10 @@ fixed order:
   itself (a slide always passes under its belly safely) to come out behind it.
 - *Stomp:* it rears up and slams down; embers rain from the roof, their glow on the floor
   showing where.
+- *Rampage:* it paws the ground snorting smoke, then charges the length of the forge: slide
+  under its belly. If it runs into the wall it staggers with its head low: the opening.
+- Everything it does in the forge takes two masks. Its jaw drops open (only as far as its
+  head allows) as it lunges and breathes, the inside of its mouth lit by the fire: the tell.
 - *Tail lash:* if Storm gets behind it, it raises its tail and lashes it down; a wave of fire
   runs out along the floor behind it: jump it.
 - Its body hurts to touch, its head doesn't; both can be struck.
@@ -308,8 +312,8 @@ back, a crackling chain from it to the plinth: it can't go further than the chai
 floor first) and casts, in a fixed order:
 - *Floor arcs:* lightning runs both ways along the floor: jump.
 - *Orbs:* two balls of static drift after Storm; strike them to pop them.
-- *Roof bolts:* back on the plinth it calls bolts down from the roof (sparks fall where each
-  will strike), then kneels spent: the big opening.
+- *Roof bolts:* back on the plinth it calls four bolts down from the roof, one after
+  another wherever Storm stands (each flickers first), then kneels spent: the big opening.
 - *Chain lash:* the chain glows and it swings over the plinth from one side to the other,
   sweeping everything within reach: get out to the walls.
 - Touching it hurts, except while it kneels spent. Beaten, the tip tears out of it; it rises,
@@ -321,6 +325,8 @@ rods; the shockline reaches it there. Touching it doesn't hurt; its spells do:
 - *Bolts:* bolt after bolt strikes where Storm stands, each flickering a moment first: keep
   moving.
 - *Beam:* it locks on to Storm's height and fires across the whole arena.
+- *Bolt rain:* rows of bolts across the whole arena, every other column, then the others
+  (three rows below 40%).
 - *Copies:* two fainter copies at other rods (one blow pops one); all three send an orb.
 - Below 40% it erupts with light and fights on in a crackling aura, faster, adding the
   storm surge: a wall of lightning gathers at one side and sweeps the floor end to end; get
@@ -347,6 +353,19 @@ rods; the shockline reaches it there. Touching it doesn't hurt; its spells do:
 - **Ash bat** (Fire slopes): a bat of charred flesh with embers in its wings. It hangs in the
   air above its roost, drifting after Storm; then it screeches, flaring up, and dives at
   where he stood in a straight line, and swoops back up. A small lesson in the drake's dives.
+- **Moss toad** (Foothills): a toad with ferns growing from its back. It sits, then hops at
+  Storm in arcs.
+- **Frost hound** (Frozen village): a wolf grown through with ice crystals. It runs Storm
+  down, crouches, and leaps at him.
+- **Frost bat** (Frozen village): an ash bat the cold got into; it hunts the same way.
+- **Cinder husk** (Fire slopes): a burnt villager, still smouldering. It shambles after him;
+  close in its embers flare faster and faster and it bursts in fire: kill it first or get
+  clear.
+- **Conductor** (Lightning peaks): an iron walker with a lightning rod on its back. Close in
+  it charges up crackling and sends shockwaves both ways along the floor: jump them.
+- **Hollow archer** (the Last Stand): an archer of the royal army, empty like the knights. It
+  backs away, draws, and looses arrows at Storm (the blade cuts them down).
+- **Carrion crow** (the Last Stand): a crow off the battlefield; it hunts like the bats.
 - **Hatchlings**: the centipede's young, dropped into its second fight.
 
 ### Death

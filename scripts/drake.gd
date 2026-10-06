@@ -15,8 +15,10 @@ extends Node2D
 ##   (its body doesn't hurt while it breathes) and come out behind it.
 ## - Stomp: it rears up and slams its forefeet down; embers rain from the forge's roof,
 ##   their glow on the floor showing where.
+## - Rampage: it paws the ground, snorting smoke, then charges the length of the forge at
+##   him: slide under its belly. If it runs into the wall it staggers, head low.
 ## And if Storm gets behind it, it raises its tail and lashes it down: a wave of fire runs
-## out along the floor behind it to jump.
+## out along the floor behind it to jump. Everything it does here takes two masks.
 ## Its body hurts to touch; its head doesn't, and both can be struck.
 ## Beaten, it collapses and the fire piece tears out of its wing and floats down. Then it
 ## heaves itself up, spreads its wings for the first time, and bursts up through the forge's
@@ -75,7 +77,7 @@ const ART_ORIGIN := Vector2(160, 131)
 const HIND_FOOT := Vector2(128, 131)
 const BODY_PIVOT := Vector2(150, 95)
 const HEAD_PIVOT := Vector2(182, 94)
-const JAW_PIVOT := Vector2(228, 63)
+const JAW_PIVOT := Vector2(232, 64)
 const TAIL_PIVOT := Vector2(108, 94)
 const HIND_PIVOT := Vector2(126, 104)
 const FRONT_PIVOT := Vector2(186, 104)
@@ -83,7 +85,9 @@ const SHOULDER := Vector2(164, 80)
 const WING_ROOT := Vector2(108, 72)
 const MOUTH := Vector2(250, 66)
 const SNOUT_TIP := Vector2(252, 62)
-const JAW_TIP := Vector2(244, 72)
+const JAW_TIP := Vector2(248, 71)
+## How far its jaw may hang open (radians): any further and the cut-out shows its seams.
+const JAW_OPEN := 0.4
 const EYE := Vector2(236, 53)
 const TAIL_TIP := Vector2(2, 104)
 ## Which way its head points with the neck at rest (from the neck's base to its mouth).
@@ -104,7 +108,12 @@ const WALL_MARGIN := 120.0
 ## underside clears a sliding Storm, not a standing one.
 const JET_WIDTH := 16.0
 const JET_HEIGHT := 28.0
-const PATTERN_1 := ["lunge", "breath", "lunge", "stomp"]
+const PATTERN_1 := ["lunge", "breath", "charge", "lunge", "stomp", "charge"]
+## In the forge its blows take this many masks.
+const FORGE_DAMAGE := 2
+## The rampage: how fast it charges, and how long it staggers if it hits the wall.
+const CHARGE_SPEED := 300.0
+const STAGGER_TIME := 1.4
 
 ## Phase 2: how high it hangs, how fast it flies about and dives, and where its sweep ends.
 const HOVER_ALT := 130.0
@@ -144,7 +153,7 @@ const COLOR_PIECE := Color(1.0, 0.62, 0.25)
 
 enum St {
 	DORMANT, WAKE, IDLE, TURN, LUNGE_WINDUP, LUNGE, PANT, BREATH_WINDUP, BREATH,
-	REAR, SLAM, TAIL_RAISE, TAIL_LASH, SLUMP, RISE, SPREAD, ESCAPE,
+	REAR, SLAM, TAIL_RAISE, TAIL_LASH, SLUMP, RISE, SPREAD, ESCAPE, CHARGE_WINDUP, CHARGE, STAGGER,
 	ARRIVE, HOVER, DIVE_WINDUP, DIVE, SKIM, CLIMB, AIR_BREATH_WINDUP, AIR_BREATH, GUST,
 	SLAM_RISE, SLAM_FALL, GROUNDED, TAKEOFF, FINAL_RISE, FINAL_AIM, FINAL_DIVE, EXPLODE, METEORS,
 }
@@ -247,10 +256,11 @@ class Hitbox extends Area2D:
 	var harmless := false
 	var slide_through := false
 	var slide_safe := false
+	var damage := 1
 
-	func take_hit(damage: int, from_dir: Vector2) -> void:
+	func take_hit(amount: int, from_dir: Vector2) -> void:
 		if weak:
-			boss.take_hit(damage, from_dir)
+			boss.take_hit(amount, from_dir)
 
 
 func _ready() -> void:
@@ -275,6 +285,8 @@ func _ready() -> void:
 		box.slide_safe = true
 	for box in [_head_box, _body_box, _legs_box, _tail_box, _jet_box, _blast_box]:
 		_set_box(box, false)
+		if phase == 1:
+			box.damage = FORGE_DAMAGE
 	if phase == 1:
 		# Asleep: crouched in the ashes, head down.
 		_crouch = 1.0
@@ -553,6 +565,8 @@ func _phase_1(p: Vector2, delta: float) -> void:
 						_enter(St.BREATH_WINDUP, 1.1)
 					"stomp":
 						_enter(St.REAR, 0.7)
+					"charge":
+						_enter(St.CHARGE_WINDUP, 0.9)
 			elif gap > 140.0 and _side(p) > 0:
 				_walk(WALK_SPEED * _dir, delta)
 		St.TURN:
@@ -562,6 +576,42 @@ func _phase_1(p: Vector2, delta: float) -> void:
 			if _timer <= 0.0:
 				_behind = 0.0
 				_enter(St.IDLE, 0.5)
+		St.CHARGE_WINDUP:
+			# Head down, pawing the ground and snorting smoke: about to charge.
+			_crouch = move_toward(_crouch, 0.5, 2.0 * delta)
+			_neck = lerp_angle(_neck, 0.3, 5.0 * delta)
+			_stride += delta * 6.0
+			if fmod(_time, 0.12) < delta:
+				_puff(_mouth(), Vector2(_dir * 20.0, -6.0), 4.0)
+				_debris(_w(Vector2(200, 131)) + Vector2(randf_range(-8, 8), -2))
+			if _timer <= 0.0:
+				Sfx.play("roar", -2.0, 0.1)
+				_enter(St.CHARGE, 3.0)
+		St.CHARGE:
+			# Charging the length of the forge; it stops only at the wall.
+			_crouch = move_toward(_crouch, 0.2, 3.0 * delta)
+			_neck = lerp_angle(_neck, 0.25, 6.0 * delta)
+			_x += _dir * CHARGE_SPEED * delta
+			_stride += delta * 20.0
+			_shake = maxf(_shake, 0.05)
+			if fmod(_time, 0.08) < delta:
+				_debris(_w(Vector2(130, 131)) + Vector2(randf_range(-10, 10), -2))
+			var stop := _left + WALL_MARGIN if _dir < 0 else _right - WALL_MARGIN
+			if (_dir < 0 and _x <= stop) or (_dir > 0 and _x >= stop) or _timer <= 0.0:
+				_x = clampf(_x, _left + WALL_MARGIN, _right - WALL_MARGIN)
+				_shake = 0.6
+				Sfx.play("slam", 0.0)
+				for i in 8:
+					_debris(_head_point() + Vector2(randf_range(-20, 20), randf_range(-20, 20)))
+				_enter(St.STAGGER, STAGGER_TIME)
+		St.STAGGER:
+			# Reeling from the wall, head low: hit it.
+			_neck = lerp_angle(_neck, 0.6, 6.0 * delta)
+			_crouch = move_toward(_crouch, 0.5, 3.0 * delta)
+			if fmod(_time, 0.3) < delta:
+				_puff(_mouth(), Vector2(_dir * 6.0, -12.0), 3.0)
+			if _timer <= 0.0:
+				_enter(St.IDLE, 0.6)
 		St.LUNGE_WINDUP:
 			# Crouched, head drawn back, shaking.
 			_crouch = move_toward(_crouch, 0.7, 3.0 * delta)
@@ -1150,6 +1200,8 @@ func _spawn(p_kind: String, pos: Vector2, vel: Vector2, grav: float, p_life: flo
 	proj.fall_accel = grav
 	proj.life = p_life
 	proj.position = pos
+	if phase == 1:
+		proj.damage = FORGE_DAMAGE
 	get_parent().add_child(proj)
 
 
@@ -1246,9 +1298,18 @@ func _draw_drake(tint: Color) -> void:
 	_draw_part(TAIL, TAIL_PIVOT, _tail_angle(), tint)
 	_draw_part(HIND, HIND_PIVOT, swing + _tuck, tint, squash)
 	_draw_part(FRONT, FRONT_PIVOT, -swing - lift + _tuck, tint, 1.0 if lift > 0.0 else squash)
-	# (The jaw is drawn shut with the head: swung open, the cut-out showed its seams.)
+	# The jaw hangs open (only so far, so the cut-out stays inside its head), the inside of the
+	# mouth dark, or lit by the fire in its throat.
+	var open := minf(_jaw, JAW_OPEN)
 	var jaw_pivot := _on_part(HEAD_PIVOT, _neck, JAW_PIVOT)
-	draw_set_transform(jaw_pivot - position, (_neck + _tilt) * _dir, Vector2(SCALE * _dir, SCALE))
+	if open > 0.03:
+		var lit := _state in [St.BREATH_WINDUP, St.BREATH, St.AIR_BREATH_WINDUP, St.AIR_BREATH, St.METEORS]
+		draw_colored_polygon(PackedVector2Array([
+			jaw_pivot - position,
+			_on_part(HEAD_PIVOT, _neck, Vector2(250, 64)) - position,
+			_jaw_point(JAW_TIP) - position,
+		]), Color(COLOR_FIRE if lit else COLOR_MOUTH, tint.a))
+	draw_set_transform(jaw_pivot - position, (_neck + open + _tilt) * _dir, Vector2(SCALE * _dir, SCALE))
 	draw_texture(JAW, -JAW_PIVOT, tint)
 	_draw_part(HEAD, HEAD_PIVOT, _neck, tint)
 	var body: Texture2D = BODY_BARE if spread else (BODY_PINNED if phase == 1 and _piece_t < 0.0 else BODY)
@@ -1308,7 +1369,7 @@ func _jaw_point(art: Vector2) -> Vector2:
 	var pivot := _on_part(HEAD_PIVOT, _neck, JAW_PIVOT)
 	var off := (art - JAW_PIVOT) * SCALE
 	off.x *= _dir
-	return pivot + off.rotated((_neck + _jaw + _tilt) * _dir)
+	return pivot + off.rotated((_neck + minf(_jaw, JAW_OPEN) + _tilt) * _dir)
 
 
 ## One part, turned about its pivot by `angle` (as if facing right); `squash` shortens it

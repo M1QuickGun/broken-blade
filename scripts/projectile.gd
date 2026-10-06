@@ -22,20 +22,24 @@ const ORB_SPEED := 78.0
 ## "dust_wave", "fire_wave" or "spark_wave" (runs along the floor), "flame" (the floor
 ## burning where a breath swept over it: stays put until it dies down, and the blade can't
 ## put it out), "orb" (a ball of static drifting after Storm until it bursts or is struck),
-## "bolt" (a column of lightning `height` tall striking down onto its spot for a moment).
+## "bolt" (a column of lightning `height` tall striking down onto its spot for a moment),
+## "arrow" (loosed by a hollow archer; sticks in the rock), "burst" (a ball of fire where a
+## cinder husk went up).
 var kind := "icicle"
 var velocity := Vector2.ZERO
 var fall_accel := 0.0
 var life := 2.0
 ## A bolt's height, from its spot up.
 var height := 0.0
+## How many masks it takes off Storm.
+var damage := 1
 
 var _size := Vector2(6, 12)
 
 
 func _ready() -> void:
 	collision_layer = LAYER_ENEMY
-	var falls := kind == "icicle" or kind == "clod" or kind == "ember"
+	var falls := kind == "icicle" or kind == "clod" or kind == "ember" or kind == "arrow"
 	collision_mask = LAYER_WORLD if falls else 0
 	monitoring = falls
 	if kind == "clod" or kind == "ember":
@@ -44,13 +48,17 @@ func _ready() -> void:
 		_size = Vector2(12, 12)
 	elif kind == "bolt":
 		_size = Vector2(14, height)
+	elif kind == "arrow":
+		_size = Vector2(8, 4)
+	elif kind == "burst":
+		_size = Vector2(56, 44)
 	elif not falls:
 		_size = Vector2(12, 10)
 	var shape := RectangleShape2D.new()
 	shape.size = _size
 	var col := CollisionShape2D.new()
 	col.shape = shape
-	col.position = Vector2.ZERO if falls or kind == "orb" else Vector2(0, -_size.y / 2)
+	col.position = Vector2.ZERO if falls or kind == "orb" or kind == "burst" else Vector2(0, -_size.y / 2)
 	add_child(col)
 	body_entered.connect(func(_body: Node2D) -> void: queue_free())
 
@@ -73,7 +81,7 @@ func _physics_process(delta: float) -> void:
 
 ## The blade breaks it.
 func take_hit(_damage: int, _from_dir: Vector2) -> void:
-	if kind == "flame" or kind == "bolt":
+	if kind == "flame" or kind == "bolt" or kind == "burst":
 		return
 	if kind == "orb":
 		_burst()
@@ -139,6 +147,15 @@ func _draw() -> void:
 					Vector2(x - 3, 0), Vector2(x + sin(life * 18.0 + i) * 1.5, -h), Vector2(x + 3, 0),
 				]), Color(COLOR_FIRE, 0.9 * fade))
 			draw_rect(Rect2(-8, -1, 16, 1), Color(COLOR_FIRE_HOT, 0.7 * fade))
+		"arrow":
+			var along := velocity.normalized()
+			draw_line(-along * 7.0, along * 5.0, Color(0.55, 0.45, 0.35), 1.5)
+			draw_line(along * 3.0, along * 6.0, Color(0.8, 0.8, 0.85), 2.0)
+			draw_line(-along * 7.0, -along * 4.0 + along.orthogonal() * 2.0, Color(0.75, 0.75, 0.7), 1.0)
+		"burst":
+			var t := 1.0 - clampf(life / 0.3, 0.0, 1.0)
+			draw_circle(Vector2.ZERO, 14.0 + 22.0 * t, Color(COLOR_FIRE, 0.5 * (1.0 - t)))
+			draw_circle(Vector2.ZERO, 8.0 + 12.0 * t, Color(COLOR_FIRE_HOT, 0.7 * (1.0 - t)))
 		"spark_wave":
 			var fade := clampf(life * 2.0, 0.0, 1.0)
 			var pts := PackedVector2Array()

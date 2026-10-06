@@ -459,7 +459,7 @@ r.put(46, 17, "?")
 for x in (10, 24, 38):
     r.air(x, 18, x + 3, 18)
     r.fill(x, 19, x + 3, 19, "^")
-r.put(19, 17, "E")
+r.put(21, 17, "E")
 r.put(33, 17, "E")
 
 r = Room("forge", 44, 18)
@@ -819,13 +819,79 @@ LINKS = {
 }
 
 
+# Each region's second creature ("Y": toad, frost hound, cinder husk, conductor, hollow
+# archer) and its flier ("V": frost bat, carrion crow); room.gd picks which by region. Each
+# is set on the nearest open floor to the spot given, with room around it to move.
+EXTRA = {
+    "rockfall": [(16, 14, "Y")],
+    "sunken_glade": [(8, 15, "Y")],
+    "fern_gully": [(14, 27, "Y"), (30, 27, "Y")],
+    "thicket": [(26, 14, "Y")],
+    "frozen_street": [(30, 16, "V"), (48, 16, "Y")],
+    "village_square": [(38, 16, "Y"), (24, 16, "V")],
+    "icefall_hall": [(24, 17, "V")],
+    "ice_caverns": [(22, 21, "V")],
+    "glacier_run": [(36, 15, "Y")],
+    "frozen_depths": [(35, 15, "V")],
+    "frozen_bridge": [(20, 14, "Y")],
+    "ashen_road": [(46, 14, "Y")],
+    "smoke_hollow": [(12, 18, "Y")],
+    "burning_homes": [(24, 18, "Y")],
+    "slag_works": [(16, 17, "Y")],
+    "bellows_hall": [(28, 22, "Y")],
+    "ember_span": [(18, 17, "Y")],
+    "cinder_ridge": [(46, 11, "Y")],
+    "cliff_road": [(12, 14, "Y")],
+    "lookout": [(30, 17, "Y")],
+    "storm_bridges": [(46, 18, "Y")],
+    "rod_field": [(25, 15, "Y")],
+    "aqueduct": [(10, 15, "Y")],
+    "high_pass": [(66, 16, "Y"), (14, 16, "V")],
+    "windward_pass": [(36, 10, "Y"), (60, 16, "V")],
+    "summit_ledge": [(42, 11, "Y"), (34, 8, "V")],
+}
+
+
+def place_extra():
+    for name, spots in EXTRA.items():
+        room = ROOMS[name]
+        g = room.g
+        doors = [(x, y) for y, row in enumerate(g) for x, c in enumerate(row) if "a" <= c <= "z"]
+        def ok(x, y, ch):
+            if not (1 <= x < room.w - 1 and 2 <= y < room.h - 1):
+                return False
+            if g[y][x] != "." or g[y + 1][x] != "#" or g[y - 1][x] != ".":
+                return False
+            if any(abs(dx - x) < 8 and abs(dy - y) < 6 for dx, dy in doors):
+                return False
+            # Floor to walk (or air to hover in), and not on top of another creature.
+            if ch == "Y" and not all(g[y + 1][x + k] == "#" and g[y][x + k] in ".EYV" for k in (-2, -1, 1, 2)):
+                return False
+            if ch == "V" and not all(g[y - k][x] == "." for k in range(1, 5)):
+                return False
+            return not any(g[yy][xx] in "EUYV" for yy in range(y - 2, y + 3) for xx in range(x - 3, x + 4)
+                           if 0 <= yy < room.h and 0 <= xx < room.w)
+        for x, y, ch in spots:
+            best = None
+            for dy in range(-6, 7):
+                for dx in range(-10, 11):
+                    if ok(x + dx, y + dy, ch):
+                        d = abs(dx) + abs(dy) * 2
+                        if best is None or d < best[0]:
+                            best = (d, x + dx, y + dy)
+            assert best, "%s: no room for %s near %d,%d" % (name, ch, x, y)
+            if best[0]:
+                print("  %s: %s moved to %d,%d" % (name, ch, best[1], best[2]))
+            g[best[2]][best[1]] = ch
+
+
 def check():
     for name, room in ROOMS.items():
         rows = room.rows()
         doors = [(x, y) for y, row in enumerate(rows) for x, c in enumerate(row) if "a" <= c <= "z"]
         for y, row in enumerate(rows):
             for x, c in enumerate(row):
-                if c in "EU":
+                if c in "EUYV":
                     for dx, dy in doors:
                         assert not (abs(dx - x) < 8 and abs(dy - y) < 6),                             "%s: enemy at %d,%d is right by a door" % (name, x, y)
         assert all(len(row) == room.w for row in rows), name
@@ -944,6 +1010,7 @@ def gd_block():
 
 
 def main():
+    place_extra()
     check()
     path = "scripts/rooms.gd"
     src = open(path, encoding="utf-8").read()

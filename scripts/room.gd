@@ -402,6 +402,8 @@ func _scan_cells() -> void:
 					var wisp := Wisp.new()
 					wisp.position = feet
 					add_child(wisp)
+				"Y", "V":
+					_spawn_extra(c, feet)
 				"E" when _fire:
 					var bat := Bat.new()
 					bat.position = feet
@@ -454,6 +456,42 @@ func _scan_cells() -> void:
 					if c >= "a" and c <= "z":
 						var cell := Rect2i(x, y, 1, 1)
 						_doors[c] = _doors[c].merge(cell) if _doors.has(c) else cell
+
+
+## Each region's second ground creature ("Y") and flier ("V").
+func _spawn_extra(mark: String, feet: Vector2) -> void:
+	var walker := ""
+	var flier := ""
+	if _summit:
+		walker = "archer"
+		flier = "crow"
+	elif _fire:
+		walker = "husk"
+		flier = "ash"
+	elif _storm:
+		walker = "conductor"
+		flier = "wisp"
+	elif _ice:
+		walker = "hound"
+		flier = "frost"
+	elif _forest or _cave:
+		walker = "toad"
+	if mark == "Y" and walker != "":
+		var crawler := Crawler.new()
+		crawler.kind = walker
+		crawler.min_x = DOOR_CLEARANCE
+		crawler.max_x = size_px.x - DOOR_CLEARANCE
+		crawler.position = feet
+		add_child(crawler)
+	elif mark == "V" and flier == "wisp":
+		var wisp := Wisp.new()
+		wisp.position = feet
+		add_child(wisp)
+	elif mark == "V" and flier != "":
+		var bat := Bat.new()
+		bat.kind = flier
+		bat.position = feet
+		add_child(bat)
 
 
 func _build_doors() -> void:

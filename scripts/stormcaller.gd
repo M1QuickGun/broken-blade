@@ -9,8 +9,9 @@ extends Node2D
 ## crackle on the floor shows where), and casts, in a fixed order:
 ## - Floor arcs: it slams its hands down; lightning runs out both ways along the floor: jump.
 ## - Orbs: two balls of static drift after Storm; strike them to pop them.
-## - Roof bolts: back on the plinth it calls bolts down from the roof (sparks fall from where
-##   each will strike), then kneels spent for a while: the big opening.
+## - Roof bolts: back on the plinth it calls bolts down from the roof, one after another,
+##   each where Storm stands (sparks fall where each will strike), then kneels spent for a
+##   while: the big opening.
 ## - Chain lash: the chain glows, and it swings over the plinth from one side to the other;
 ##   everything within the chain's reach is swept. Get out to the walls.
 ## Touching it hurts, except while it kneels spent. Beaten, it collapses, the tip tears out of
@@ -22,6 +23,8 @@ extends Node2D
 ## shockline reaches it there. Touching it doesn't hurt; its spells do. In a fixed order:
 ## - Bolts: bolt after bolt strikes where Storm stands, each flickering a moment before it
 ##   lands: keep moving.
+## - Bolt rain: rows of bolts across the whole arena, every other column, then the others
+##   (their lines flicker first): stand between them.
 ## - Beam: it locks on to Storm's height and fires a beam across the whole arena.
 ## - Copies: two copies of it appear at other rods (fainter: one blow pops one) and all three
 ##   send an orb after him.
@@ -70,11 +73,13 @@ const ROD_DROP := 30.0
 const ROD_SIDE := 40.0
 const BOLT_SPACING := 64.0
 const BEAM_WIDTH := 10.0
-const PATTERN_2 := ["bolts", "beam", "copies", "beam", "bolts", "copies"]
+const PATTERN_2 := ["bolts", "beam", "rain", "copies", "beam", "bolts", "rain"]
 ## Its second stage (below 40%): faster, with the storm surge.
 const EMPOWER_AT := 0.4
 const EMPOWERED_PACE := 0.65
-const PATTERN_EMPOWERED := ["bolts", "surge", "beam", "copies", "surge", "bolts", "beam"]
+const PATTERN_EMPOWERED := ["bolts", "surge", "rain", "beam", "copies", "surge", "bolts", "rain"]
+## Phase 1's roof bolts: fewer than its free self calls.
+const ROOF_BOLTS := 4
 ## Its hunting bolts: how many, how often, and the storm surge's height and speed.
 const HUNT_BOLTS := 6
 const HUNT_EVERY := 0.32
@@ -447,8 +452,7 @@ func _phase_1(p: Vector2, delta: float) -> void:
 						var x := _in_reach(_anchor.x + randf_range(-1.0, 1.0) * REACH * 0.7)
 						_blink(Vector2(x, _ground(x) - 30.0), St.CAST, 0.8)
 					"bolts":
-						_blink(_anchor + Vector2(0, -2), St.CAST, 1.0)
-						_call_bolts(p, [0.0, -64.0, 64.0, -128.0, 128.0], 0.08, TILE)
+						_blink(_anchor + Vector2(0, -2), St.CAST, 0.8)
 					"lash":
 						# From the far side, over the plinth and down onto his side last: time to
 						# get out of its reach.
@@ -458,6 +462,16 @@ func _phase_1(p: Vector2, delta: float) -> void:
 		St.CAST:
 			if _timer <= 0.0:
 				_cast_now()
+		St.BOLT_WAIT:
+			# Calling bolts down from the roof on him, one after another, each where he stands.
+			_face(p)
+			if _timer <= 0.0 and _hunt > 0:
+				_hunt -= 1
+				_timer = HUNT_EVERY * 1.4
+				var x := clampf(p.x, _left + 12.0, _right - 12.0)
+				_strikes.append({"x": x, "t": BOLT_WARNING, "top": TILE, "height": _ground(x) - TILE})
+			elif _hunt <= 0 and _strikes.is_empty():
+				_enter(St.SPENT, 1.8)
 		St.RECOVER:
 			if _timer <= 0.0:
 				_enter(St.IDLE, 0.5)
@@ -543,11 +557,22 @@ func _cast_now() -> void:
 			_enter(St.RECOVER, 0.9 * _pace)
 		"bolts":
 			# Spent from calling them down.
-			if phase == 1:
-				_enter(St.SPENT, 1.8)
-			else:
-				_hunt = HUNT_BOLTS + (2 if _empowered else 0)
-				_enter(St.BOLT_WAIT, 0.0)
+			_hunt = ROOF_BOLTS if phase == 1 else HUNT_BOLTS + (2 if _empowered else 0)
+			_enter(St.BOLT_WAIT, 0.0)
+		"rain":
+			# Rows across the whole arena, every other column, then the others.
+			var xs: Array = []
+			var x := _left + BOLT_SPACING / 2.0
+			while x < _right:
+				xs.append(x)
+				x += BOLT_SPACING
+			var rows := 3 if _empowered else 2
+			for row in rows:
+				for i in xs.size():
+					if i % 2 == row % 2:
+						_strikes.append({"x": xs[i], "t": BOLT_WARNING + row * ROW_GAP, "top": 0.0,
+							"height": _ground(xs[i])})
+			_enter(St.RECOVER, BOLT_WARNING + (rows - 1) * ROW_GAP + 0.5)
 		"copies":
 			_make_copies()
 			_enter(St.RECOVER, 1.2 * _pace)
@@ -576,6 +601,8 @@ func _phase_2(p: Vector2, delta: float) -> void:
 				_attack = _next_attack()
 				match _attack:
 					"bolts":
+						_blink(_rod_spot(_middle_rod(), p), St.CAST, 0.8 * _pace)
+					"rain":
 						_blink(_rod_spot(_middle_rod(), p), St.CAST, 0.8 * _pace)
 					"surge":
 						# From whichever end of the arena is further from him.
