@@ -33,7 +33,7 @@ is also held by one part of the evil, so each one is likely a boss or region.
 | Hilt (first piece) | Wall jump: Storm hooks the hilt's sword catcher into the stone to cling to walls and kick off them. Recovered from the Guardian Centipede in the tutorial | — |
 | First piece | Dash | Ice |
 | Second piece | Double jump | Fire |
-| Final / top piece (the tip) | Shockline: fires a straight line to a grapple point or enemy and pulls you to it (like Silksong's clawline); a line that catches nothing snaps back, and a pull cut short leaves Storm at running speed, never flung | Lightning |
+| Final / top piece (the tip) | Shockline: fires a straight line to a grapple point or enemy and pulls you to it (like Silksong's clawline); a pull cut short (jumped out of, timed out, snagged) leaves Storm at running speed, never flung | Lightning |
 
 **Attack reach:** The hilt is just a normal swing. Every piece recovered makes the blade longer,
 so Storm's attack reach grows with each one.

@@ -94,7 +94,7 @@ const SLIDE_BODY := Rect2(-BODY_SIZE.x / 2, -SMALL_HEIGHT, BODY_SIZE.x, SMALL_HE
 const SPIN_BODY := Rect2(-BODY_SIZE.x / 2, -(BODY_SIZE.y + SMALL_HEIGHT) / 2, BODY_SIZE.x, SMALL_HEIGHT)
 
 ## Lightning shockline: fires straight ahead like a harpoon and drags Storm to
-## whatever it hits (a line that catches nothing snaps back). Enemies get struck. At a ring, Storm hooks
+## whatever it hits, or to the end of the line. Enemies get struck. At a ring, Storm hooks
 ## his sword through it and hangs there until he moves on: jump to leap off, down to drop,
 ## or cast again at the next ring.
 const SHOCK_RANGE := 160.0
@@ -866,12 +866,8 @@ func _update_shock_firing(delta: float) -> void:
 	var target := _shock_target_between(from, to)
 	if target:
 		_start_shock_pull(target, target.shock_point())
-	elif not wall.is_empty():
+	elif out_of_range or not wall.is_empty():
 		_start_shock_pull(null, to)
-	elif out_of_range:
-		# Caught nothing: the line snaps back rather than flinging Storm out over open air.
-		Sfx.play("zap", -12.0, 0.2)
-		_end_shockline()
 	else:
 		_shock_tip = to
 
