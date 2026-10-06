@@ -1,3 +1,6 @@
 # Godot
 .godot/
 /export/
+
+# Raw frames from tools/capture.tscn
+/press/raw/

@@ -26,6 +26,11 @@ controls are in `README.md`.
 - `tools/check_reach.py`: reachability check (jump, double jump, wall climb, shockline,
   slide limits) for the fire and lightning regions' gates and secrets.
 - `tools/make_sfx.py`: synthesizes every sound effect into `audio/sfx/`.
+- `tools/capture.tscn` (+ `capture.gd`): portfolio screenshots. Runs the game windowed with an
+  invulnerable stand-in Storm through chosen rooms and boss fights (muted), saving bursts of
+  frames to `press/raw/` (git-ignored); it puts the save back as it found it. Storm asked for
+  this for the portfolio, so running it is fine. `tools/make_portfolio_shots.py` then turns
+  the picked frames into captioned 1920x1080 images in `press/portfolio/screenshots/`.
 - PixelLab (MCP) for art: about 320 generations left this cycle (resets 2026-10-29).
   Bases for animating Storm are in `art/concepts/bases/` and are fetched from the raw
   GitHub URL, so push a base before animating from it.

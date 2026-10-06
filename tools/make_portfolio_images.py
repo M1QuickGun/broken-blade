@@ -159,7 +159,8 @@ for name, body in re.findall(r'"(\w+)":\s*\[(.*?)\n\t\]', gd_block("LAYOUTS"), r
     LAYOUTS[name] = re.findall(r'"([^"\n]*)"', body)
 REGION_OF = {}
 for key, region in [("FOREST_ROOMS", "foothills"), ("CAVE_ROOMS", "foothills"), ("ICE_ROOMS", "ice"),
-                    ("FIRE_ROOMS", "fire"), ("STORM_ROOMS", "storm")]:
+                    ("FIRE_ROOMS", "fire"), ("STORM_ROOMS", "storm"),
+                    ("CROSS_ROOMS", "cross"), ("SUMMIT_ROOMS", "cross")]:
     for room in re.findall(r'"(\w+)"', gd_block(key)):
         REGION_OF[room] = region
 
@@ -241,10 +242,11 @@ REGION_COLORS = {
     "ice": ((27, 39, 52), (127, 179, 216)),
     "fire": ((46, 32, 25), (208, 135, 90)),
     "storm": ((38, 33, 58), (185, 164, 236)),
+    "cross": ((42, 39, 32), (214, 197, 140)),
     "other": ((29, 35, 48), (111, 122, 144)),
 }
-REGION_NAMES = [("foothills", "Foothills"), ("ice", "Frozen village"), ("fire", "Fire slopes"),
-                ("storm", "Lightning peaks")]
+REGION_NAMES = [("foothills", "Foothills"), ("ice", "Frozen village"), ("cross", "Crossroads"),
+                ("fire", "Fire slopes"), ("storm", "Lightning peaks")]
 
 
 def world_map():
@@ -281,10 +283,10 @@ def world_map():
                     d.regular_polygon((cx, cy - 2, 9), 4, rotation=45, fill=(240, 96, 96), outline=(255, 220, 220))
     d.text((70, 52), "World map", font=font(56, "georgiab.ttf"), fill=TEXT)
     for i, (key, label) in enumerate(REGION_NAMES):
-        at = (72 + i * 260, 136)
+        at = (72 + i * 250, 136)
         d.rectangle((at[0], at[1], at[0] + 24, at[1] + 20), fill=REGION_COLORS[key][0], outline=REGION_COLORS[key][1], width=2)
         d.text((at[0] + 36, at[1] - 4), label, font=font(26), fill=SUB)
-    lx = 72 + 4 * 260
+    lx = 72 + 5 * 250
     d.ellipse((lx, 140, lx + 14, 154), fill=(159, 230, 255))
     d.text((lx + 26, 132), "Rest shrine", font=font(26), fill=SUB)
     d.regular_polygon((lx + 230, 147, 10), 4, rotation=45, fill=(240, 96, 96), outline=(255, 220, 220))
