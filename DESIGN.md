@@ -265,8 +265,11 @@ to spin up onto. It drops out of the smoke and fights on the wing. In a fixed or
   along the floor. Then it stays down, panting: the big opening.
 - *Gust:* it hangs facing him and beats its wings three times, each beat pushing him away and
   throwing embers.
-- Below half health its slams shake embers down too. Beaten, it crashes and burns away to
-  ash, leaving a mask shard.
+- Below half health its slams shake embers down too. Below a third it heats up: its scales
+  glow, its wings catch fire, and it fights faster.
+- Beaten, it makes one last attack: white-hot, wings ablaze, it climbs high over the roost
+  while a ring of fire on the floor follows Storm, locks on, and dives at the ring, blowing
+  itself apart. Be out of the ring. It's left as ash, with a mask shard in it.
 
 ### Fight plan: the Stormcaller
 **Fight 1: bound (Spire).** A small hunched figure in rags, the lightning tip through its

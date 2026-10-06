@@ -32,8 +32,11 @@ extends Node2D
 ##   out both ways along the floor. It stays down, panting, for a while: the big opening.
 ## - Gust: it hangs facing him and beats its wings three times, each beat pushing him away
 ##   and throwing embers.
-## Below half health its slams shake embers down too. Beaten, it crashes to the floor and
-## burns away to ash.
+## Below half health its slams shake embers down too. Below a third it heats up: its scales
+## glow, its wings catch fire, and it fights faster. Beaten, it makes one last attack: it
+## climbs high over the roost, white-hot, wings ablaze, and a ring of fire on the floor
+## follows Storm; then it locks on and dives at the ring and blows itself apart. Be out of
+## the ring. It's left as ash, with a mask shard in it.
 ##
 ## The node's origin is the room's B marker, on the arena's floor.
 
@@ -105,6 +108,17 @@ const DIVE_SPEED := 380.0
 const SLAM_ALT := 200.0
 const AIR_JET_REACH := 380.0
 const GUST_WIND := 150.0
+## Heated (below this share of its health): how much faster it fights.
+const HOT_AT := 0.33
+const HOT_PACE := 0.75
+## The last attack: how high it climbs, how fast it dives, and the blast's reach.
+const FINAL_ALT := 210.0
+const FINAL_DIVE_SPEED := 520.0
+const BLAST_RADIUS := 110.0
+## The tip of its spread wing (the leading point) and the back of its trailing edge, in the
+## wing art, for where the flames burn when it's heated.
+const WING_TIP := Vector2(17, 30)
+const WING_TRAIL := Vector2(40, 72)
 const PATTERN_2 := ["dive", "breath", "dive", "slam", "gust", "slam"]
 
 const COLOR_FIRE := Color(1.0, 0.5, 0.15)
@@ -120,7 +134,7 @@ enum St {
 	DORMANT, WAKE, IDLE, TURN, LUNGE_WINDUP, LUNGE, PANT, BREATH_WINDUP, BREATH,
 	REAR, SLAM, TAIL_RAISE, TAIL_LASH, SLUMP, RISE, SPREAD, ESCAPE,
 	ARRIVE, HOVER, DIVE_WINDUP, DIVE, SKIM, CLIMB, AIR_BREATH_WINDUP, AIR_BREATH, GUST,
-	SLAM_RISE, SLAM_FALL, GROUNDED, TAKEOFF, FALL, BURN,
+	SLAM_RISE, SLAM_FALL, GROUNDED, TAKEOFF, FINAL_RISE, FINAL_AIM, FINAL_DIVE, EXPLODE,
 }
 
 ## Set by the room before it's added (see Rooms.BOSSES).
@@ -178,6 +192,14 @@ var _goal := Vector2.ZERO
 var _last_flame_x := INF
 var _gusts := 0
 var _fall_speed := 0.0
+## Heated: below a third of its health. _heat is how hot it glows (0 to 1), _wing_fire how
+## far its wings burn; the last attack's target on the floor and the blast's growth.
+var _hot := false
+var _heat := 0.0
+var _wing_fire := 0.0
+var _blast_at := Vector2.ZERO
+var _blast := 0.0
+var _blast_box: Hitbox
 ## The roof it breaks out through at the end of phase 1 (the middle of the "=" cells), and
 ## whether it has broken it yet.
 var _hole_x := 0.0
@@ -227,12 +249,16 @@ func _ready() -> void:
 	_legs_box = _make_box(Vector2(104, 22), false, false)
 	_tail_box = _make_box(Vector2(92, 20), false, false)
 	_jet_box = _make_box(Vector2(10, JET_WIDTH), false, false)
+	_blast_box = _make_box(Vector2(1, 1), false, false)
+	var blast_shape := CircleShape2D.new()
+	blast_shape.radius = BLAST_RADIUS
+	(_blast_box.get_child(0) as CollisionShape2D).shape = blast_shape
 	_jet_box.slide_through = true
 	# Storm can always slide under its belly and legs and out the other side.
 	for box in [_head_box, _body_box, _legs_box]:
 		box.slide_through = true
 		box.slide_safe = true
-	for box in [_head_box, _body_box, _legs_box, _tail_box, _jet_box]:
+	for box in [_head_box, _body_box, _legs_box, _tail_box, _jet_box, _blast_box]:
 		_set_box(box, false)
 	if phase == 1:
 		# Asleep: crouched in the ashes, head down.
@@ -306,6 +332,12 @@ func take_hit(damage: int, _from_dir: Vector2) -> void:
 	_flash = 0.1
 	Sfx.play("hit_boss", -3.0)
 	Effects.sparks(get_parent(), _head_point() if _near_head() else _body_point(), COLOR_FIRE, 14)
+	if phase == 2 and not _hot and hp > 0 and hp <= int(max_hp * HOT_AT):
+		# Heating up: it roars, its scales glowing and its wings catching.
+		_hot = true
+		_shake = 0.6
+		Sfx.play("roar", 0.0, 0.0)
+		Sfx.play("fire_breath", -4.0, 0.0)
 	if hp <= 0:
 		hp = 0
 		Effects.slow_motion(get_tree())
@@ -317,14 +349,14 @@ func take_hit(damage: int, _from_dir: Vector2) -> void:
 		if phase == 1:
 			_enter(St.SLUMP, 2.6)
 		else:
-			_fall_speed = 0.0
-			_enter(St.FALL, 3.0)
+			_hot = true
+			_enter(St.FINAL_RISE, 2.0)
 
 
 ## Whether it's awake and can be hurt.
 func _fighting() -> bool:
 	return _state not in [St.DORMANT, St.WAKE, St.ARRIVE, St.SLUMP, St.RISE, St.SPREAD, St.ESCAPE,
-		St.FALL, St.BURN]
+		St.FINAL_RISE, St.FINAL_AIM, St.FINAL_DIVE, St.EXPLODE]
 
 
 ## Whether Storm is nearer its head than its body (for where the sparks fly).
@@ -396,6 +428,12 @@ func _physics_process(delta: float) -> void:
 	_update_embers(delta)
 	_update_smoke(delta)
 	_update_wings(delta)
+	if _hot:
+		var final := _state in [St.FINAL_RISE, St.FINAL_AIM, St.FINAL_DIVE]
+		_heat = move_toward(_heat, 1.0 if final else 0.55, delta * 0.6)
+		_wing_fire = move_toward(_wing_fire, 1.0, delta * (0.8 if final else 0.35))
+		if fmod(_time, 0.08) < delta and _alpha > 0.0:
+			_puff(_w(SHOULDER) + Vector2(randf_range(-40, 40), randf_range(-50, 0)), Vector2(randf_range(-10, 10), -24.0), 4.0)
 	if phase == 1:
 		_phase_1(p, delta)
 	else:
@@ -408,6 +446,8 @@ func _physics_process(delta: float) -> void:
 
 func _enter(state: St, time := 0.0) -> void:
 	_state = state
+	if _hot and state not in [St.FINAL_RISE, St.FINAL_AIM, St.FINAL_DIVE, St.EXPLODE]:
+		time *= HOT_PACE
 	_timer = time
 	match state:
 		St.WAKE, St.SLUMP, St.SPREAD, St.ARRIVE:
@@ -426,8 +466,11 @@ func _enter(state: St, time := 0.0) -> void:
 			Sfx.play("rumble", -6.0)
 		St.DIVE:
 			Sfx.play("screech", -8.0, 0.0)
-		St.FALL:
-			Sfx.play("roar", -2.0, 0.0)
+		St.FINAL_RISE:
+			Sfx.play("roar", 0.0, 0.0)
+		St.FINAL_DIVE:
+			Sfx.play("screech", -2.0, 0.0)
+			Sfx.play("fire_breath", -2.0, 0.0)
 
 
 func _wake() -> void:
@@ -801,35 +844,75 @@ func _phase_2(p: Vector2, delta: float) -> void:
 			_tuck = move_toward(_tuck, LEGS_TUCKED, 2.0 * delta)
 			if _timer <= 0.0:
 				_enter(St.HOVER, 0.6)
-		St.FALL:
-			# Beaten, it drops out of the air and crashes to the floor.
+		St.FINAL_RISE:
+			# Beaten, it won't fall: it climbs high over the roost, white-hot, wings ablaze.
+			_fly_to(Vector2((_left + _right) / 2.0, FINAL_ALT), FLY_SPEED * 1.2, delta)
+			_face(p)
+			_air_pose(delta, false)
+			_beat_rate = 12.0
+			_neck = lerp_angle(_neck, -0.7, 3.0 * delta)
+			_jaw = lerpf(_jaw, 0.7, 4.0 * delta)
+			_shake = maxf(_shake, 0.05 + 0.25 * (1.0 - _timer / 2.0))
+			_blast_at = Vector2(p.x, _floor)
+			if fmod(_time, 0.05) < delta:
+				Effects.sparks(get_parent(), _body_point() + Vector2(randf_range(-80, 80), randf_range(-30, 30)),
+					COLOR_FIRE, 2, 90.0)
+			if _timer <= 0.0:
+				_enter(St.FINAL_AIM, 1.1)
+		St.FINAL_AIM:
+			# The ring of fire on the floor follows him, then holds: the moment to get out.
+			_face(p)
+			_air_pose(delta, false)
+			_tilt = lerp_angle(_tilt, -0.3, 4.0 * delta)
+			_beat_rate = 14.0
+			if _timer > 0.35:
+				_blast_at = _blast_at.lerp(Vector2(p.x, _floor), 6.0 * delta)
+			if _timer <= 0.0:
+				_dive_to = Vector2(_blast_at.x - _body_offset().x, 0.0)
+				_enter(St.FINAL_DIVE)
+		St.FINAL_DIVE:
 			_beat_rate = 0.0
-			_flap = lerp_angle(_flap, 0.6, 4.0 * delta)
-			_fall_speed = minf(_fall_speed + 1000.0 * delta, 480.0)
-			_alt = maxf(0.0, _alt - _fall_speed * delta)
-			_tilt = lerp_angle(_tilt, 0.3, 3.0 * delta)
-			_neck = lerp_angle(_neck, 0.4, 3.0 * delta)
-			if _alt <= 0.0:
-				_shake = 0.8
-				Sfx.play("slam", 0.0)
-				for i in 10:
-					_debris(Vector2(_x + randf_range(-80, 80), _floor - 2))
-				_piece_rest = Vector2(clampf(_x, _left + 40.0, _right - 40.0), _floor - TILE)
-				_enter(St.BURN, 2.8)
-		St.BURN:
-			# It sags, the embers in its cracks flare, and it burns away to ash.
-			_tilt = lerp_angle(_tilt, 0.0, 4.0 * delta)
-			_crouch = move_toward(_crouch, 1.0, delta)
-			_neck = lerp_angle(_neck, 0.6, 2.0 * delta)
-			_flap = lerp_angle(_flap, -0.6, 2.0 * delta)
-			if _timer < 1.8:
-				_alpha = clampf(_timer / 1.8, 0.0, 1.0)
-			if fmod(_time, 0.04) < delta:
-				var at := _body_point() + Vector2(randf_range(-100, 100), randf_range(-30, 30))
-				Effects.sparks(get_parent(), at, COLOR_FIRE, 2, 60.0)
-				_puff(at, Vector2(randf_range(-10, 10), -30.0), 5.0)
+			_flap = lerp_angle(_flap, 0.55, 10.0 * delta)
+			_tilt = lerp_angle(_tilt, 0.6, 8.0 * delta)
+			_tuck = move_toward(_tuck, LEGS_TUCKED, 4.0 * delta)
+			var to := _dive_to - Vector2(_x, _alt)
+			var step := FINAL_DIVE_SPEED * delta
+			if fmod(_time, 0.03) < delta:
+				_puff(_body_point(), Vector2(randf_range(-20, 20), randf_range(-30, 0)), 6.0)
+			if to.length() <= step:
+				_x = _dive_to.x
+				_alt = 0.0
+				_explode()
+			else:
+				var v := to.normalized() * step
+				_x += v.x
+				_alt += v.y
+		St.EXPLODE:
+			# Blown apart: the blast spreads and burns out, leaving ash drifting down.
+			_blast = minf(_blast + delta / 0.35, 1.0)
+			if fmod(_time, 0.05) < delta and _timer > 0.6:
+				var at := _blast_at + Vector2(randf_range(-BLAST_RADIUS, BLAST_RADIUS), randf_range(-60, 0))
+				_puff(at, Vector2(randf_range(-10, 10), -20.0), 7.0)
 			if _timer <= 0.0:
 				_finish()
+
+
+## Its last attack lands: a great blast of fire where it struck, hurting all it reaches.
+func _explode() -> void:
+	_alpha = 0.0
+	_blast = 0.0
+	_shake = 1.2
+	_piece_rest = Vector2(clampf(_blast_at.x, _left + 40.0, _right - 40.0), _floor - TILE)
+	Sfx.play("burst", 2.0, 0.0)
+	Sfx.play("slam", 2.0, 0.0)
+	Sfx.play("fire_breath", 0.0, 0.0)
+	Effects.slow_motion(get_tree(), 0.3, 0.6)
+	for i in 40:
+		Effects.sparks(get_parent(), _blast_at + Vector2(randf_range(-30, 30), randf_range(-40, 0)),
+			COLOR_FIRE if i % 3 else COLOR_FIRE_HOT, 3, 260.0)
+	for i in 16:
+		_debris(_blast_at + Vector2(randf_range(-BLAST_RADIUS, BLAST_RADIUS), -2))
+	_enter(St.EXPLODE, 2.2)
 
 
 func _finish() -> void:
@@ -950,6 +1033,13 @@ func _set_wind(push: float) -> void:
 
 
 func _update_boxes() -> void:
+	# The blast hurts for its first moment.
+	_set_box(_blast_box, _state == St.EXPLODE and _timer > 1.9, _blast_at + Vector2(0, -BLAST_RADIUS * 0.4))
+	# Diving at the ring, its body still hurts.
+	if _state == St.FINAL_DIVE:
+		_set_box(_body_box, true, _body_point(), _tilt * _dir)
+		_body_box.harmless = false
+		return
 	var alive := _fighting()
 	var head_angle := (_neck + _tilt) * _dir
 	_set_box(_head_box, alive, _head_point(), head_angle)
@@ -1036,11 +1126,26 @@ func _draw() -> void:
 	var tint := Color(3, 3, 3) if _flash > 0.0 else Color.WHITE
 	if _state == St.DORMANT:
 		tint = Color(0.7, 0.66, 0.64)
-	if _state == St.BURN:
-		# The embers in its cracks flare as it burns away.
-		var flare := clampf(1.0 - _timer / 2.8, 0.0, 1.0)
-		tint = Color(1.0 + flare, 1.0 + flare * 0.4, 1.0)
+	if _heat > 0.0:
+		# Heating up: its scales glow orange, then white-hot.
+		tint = Color(tint.r + 0.7 * _heat, tint.g + 0.25 * _heat + 0.3 * maxf(0.0, _heat - 0.6), tint.b + 0.1 * _heat)
 	tint.a = _alpha
+	if _state in [St.FINAL_RISE, St.FINAL_AIM, St.FINAL_DIVE]:
+		# The ring of fire on the floor where it'll strike.
+		var held := _state != St.FINAL_RISE and (_state == St.FINAL_DIVE or _timer <= 0.35)
+		var pulse := 0.5 + 0.5 * sin(_time * (20.0 if held else 8.0))
+		var at := _blast_at - position
+		_draw_ellipse(at, Vector2(BLAST_RADIUS, 7.0), Color(COLOR_FIRE, 0.12 + 0.12 * pulse))
+		draw_arc(at, BLAST_RADIUS, PI, TAU, 32, Color(COLOR_FIRE, 0.25 + 0.35 * pulse), 2.0)
+		_draw_ellipse(at, Vector2(BLAST_RADIUS * 0.15, 3.0), Color(COLOR_FIRE_HOT, 0.4 + 0.4 * pulse))
+	if _state == St.EXPLODE:
+		# The blast: a dome of fire swelling and burning out.
+		var at := _blast_at - position
+		var grow := ease(_blast, 0.4)
+		var fade := clampf(_timer / 2.2, 0.0, 1.0)
+		draw_circle(at, BLAST_RADIUS * (0.5 + 0.7 * grow), Color(COLOR_FIRE, 0.35 * fade))
+		draw_circle(at, BLAST_RADIUS * (0.3 + 0.5 * grow), Color(COLOR_FIRE_HOT, 0.45 * fade))
+		draw_circle(at, BLAST_RADIUS * 0.25 * (1.0 - _blast), Color(1, 1, 1, 0.8 * fade))
 	for ember in _embers:
 		# A glow on the floor where each ember will land, brightening as it nears.
 		var grow := clampf(1.0 - ember.t / 0.9, 0.2, 1.0)
@@ -1093,6 +1198,8 @@ func _draw_drake(tint: Color) -> void:
 	_draw_part(BODY_BARE if spread else BODY, BODY_PIVOT, 0.0, tint)
 	if spread:
 		_draw_wing(_flap, tint, Vector2.ZERO)
+		if _wing_fire > 0.0:
+			_draw_wing_fire(_flap, Vector2.ZERO)
 	draw_set_transform(Vector2.ZERO)
 	# Its eyes: dark while it sleeps, glowing otherwise; its throat lit before the breath.
 	if _state != St.DORMANT:
@@ -1104,6 +1211,29 @@ func _draw_drake(tint: Color) -> void:
 		# A glow kept inside its open jaws (the inside of the mouth is lit up too).
 		var inside := (_on_part(HEAD_PIVOT, _neck, Vector2(238, 64)) + _jaw_point(Vector2(236, 66))) / 2.0 - position
 		draw_circle(inside, 2.0 + 2.5 * grow, Color(COLOR_FIRE_HOT, 0.55 * grow))
+
+
+## Flames along a burning wing: from its root out to the tip, and back along the trailing
+## edge, as far as the fire has spread.
+func _draw_wing_fire(angle: float, nudge: Vector2) -> void:
+	var size := SCALE * WING_SCALE * lerpf(0.3, 1.0, _wings)
+	var root := _w(SHOULDER + nudge) - position
+	var turn := (angle + _tilt) * _dir
+	var points: Array[Vector2] = []
+	for i in 7:
+		points.append(WING_ROOT.lerp(WING_TIP, i / 6.0))
+	for i in 5:
+		points.append(WING_TIP.lerp(WING_TRAIL, (i + 1) / 5.0))
+	var shown := int(ceil(points.size() * _wing_fire))
+	for i in shown:
+		var off := (points[i] - WING_ROOT) * size
+		off.x *= _dir
+		var at := root + off.rotated(turn)
+		var flicker := 0.7 + 0.3 * sin(_time * 25.0 + i * 1.7)
+		var r := (4.0 + 3.0 * float(i % 3)) * flicker
+		draw_circle(at, r + 3.0, Color(COLOR_FIRE, 0.3))
+		draw_circle(at + Vector2(0, -2), r, Color(COLOR_FIRE, 0.8))
+		draw_circle(at + Vector2(0, -3), r * 0.5, Color(COLOR_FIRE_HOT, 0.9))
 
 
 ## A spread wing from its shoulder; small while it's still unfolding.
