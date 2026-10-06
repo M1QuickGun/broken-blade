@@ -26,6 +26,11 @@ const Npc := preload("res://scripts/npc.gd")
 const PIECE_ABILITIES := {"I": "dash", "F": "double_jump", "L": "shockline", "W": "wall_jump"}
 
 const TILE := Rooms.TILE
+## The screen in world units (main.gd's camera).
+const VIEW := Vector2(480, 270)
+## Props painted on a mound of their own earth sink into the floor (they're drawn behind the
+## tiles) until only the mound's top shows, so they stand in the ground, not on an island.
+const PROP_SINK := {"banner": 6.0, "grave": 6.0, "armor_pile": 6.0, "catapult": 6.0}
 const LAYER_WORLD := 1
 const LAYER_PLAYER := 2
 const LAYER_HAZARD := 8
@@ -56,6 +61,16 @@ const FIRE_SHEET := preload("res://art/world/fire_tileset.png")
 const CROSS_SHEET := preload("res://art/world/cross_tileset.png")
 ## The Lightning peaks' storm-worn slate; same corner layout as STONE_SHEET.
 const STORM_SHEET := preload("res://art/world/storm_tileset.png")
+## Each region's second floor (Rooms.FLOORS says which rooms use it); same corner layout.
+const FLOOR_SHEETS := {
+	"roots": preload("res://art/world/roots_tileset.png"),
+	"cave": preload("res://art/world/cave_tileset.png"),
+	"glacier": preload("res://art/world/glacier_tileset.png"),
+	"basalt": preload("res://art/world/basalt_tileset.png"),
+	"masonry": preload("res://art/world/masonry_tileset.png"),
+	"timber": preload("res://art/world/timber_tileset.png"),
+	"battlefield": preload("res://art/world/battlefield_tileset.png"),
+}
 const Atmosphere := preload("res://scripts/atmosphere.gd")
 const ICE_GATE_TEX := preload("res://art/world/frozen_gate.png")
 ## The part of the gate's art that isn't empty margin, so it can fill its doorway exactly.
@@ -80,6 +95,9 @@ var spawn_point := Vector2.ZERO
 ## A room with a ceiling has this much more solid rock drawn above it (and the camera may
 ## look up into it), so a jump never shows where the roof ends. 0 for rooms open to the sky.
 var roof_px := 0.0
+## Tiles of rock drawn past the room's edges, so a room narrower (or shorter) than the screen
+## sits in solid rock instead of stopping short of the screen's edge.
+var view_pad := Vector2i.ZERO
 
 var _grid: PackedStringArray
 ## Door letter -> Rect2i of the door's cells.
@@ -132,6 +150,9 @@ func build(name_: String) -> void:
 		roof_px = ROOF_ROWS * TILE
 	for y in _grid.size():
 		assert(_grid[y].length() == size_tiles.x, "%s row %d has the wrong width" % [name_, y])
+	var spare := (VIEW - size_px - Vector2(0, roof_px)).max(Vector2.ZERO)
+	view_pad = Vector2i(ceili(spare.x / 2.0 / TILE) + 1 if spare.x > 0.0 else 0,
+		ceili(spare.y / TILE) + 1 if spare.y > 0.0 else 0)
 	_backdrop = Node2D.new()
 	_backdrop.z_index = -2
 	_backdrop.draw.connect(_draw_backdrop)
@@ -241,7 +262,7 @@ func _add_props() -> void:
 		sprite.centered = false
 		sprite.scale = Vector2(0.5, 0.5)  # drawn at 2x detail
 		var size := Vector2(tex.get_size()) / 2.0
-		var foot := Vector2((prop[1] + 0.5) * TILE, prop[2] * TILE)
+		var foot := Vector2((prop[1] + 0.5) * TILE, prop[2] * TILE + PROP_SINK.get(prop[0], 0.0))
 		sprite.position = foot - Vector2(size.x / 2.0, size.y)
 		layer.add_child(sprite)
 
@@ -697,9 +718,11 @@ func _draw_backdrop() -> void:
 func _draw() -> void:
 	var sheet: Texture2D = ICE_SHEET if _ice else FIRE_SHEET if _fire else STORM_SHEET if _storm \
 		else CROSS_SHEET if _cross else (FOREST_SHEET if _forest or _cave else STONE_SHEET)
+	if Rooms.FLOORS.has(room_name):
+		sheet = FLOOR_SHEETS[Rooms.FLOORS[room_name]]
 
-	for vy in range(-int(roof_px / TILE), size_tiles.y + 1):
-		for vx in size_tiles.x + 1:
+	for vy in range(-int(roof_px / TILE) - view_pad.y, size_tiles.y + 1 + view_pad.y):
+		for vx in range(-view_pad.x, size_tiles.x + 1 + view_pad.x):
 			var mask := int(_earth(vx - 1, vy - 1)) * 8 + int(_earth(vx, vy - 1)) * 4 \
 				+ int(_earth(vx - 1, vy)) * 2 + int(_earth(vx, vy))
 			if mask == 0:

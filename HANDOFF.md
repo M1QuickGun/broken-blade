@@ -26,6 +26,10 @@ controls are in `README.md`.
   floor to the spot given; room.gd picks which by region.
   `SHRINES` puts a rest shrine by the door into every boss; `AFTER_SHRINES` an "S" in each
   boss room, a shrine that kindles (and becomes the wake point) the moment the boss falls.
+- Floors: each region's tileset plus a second one per region (`art/world/<name>_tileset.png`,
+  room.gd `FLOOR_SHEETS`, rooms.gd `FLOORS`), made with PixelLab's sidescroller tileset tool
+  (32px, 4x4 corner layout as STONE_TILES; download the metadata's spritesheet_url) and
+  toned toward the region's colours.
 - `tools/check_reach.py`: reachability check (jump, double jump, wall climb, shockline,
   slide limits) for the fire and lightning regions' gates and secrets.
 - `tools/make_sfx.py`: synthesizes every sound effect into `audio/sfx/`.

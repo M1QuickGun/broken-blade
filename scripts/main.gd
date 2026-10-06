@@ -26,6 +26,7 @@ const DEBUG_WARPS := {
 const DOOR_FADE := 0.15
 ## The view in world units (see Game.ART_SCALE).
 const VIEW_HEIGHT := 270
+const VIEW_WIDTH := 480
 ## How far past the room's edges Storm can go before he's put back on solid ground.
 const OUT_OF_BOUNDS_MARGIN := 48.0
 
@@ -200,6 +201,11 @@ func _load_room(room_name: String, door: String, at := Vector2.INF) -> void:
 		camera.limit_top = int(room.size_px.y) - VIEW_HEIGHT
 	camera.limit_right = int(room.size_px.x)
 	camera.limit_bottom = int(room.size_px.y)
+	# A room narrower than the screen sits in the middle of it, walled in by rock either side
+	# (room.gd draws the rock on past its edges).
+	if room.size_px.x < VIEW_WIDTH:
+		camera.limit_left = int(room.size_px.x - VIEW_WIDTH) / 2
+		camera.limit_right = camera.limit_left + VIEW_WIDTH
 	camera.reset_smoothing()
 
 

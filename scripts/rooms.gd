@@ -32,6 +32,23 @@ const OVERGROWN_ROOMS := []
 ## Caves under the forest: the same earth, but dark, with no sky.
 const CAVE_ROOMS := ["gate_cavern"]
 
+## Rooms drawn with their region's second floor instead of its usual one (room.gd's
+## FLOOR_SHEETS), so each region has more than one kind of ground: roots and boulders on the
+## rockier forest slopes, cave rock, natural glacier ice outside the village, cooled basalt on
+## the fire slopes' upper road, old fitted masonry for the lightning peaks' towers and
+## aqueduct, timber floors in the refuge, frozen battlefield earth on the summit.
+const FLOORS := {
+	"rockfall": "roots", "sunken_glade": "roots", "cliff": "roots", "fern_gully": "roots",
+	"gate_cavern": "cave",
+	"ice_caverns": "glacier", "icefall_hall": "glacier", "glacier_run": "glacier",
+	"frozen_depths": "glacier", "ice_climb": "glacier", "frost_arena": "glacier",
+	"cinder_steps": "basalt", "bellows_hall": "basalt", "ember_span": "basalt",
+	"cinder_ridge": "basalt", "drake_roost": "basalt", "fire_shaft": "basalt",
+	"gale_ledges": "masonry", "aqueduct": "masonry", "spire": "masonry", "storm_tower": "masonry",
+	"refuge": "timber", "old_barracks": "timber", "storehouse": "timber",
+	"high_pass": "battlefield", "windward_pass": "battlefield", "summit_ledge": "battlefield",
+}
+
 ## Rooms of the Frozen village: drawn with the ice tileset and frost-crawlers.
 const ICE_ROOMS := [
 	"village_square", "ice_caverns", "frost_arena", "frozen_depths", "frost_throne", "ice_climb",
@@ -101,7 +118,7 @@ const PROPS := {
 	"lookout": [["watchtower", 30, 18], ["lightning_rod", 46, 18]],
 	"rod_field": [["lightning_rod", 6, 16], ["lightning_rod", 21, 16], ["lightning_rod", 34, 16], ["lightning_rod", 51, 16]],
 	"aqueduct": [["lightning_rod", 8, 16], ["lightning_rod", 58, 16]],
-	"crossroads": [["wagon", 8, 23], ["banner", 34, 23], ["crates", 48, 23]],
+	"crossroads": [["wagon", 8, 23], ["banner", 32, 23], ["crates", 48, 23]],
 	"refuge": [["tent", 5, 20], ["campfire", 13, 20], ["tent", 20, 20], ["crates", 42, 20], ["tent", 50, 20]],
 	"old_barracks": [["crates", 6, 18], ["armor_pile", 38, 18]],
 	"storehouse": [["crates", 30, 16], ["wagon", 14, 16]],

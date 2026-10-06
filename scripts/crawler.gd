@@ -51,7 +51,7 @@ const KINDS := {
 		"tex": preload("res://art/enemies/hound.png"), "frame": 64, "fps": 9.0},
 	"husk": {"size": Vector2(14, 28), "draw": 38.0, "hp": 2, "speed": 20.0,
 		"tex": preload("res://art/enemies/husk.png"), "frame": 64, "fps": 6.0},
-	"conductor": {"size": Vector2(22, 26), "draw": 42.0, "hp": 4, "speed": 16.0,
+	"conductor": {"size": Vector2(22, 26), "draw": 42.0, "hp": 4, "speed": 16.0, "sink": 4.0,
 		"tex": preload("res://art/enemies/conductor.png"), "frame": 64, "fps": 6.0},
 	"archer": {"size": Vector2(14, 30), "draw": 46.0, "hp": 3, "speed": 20.0,
 		"tex": preload("res://art/enemies/archer.png"), "frame": 64, "fps": 6.0,

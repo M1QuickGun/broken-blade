@@ -33,7 +33,7 @@ is also held by one part of the evil, so each one is likely a boss or region.
 | Hilt (first piece) | Wall jump: Storm hooks the hilt's sword catcher into the stone to cling to walls and kick off them. Recovered from the Guardian Centipede in the tutorial | — |
 | First piece | Dash | Ice |
 | Second piece | Double jump | Fire |
-| Final / top piece (the tip) | Shockline: fires a straight line to a grapple point or enemy and pulls you to it (like Silksong's clawline) | Lightning |
+| Final / top piece (the tip) | Shockline: fires a straight line to a grapple point or enemy and pulls you to it (like Silksong's clawline); a line that catches nothing snaps back, and a pull cut short leaves Storm at running speed, never flung | Lightning |
 
 **Attack reach:** The hilt is just a normal swing. Every piece recovered makes the blade longer,
 so Storm's attack reach grows with each one.
@@ -430,3 +430,12 @@ The goal is a commercial release on **Steam** someday.
 > the game should have a dark fantasy vibe to it
 > the main character Storm is the only surviving member of the royal family
 > the plot starts with the sword shattering releasing an ancient evil which eliminates the royal family the king with his last power sends his last son away with the hilt of the broken blade where he rests for 20 years only to reimerge to a now broken kingdom run split by parts of the great evil each attached to one part of the broken blade
+
+### Ground
+Every region has two kinds of ground (rooms.gd's FLOORS picks which rooms use the second):
+forest earth, and roots and boulders on the rockier slopes; cave rock under the forest;
+the village's frosted brick, and natural glacier ice outside it; the fire slopes' charred
+brick, and cooled basalt with magma seams on the upper road; the lightning peaks' slate,
+and old fitted masonry for the Spire, the Storm tower and the aqueduct; road stone at the
+Crossroads, timber floors in the Refuge, frozen battlefield earth on the summit. Rooms
+narrower than the screen sit in the middle of it, solid rock drawn on to its edges.
