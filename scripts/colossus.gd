@@ -200,6 +200,13 @@ var _landing: Array[Dictionary] = []
 var _topple := 0.0
 var _charge_side := 0
 var _steps: Array[StaticBody2D] = []
+## Phase 2's end: its legs, then its arms, burst before its body does.
+var _legs_gone := false
+var _arms_gone := false
+## How long phase 2's death takes, and when its legs and arms burst (time left).
+const DYING_TIME := 3.6
+const LEGS_BURST_AT := 2.4
+const ARMS_BURST_AT := 1.4
 
 
 class Hitbox extends Area2D:
@@ -349,7 +356,7 @@ func take_hit(damage: int, _from_dir: Vector2) -> void:
 		_icicles.clear()
 		_landing.clear()
 		_shatter_spikes()
-		_enter(St.SLUMP if phase == 1 else St.DYING, 2.6 if phase == 1 else 2.6)
+		_enter(St.SLUMP if phase == 1 else St.DYING, 2.6 if phase == 1 else DYING_TIME)
 
 
 # --- Geometry ---
@@ -866,13 +873,24 @@ func _phase_2(p: Vector2, delta: float) -> void:
 				_enter(St.IDLE, 1.2)
 		St.DYING:
 			# Beaten: it drops to its knees, cracks spreading from the hole in its chest, light
-			# pouring out of them, chunks breaking away; then it bursts apart.
+			# pouring out of them, chunks breaking away. Then it comes apart a part at a time:
+			# its legs burst and its body drops to the ground, then its arms, then its body.
 			feet_on = false
 			_crouch = move_toward(_crouch, 0.0, 3.0 * delta)
 			_lift = 0.0
-			_topple = move_toward(_topple, 0.0, 2.0 * delta)
+			_topple = move_toward(_topple, 1.0 if _legs_gone else 0.0, 4.0 * delta)
 			_kneel = move_toward(_kneel, 1.0, 1.5 * delta)
-			_shake = maxf(_shake, 0.08 + 0.2 * (1.0 - _timer / 2.6))
+			_shake = maxf(_shake, 0.08 + 0.2 * (1.0 - _timer / DYING_TIME))
+			if not _legs_gone and _timer <= LEGS_BURST_AT:
+				_legs_gone = true
+				_burst_legs()
+			if not _arms_gone and _timer <= ARMS_BURST_AT:
+				_arms_gone = true
+				_shake = 0.5
+				Sfx.play("shatter", -2.0, 0.1)
+				var swing := sin(_stride) * 0.15
+				_break_arm(_back_shoulder(), PI / 2.0 - _dir * (0.2 + swing), 0.95)
+				_break_arm(_shoulder(), PI / 2.0 - _dir * (0.3 - swing), 1.0)
 			if fmod(_time, 0.14) < delta:
 				_chip(_torso_center() + Vector2(randf_range(-40, 40), randf_range(-40, 50)))
 				_frost(_chest_point() + Vector2(randf_range(-20, 20), randf_range(-20, 20)))
@@ -1009,6 +1027,24 @@ func _slid_under(p: Vector2) -> bool:
 		return false
 	var side := 1 if p.x > _x else -1
 	return side != _charge_side and absf(p.x - _x) < 60.0 and player.is_on_floor() and player._is_small()
+
+
+## Its legs bursting into chunks of ice, hip to foot.
+func _burst_legs() -> void:
+	_shake = 0.5
+	Sfx.play("shatter", -2.0, 0.1)
+	var hips := _hip_points()
+	var feet := _foot_points()
+	for i in 2:
+		for k in 9:
+			var at: Vector2 = hips[i].lerp(feet[i], (k + 0.5) / 9.0)
+			_pieces.append({
+				"pos": at + Vector2(randf_range(-8, 8), randf_range(-6, 6)),
+				"vel": Vector2(randf_range(-110, 110), randf_range(-200, -40)),
+				"size": randf_range(7, 14), "rot": randf() * TAU, "spin": randf_range(-8, 8),
+			})
+		for k in 4:
+			_frost(hips[i].lerp(feet[i], randf()))
 
 
 ## Footholds along a planted arm, from its fist up toward its shoulder (`count` of them, the
@@ -1264,7 +1300,7 @@ func _draw_phase_2(tint: Color) -> void:
 			]), Color(0.42, 0.6, 0.74))
 			draw_line(Vector2(bx - 30, fy - 4), Vector2(bx - 24, top + 8), COLOR_FROST, 2.0)
 			draw_line(Vector2(bx + 10, top + 4), Vector2(bx + 22, fy - 6), Color(0.25, 0.38, 0.5), 1.5)
-	else:
+	elif not _legs_gone:
 		# Its weight on the floor: a shadow under each foot.
 		for foot in _foot_points():
 			_draw_ellipse(Vector2(foot.x, _floor) - position, Vector2(18, 3), COLOR_SHADOW)
@@ -1290,19 +1326,20 @@ func _draw_phase_2(tint: Color) -> void:
 	# near arm, the big shoulder stump). Then the far arm, the body, and the near arm in front.
 	# The arms hang down and a little forward, knuckles toward where it faces.
 	var swing := sin(_stride) * 0.15
-	if _legs_out:
+	if _legs_out and not _legs_gone:
 		_draw_leg(hips[0], angles[0], tint.darkened(0.3))
 		_draw_leg(hips[1], angles[1], tint)
 	var c := _torso_center() - position
-	_draw_arm(_back_shoulder(), PI / 2.0 - _dir * (0.2 + swing), 0.95, 1.0,
-		tint.darkened(0.3), _dir < 0, ARM)
+	if not _arms_gone:
+		_draw_arm(_back_shoulder(), PI / 2.0 - _dir * (0.2 + swing), 0.95, 1.0,
+			tint.darkened(0.3), _dir < 0, ARM)
 	draw_set_transform(c, 0.0, Vector2(-1 if flip else 1, 1))
 	draw_texture(TORSO_HOLLOW, -Vector2(64, 64), tint)
 	draw_set_transform(Vector2.ZERO)
 	_draw_eyes(c)
 	if _state == St.DYING:
 		# Cracks spreading over it, the light inside pouring out of them.
-		var amount := clampf(1.0 - _timer / 2.6, 0.0, 1.0)
+		var amount := clampf(1.0 - _timer / DYING_TIME, 0.0, 1.0)
 		_draw_cracks(c, amount)
 		_draw_cracks(c + Vector2(0, 40), amount * 0.8)
 		var glow := _chest_point() - position
@@ -1323,7 +1360,7 @@ func _draw_phase_2(tint: Color) -> void:
 		var t := clampf(1.0 - _timer / 0.6, 0.0, 1.0)
 		_draw_arm(_shoulder(), lerp_angle(_arm_angle, rest, t), lerpf(ARM_SCALE_2, 1.0, t),
 			lerpf(_arm_stretch, 1.0, t), tint, _dir < 0, ARM_LEFT)
-	else:
+	elif not _arms_gone:
 		_draw_arm(_shoulder(), rest, 1.0, 1.0, tint, _dir < 0, ARM_LEFT)
 	_draw_pieces()
 

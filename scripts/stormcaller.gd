@@ -137,6 +137,9 @@ var _piece_from := Vector2.ZERO
 var _piece_rest := Vector2.ZERO
 var _roof_broken := false
 var _done := false
+## Struck: it's knocked back a little (drawn offset, easing back) and squashed for a moment.
+var _kick := Vector2.ZERO
+var _squash := 0.0
 
 var _body_box: Hitbox
 var _chain_box: Hitbox
@@ -264,9 +267,17 @@ func take_hit(damage: int, _from_dir: Vector2) -> void:
 	if not _fighting():
 		return
 	hp -= damage
-	_flash = 0.1
+	_flash = 0.14
+	_squash = 0.16
+	var player := _player()
+	var away := signf(_center().x - player.position.x) if player else -float(_dir)
+	if away == 0.0:
+		away = -float(_dir)
+	_kick = Vector2(away * (8.0 if phase == 1 else 12.0), -3.0)
 	Sfx.play("hit_boss", -3.0)
+	Sfx.play("crackle", -8.0, 0.2)
 	Effects.sparks(get_parent(), _center(), COLOR_SPARK, 14)
+	Effects.sparks(get_parent(), _center(), COLOR_HOT, 6, 160.0)
 	if phase == 2 and hp <= max_hp / 2:
 		_pace = 0.8
 	if hp <= 0:
@@ -294,6 +305,8 @@ func _physics_process(delta: float) -> void:
 	_time += delta
 	_flash -= delta
 	_timer -= delta
+	_squash -= delta
+	_kick = _kick.move_toward(Vector2.ZERO, 70.0 * delta)
 	var player := _player()
 	var p := player.position + Vector2(0, -11) if player else _pos
 	_update_strikes(delta)
@@ -873,9 +886,19 @@ func _draw_sprite(at: Vector2, tint: Color, copy: bool) -> void:
 		frame = 0
 	var hover := 0.0 if _state in [St.SPENT, St.SLUMP] else 6.0 + sin(_time * 2.2) * 2.0
 	var origin := at - position + Vector2(0, -hover)
+	var squash := Vector2.ONE
+	if not copy:
+		origin += _kick
+		if _squash > 0.0:
+			var k := _squash / 0.16
+			squash = Vector2(1.0 + 0.14 * k, 1.0 - 0.12 * k)
+		if _flash > 0.0:
+			# A burst of light where it was struck.
+			draw_circle(_center() - position + _kick, 10.0 + 30.0 * (1.0 - _flash / 0.14) * _scale(),
+				Color(COLOR_HOT, 0.35 * _flash / 0.14))
 	if freed and not copy:
 		_draw_ellipse(Vector2(at.x - position.x, _ground(at.x) - position.y), Vector2(18.0 * _scale(), 3.0), COLOR_SHADOW)
-	draw_set_transform(origin, 0.0, Vector2(_dir, 1))
+	draw_set_transform(origin, 0.0, Vector2(_dir, 1) * squash)
 	draw_texture_rect_region(tex, Rect2(-size / 2.0, -size * feet, size, size),
 		Rect2(frame * frame_px, 0, frame_px, frame_px), tint)
 	draw_set_transform(Vector2.ZERO)

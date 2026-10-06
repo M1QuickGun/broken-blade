@@ -28,6 +28,10 @@ const JUMP_BUFFER := 0.12
 
 const ATTACK_COOLDOWN := 0.38
 const SLASH_TIME := 0.1
+## How long a swing keeps striking whatever comes into it (each thing once), and how tall
+## its reach is across the blade's arc (a share of the reach, like the crescent drawn).
+const SWING_LIVE := 0.12
+const SWING_SPREAD := 1.4
 const POGO_VELOCITY := -300.0
 const RECOIL_SPEED := 120.0
 const RECOIL_TIME := 0.08
@@ -176,6 +180,10 @@ var _coyote := 0.0
 var _jump_buffer := 0.0
 var _attack_cd := 0.0
 var _slash_time := 0.0
+## The swing still striking (seconds left), what it has struck, and whether it has landed.
+var _swing_live := 0.0
+var _swing_hit: Array[Object] = []
+var _swing_landed := false
 var _slash_dir := Vector2.RIGHT
 var _wave_time := 0.0
 var _invuln := 0.0
@@ -220,6 +228,9 @@ var wind := 0.0
 ## Struck down: he crumples where he stands (falling if he's in the air) until Main wakes him
 ## at a shrine.
 var _dead := false
+## The blade bursting apart as he falls: shards {pos (in the room), vel, rot, spin, size,
+## color, life}.
+var _shards: Array[Dictionary] = []
 ## Fire sparks thrown off by the spin: [{pos, vel, age}] in global coordinates.
 var _embers: Array[Dictionary] = []
 
@@ -301,6 +312,42 @@ func place_at(pos: Vector2) -> void:
 	_reset_moves()
 
 
+## The blade bursts in his hand: shards of steel, and of each piece he'd won back (ice, fire,
+## lightning), flying out along where the blade was.
+func _shatter_blade() -> void:
+	Sfx.play("shatter", 0.0, 0.0)
+	var colors: Array[Color] = [COLOR_WAVE_STEEL]
+	if Game.has_ability("dash"):
+		colors.append(COLOR_ICE)
+	if Game.has_ability("double_jump"):
+		colors.append(COLOR_FIRE)
+	if Game.has_ability("shockline"):
+		colors.append(Color(0.8, 0.68, 1.0))
+	var hand := global_position + Vector2(facing * 8.0, _body.get_center().y + 3.0)
+	var length := Game.blade_reach() * 0.8
+	for i in 22:
+		var along := randf()
+		var at := hand + Vector2(facing * along * length, randf_range(-2, 2))
+		var out := Vector2(facing * randf_range(-40, 120), randf_range(-200, -60))
+		_shards.append({"pos": at, "vel": out, "rot": randf() * TAU, "spin": randf_range(-14, 14),
+			"size": randf_range(1.5, 3.5), "color": colors[i % colors.size()], "life": 1.6, "floor": global_position.y})
+	Effects.sparks(get_parent(), hand + Vector2(facing * length * 0.5, 0), Color(1, 1, 1), 16, 140.0)
+
+
+func _update_shards(delta: float) -> void:
+	for shard in _shards:
+		shard.vel.y += 600.0 * delta
+		shard.pos += shard.vel * delta
+		shard.rot += shard.spin * delta
+		shard.life -= delta
+		if shard.pos.y > shard.floor:
+			# Skittering to rest on the ground.
+			shard.pos.y = shard.floor
+			shard.vel = Vector2(shard.vel.x * 0.4, -shard.vel.y * 0.3)
+			shard.spin *= 0.5
+	_shards = _shards.filter(func(shard: Dictionary) -> bool: return shard.life > 0.0)
+
+
 func respawn_at_safe() -> void:
 	global_position = safe_position
 	velocity = Vector2.ZERO
@@ -314,6 +361,7 @@ func heal_full() -> void:
 	_frozen = false
 	if _dead:
 		_dead = false
+		_shards.clear()
 		_sprite.play("idle")
 	velocity = Vector2.ZERO
 	_reset_moves()
@@ -337,12 +385,16 @@ func _physics_process(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, 0.0, 900.0 * delta)
 		_apply_gravity(delta)
 		move_and_slide()
+		_update_shards(delta)
 		_update_sprite()
 		queue_redraw()
 		return
 	if _frozen:
 		queue_redraw()
 		return
+	if _swing_live > 0.0:
+		_swing_live -= delta
+		_slash_check()
 
 	var input_x := 0.0
 	if not controls_locked:
@@ -915,40 +967,57 @@ func _attack() -> void:
 	_sprite.play(anim)
 	_sprite.frame = 0
 	_wave_sparks()
+	_swing_hit.clear()
+	_swing_landed = false
+	_swing_live = SWING_LIVE
+	_slash_check()
 
+
+## The swing strikes everything in its arc it hasn't struck yet: on its first frame, and for
+## a moment after, so something moving into the blade still gets hit. The first thing it
+## lands on bounces Storm (off it below, or back from it to the side).
+func _slash_check() -> void:
 	var hit_enemy := false
 	var hit_hazard_tile := false
 	for hit in _query(_slash_rect(), LAYER_ENEMY | LAYER_HAZARD):
 		var target: Object = hit.collider
 		if target.has_method("take_hit"):
+			if _swing_hit.has(target):
+				continue
+			_swing_hit.append(target)
 			target.take_hit(1, _slash_dir)
 			hit_enemy = true
 		elif target.is_in_group("hazard"):
 			hit_hazard_tile = true
-
-	if _slash_dir == Vector2.DOWN and (hit_enemy or hit_hazard_tile):
+	if _swing_landed or not (hit_enemy or (hit_hazard_tile and _slash_dir == Vector2.DOWN)):
+		return
+	_swing_landed = true
+	if _slash_dir == Vector2.DOWN:
 		# Pogo: bounce off whatever was struck below.
 		velocity.y = POGO_VELOCITY
 		_no_jump_cut = true
 		_coyote = 0.0
-	elif hit_enemy and _slash_dir.x != 0.0:
+	elif _slash_dir.x != 0.0:
 		velocity.x = -_slash_dir.x * RECOIL_SPEED
 		_recoil = RECOIL_TIME
 	if hit_enemy:
 		_hitstop()
 
 
-## The area the blade covers, in local coordinates. Grows with each recovered piece.
+## The area the blade covers, in local coordinates: its reach out ahead, and across the arc
+## the slash sweeps (as wide as the crescent drawn for it). Grows with each recovered piece.
 func _slash_rect() -> Rect2:
 	var reach := Game.blade_reach()
+	var spread := maxf(22.0, reach * SWING_SPREAD)
 	match _slash_dir:
 		Vector2.UP:
-			return Rect2(-11, _body.position.y - reach, 22, reach + 4)
+			return Rect2(-spread / 2.0, _body.position.y - reach, spread, reach + 4)
 		Vector2.DOWN:
-			return Rect2(-11, -4, 22, reach + 4)
+			return Rect2(-spread / 2.0, -4, spread, reach + 4)
 	var width := reach + BODY_SIZE.x / 2
 	var x := 0.0 if _slash_dir.x > 0.0 else -width
-	return Rect2(x, _body.position.y + 1, width, _body.size.y - 2)
+	var middle := _body.get_center().y
+	return Rect2(x, middle - spread / 2.0, width, spread)
 
 
 func _hitstop() -> void:
@@ -1077,7 +1146,7 @@ func _die() -> void:
 	_invuln = 0.0
 	velocity = Vector2(velocity.x * 0.3, minf(velocity.y, 0.0))
 	Effects.slow_motion(get_tree(), 0.3, 0.9)
-	Effects.sparks(get_parent(), _center(), Color(0.85, 0.85, 1.0), 14, 90.0)
+	_shatter_blade()
 	_sprite.play("die" if _sprite.sprite_frames.has_animation("die") else "idle")
 	_sprite.frame = 0
 
@@ -1240,6 +1309,14 @@ func _update_sprite() -> void:
 
 
 func _draw() -> void:
+	for shard in _shards:
+		var fade := clampf(shard.life / 0.6, 0.0, 1.0)
+		draw_set_transform(shard.pos - global_position, shard.rot)
+		var size: float = shard.size
+		draw_colored_polygon(PackedVector2Array([
+			Vector2(-size, 0), Vector2(0, -size * 0.6), Vector2(size * 1.2, 0), Vector2(0, size * 0.5),
+		]), Color(shard.color, fade))
+		draw_set_transform(Vector2.ZERO)
 	if _drink_time > 0.0:
 		_draw_flask()
 	for i in _trail.size():
