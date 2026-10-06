@@ -373,8 +373,8 @@ r.fill(23, 2, 23, 4, "y")
 
 # ---------------------------------------------------------------- Lightning peaks (east)
 # The east face, under the storm. Road in (slide) -> Storm bridges (rest; a secret only the
-# double jump reaches) -> the Spire (the bound thing, first fight: the lightning tip) ->
-# Anchor gorge (shockline tutorial) -> the Thunderbird's eyrie (the rematch) -> the Storm
+# double jump reaches) -> the Spire (the Stormcaller bound, first fight: the lightning tip)
+# -> Anchor gorge (shockline tutorial) -> its eyrie (the rematch, freed) -> the Storm
 # tower, climbed ring to ring with the shockline, out onto the High pass.
 
 r = Room("cliff_road", 60, 18)
@@ -415,9 +415,14 @@ r.floor(16)
 r.fill(0, 13, 0, 15, "t")
 r.fill(43, 13, 43, 15, "u")
 r.put(12, 15, "?")
-# Until the Spire's fight is built, the lightning tip waits on its plinth.
+# The Stormcaller, bound: chained to the plinth by the lightning tip driven through it. Its
+# chain reaches about nine tiles; the walls' ledges and corners are out of its reach. Beaten,
+# it bursts up through the roof above the plinth.
 r.box(20, 14, 23, 15)
-r.put(21, 13, "L")
+r.put(21, 13, "B")
+r.box(1, 9, 3, 9)
+r.box(40, 9, 42, 9)
+r.fill(14, 0, 29, 0, "=")
 
 r = Room("anchor_gorge", 64, 20)
 r.open_sky()
@@ -430,15 +435,19 @@ r.put(3, 12, "?")
 for x in range(12, 56, 8):
     r.put(x, 9, "*")
 
-r = Room("thunder_eyrie", 44, 18)
+# The Stormcaller's eyrie, freed: a peak open to the storm, lightning rods standing high
+# around it to swing between, two rocks to stand on.
+r = Room("thunder_eyrie", 64, 24)
 r.open_sky()
-r.floor(16)
-r.fill(0, 13, 0, 15, "v")
-r.fill(43, 13, 43, 15, "w")
-r.put(12, 15, "?")
-# Until the rematch is built, its reward waits here.
-r.box(20, 14, 23, 15)
-r.put(21, 13, "H")
+r.floor(21)
+r.fill(0, 18, 0, 20, "v")
+r.fill(63, 18, 63, 20, "w")
+r.put(4, 20, "?")
+r.put(32, 20, "B")
+r.box(15, 16, 18, 16)
+r.box(45, 16, 48, 16)
+for x, y in [(10, 10), (21, 6), (32, 10), (43, 6), (54, 10)]:
+    r.put(x, y, "*")
 
 r = Room("storm_tower", 26, 56)
 r.floor(54)

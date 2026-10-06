@@ -31,13 +31,14 @@ controls are in `README.md`.
 - Playable: Foothills (forest; the Guardian Centipede twice), Frozen village (the Frost
   Colossus twice), the Crossroads, the Fire slopes (their own art and weather, ash bats, the
   Ashen Drake twice: grounded in the Forge, flying in the Drake's roost), and the Lightning
-  peaks (their own art and weather, spark wisps; the bosses still to come, so the tip waits
-  on a plinth in the Spire) up to the High pass.
+  peaks (their own art and weather, spark wisps, the Stormcaller twice: bound in the Spire,
+  freed in the eyrie) up to the High pass.
 - Systems: saving (autosaves at shrines, pickups, bosses, new rooms), title screen with
   intro, pause menu (volume, fullscreen), colour-coded map, flasks, sound effects, hit
   effects, Silksong-style rings with region skins.
-- Debug keys (editor build): 1-4 abilities, 5 beat the current boss, 6-9, - and = warps
-  (Village square, Frost arena, Frost throne, Crossroads, Forge, Drake's roost), 0 reveal the map.
+- Debug keys (editor build): 1-4 abilities, 5 beat the current boss, 6-9, -, =, [ and ]
+  warps (Village square, Frost arena, Frost throne, Crossroads, Forge, Drake's roost, Spire,
+  eyrie), 0 reveal the map.
 
 ## Open items
 - Storm switches sword hands when he turns (all art is right-facing and mirrored). Making
@@ -46,13 +47,8 @@ controls are in `README.md`.
 - The fire region has no music of its own yet (it plays `exploration`).
 - Frost Colossus reworked after feedback (fight 1 too easy, fight 2's chest out of reach);
   Storm likes fight 2 now.
-- Lightning peaks bosses, agreed plan: fight 1 in the Spire is the bound thing, a Thunderbird
-  fledgling with the lightning tip driven through it and chained to the plinth (blink, a
-  tether that sweeps the room, floor arcs, static orbs; winnable with dash and wall jump;
-  beaten, it swells into the Thunderbird and bursts out through the roof). Fight 2 in the
-  eyrie (to be widened and opened to the sky): lightning strikes, low swoops, feathers that
-  stick as shockline anchors to reach its back, a thunderclap. Built from parts like the
-  drake.
+- The lightning boss is the Stormcaller (Storm chose it over a Thunderbird, too like the
+  drake): the king's court sorcerer, taken by the evil. Needs a playtest.
 - Props are drawn flat, straight-on (Storm disliked three-quarter views); keep new ones so.
 - The drake is cut from one drawing (`art/bosses/drake_full.png`, and `drake_bare_full.png`
   with its folded wings painted out) into parts on the same 256x144 canvas; recut from them

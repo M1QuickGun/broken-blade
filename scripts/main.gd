@@ -12,7 +12,7 @@ const MapScreen := preload("res://scripts/map_screen.gd")
 const Intro := preload("res://scripts/intro.gd")
 
 const START_ROOM := "landing"
-## Debug warps (keys 6-9, - and =): action -> [room, the door to arrive by].
+## Debug warps (keys 6-9, -, =, [ and ]): action -> [room, the door to arrive by].
 const DEBUG_WARPS := {
 	"debug_warp_village": ["village_square", "g"],
 	"debug_warp_frost_arena": ["frost_arena", "k"],
@@ -20,6 +20,8 @@ const DEBUG_WARPS := {
 	"debug_warp_crossroads": ["crossroads", "p"],
 	"debug_warp_forge": ["forge", "t"],
 	"debug_warp_roost": ["drake_roost", "w"],
+	"debug_warp_spire": ["spire", "t"],
+	"debug_warp_eyrie": ["thunder_eyrie", "v"],
 }
 const DOOR_FADE := 0.15
 ## The view in world units (see Game.ART_SCALE).

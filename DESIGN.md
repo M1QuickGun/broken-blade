@@ -123,11 +123,11 @@ double jump tutorial: platforms five tiles apart over spikes, walls spiked so th
 can't skip it) → Drake's roost (the rematch, open to the sky: a mask shard) → Fire shaft (climbed
 with the double jump) → High pass.
 
-**Lightning peaks (east), with their own look and spark wisps; bosses still to come:** Cliff road (slide under a
+**Lightning peaks (east), with their own look, spark wisps and both Stormcaller fights:** Cliff road (slide under a
 rockfall) → Storm bridges (rest; a secret ledge only the double jump reaches) → Spire (the
-bound thing's first fight; for now the lightning tip waits on its plinth) → Anchor gorge (the
-shockline tutorial: a spiked chasm crossed ring to ring) → Thunderbird's eyrie (the rematch; a
-mask shard waits for now) → Storm tower (climbed ring to ring with the shockline, walls
+Stormcaller, bound: the lightning tip) → Anchor gorge (the
+shockline tutorial: a spiked chasm crossed ring to ring) → the eyrie (the Stormcaller freed, open
+to the sky: a mask shard) → Storm tower (climbed ring to ring with the shockline, walls
 spiked) → High pass.
 
 **High pass:** joins the tops of both faces; the castle gate above it (double jump and
@@ -167,10 +167,8 @@ fight means prying the piece loose, which frees the boss at full strength for th
 - **Fire slopes: the Ashen Drake.** A dragon in a collapsed forge, then in its roost. Breath
   sweeps and wing gusts; its dives are answered with the double jump spin. See the fight
   plan below.
-- **Lightning peaks: the Thunderbird.** The first fight is against its bound form, something
-  small and wrong with the lightning tip driven through it. Pulling the tip out sets it free
-  and it becomes the Thunderbird, a huge storm bird, for the rematch: Storm shocklines onto its
-  glowing feathers to reach it.
+- **Lightning peaks: the Stormcaller.** The king's court sorcerer, who first sealed the evil
+  into the blade, taken by it. See the fight plan below.
 
 ### Fight plan: the Guardian Centipede (proposed)
 **Fight 1: pinned (Great hall).** The sword catcher is driven through its tail into the
@@ -267,6 +265,31 @@ to spin up onto. It drops out of the smoke and fights on the wing. In a fixed or
   throwing embers.
 - Below half health its slams shake embers down too. Beaten, it crashes and burns away to
   ash, leaving a mask shard.
+
+### Fight plan: the Stormcaller
+**Fight 1: bound (Spire).** A small hunched figure in rags, the lightning tip through its
+back, a crackling chain from it to the plinth: it can't go further than the chain reaches
+(the walls and their ledges are out of reach). It blinks from spot to spot (a crackle on the
+floor first) and casts, in a fixed order:
+- *Floor arcs:* lightning runs both ways along the floor: jump.
+- *Orbs:* two balls of static drift after Storm; strike them to pop them.
+- *Roof bolts:* back on the plinth it calls bolts down from the roof (sparks fall where each
+  will strike), then kneels spent: the big opening.
+- *Chain lash:* the chain glows and it swings over the plinth from one side to the other,
+  sweeping everything within reach: get out to the walls.
+- Touching it hurts, except while it kneels spent. Beaten, the tip tears out of it; it rises,
+  swells into its true form and bursts up through the spire's roof.
+
+**Fight 2: freed (the eyrie).** A peak open to the storm with lightning rods standing high
+around it. A towering sorcerer whose robes dissolve into storm cloud, blinking between the
+rods; the shockline reaches it there. Touching it doesn't hurt; its spells do:
+- *Bolt rain:* rows of bolts across the arena, every other column then the others (their
+  lines flicker first); then it sinks to the ground, spent.
+- *Beam:* it locks on to Storm's height and fires across the whole arena.
+- *Copies:* two fainter copies at other rods (one blow pops one); all three send an orb.
+- *Rod strike:* the rod nearest Storm glows, then lightning strikes it, twice.
+- Below half health a third row of bolts and quicker casting. Beaten, it unravels into the
+  storm, leaving a mask shard.
 
 ### Enemies
 - **Mossback beetle** (Foothills): as big as Storm. Patrols; spotting him ahead, it braces
