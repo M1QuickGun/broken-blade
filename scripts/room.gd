@@ -457,14 +457,73 @@ func _scan_cells() -> void:
 
 
 func _build_doors() -> void:
+	var seals: Dictionary = Rooms.DOOR_SEALS.get(room_name, {})
 	for letter in _doors:
 		var r: Rect2i = _doors[letter]
+		if seals.has(letter) and not Game.has_ability(seals[letter][0]):
+			_seal_door(r, seals[letter])
+			continue
 		var area := Area2D.new()
 		area.collision_layer = 0
 		area.collision_mask = LAYER_PLAYER
 		add_child(area)
 		_add_rect(area, Rect2(Vector2(r.position) * TILE, Vector2(r.size) * TILE))
 		area.body_entered.connect(_on_door_body_entered.bind(letter))
+
+
+## A door sealed by an element until Storm holds its piece: a barrier across it, and a word
+## about it as he comes up to it.
+func _seal_door(r: Rect2i, seal: Array) -> void:
+	var rect := Rect2(Vector2(r.position) * TILE, Vector2(r.size) * TILE)
+	var wall := StaticBody2D.new()
+	wall.collision_layer = LAYER_WORLD
+	wall.collision_mask = 0
+	add_child(wall)
+	_add_rect(wall, rect)
+	var near := Area2D.new()
+	near.collision_layer = 0
+	near.collision_mask = LAYER_PLAYER
+	add_child(near)
+	var inward := -1.0 if r.position.x > 0 else 1.0
+	_add_rect(near, rect.grow_side(SIDE_LEFT if inward < 0.0 else SIDE_RIGHT, TILE * 2.0))
+	near.body_entered.connect(func(_body: Node2D) -> void: sign_read.emit(seal[2]))
+	var barrier := Seal.new()
+	barrier.rect = rect
+	barrier.element = seal[1]
+	add_child(barrier)
+
+
+## The barrier across a sealed door: a wall of fire, or lightning crackling across it.
+class Seal extends Node2D:
+	var rect := Rect2()
+	var element := "fire"
+	var _time := 0.0
+
+	func _process(delta: float) -> void:
+		_time += delta
+		queue_redraw()
+
+	func _draw() -> void:
+		if element == "fire":
+			var steps := int(rect.size.y / 4.0)
+			for i in steps:
+				var y := rect.position.y + rect.size.y - i * 4.0
+				var w := rect.size.x * (0.6 + 0.4 * sin(_time * 9.0 + i * 1.3))
+				var x := rect.get_center().x + sin(_time * 5.0 + i) * 2.0
+				draw_rect(Rect2(x - w / 2.0, y - 6.0, w, 6.0), Color(1.0, 0.45, 0.12, 0.55))
+				draw_rect(Rect2(x - w / 4.0, y - 5.0, w / 2.0, 4.0), Color(1.0, 0.85, 0.45, 0.6))
+		else:
+			draw_rect(rect, Color(0.55, 0.45, 0.85, 0.18))
+			var rng := RandomNumberGenerator.new()
+			rng.seed = int(_time * 18.0)
+			for k in 3:
+				var pts := PackedVector2Array()
+				for i in 7:
+					var t := i / 6.0
+					pts.append(Vector2(rect.get_center().x + rng.randf_range(-rect.size.x * 0.5, rect.size.x * 0.5),
+						rect.position.y + rect.size.y * t))
+				draw_polyline(pts, Color(0.8, 0.68, 1.0, 0.8), 2.0)
+				draw_polyline(pts, Color(0.95, 0.92, 1.0, 0.9), 1.0)
 
 
 func _on_door_body_entered(_body: Node2D, letter: String) -> void:

@@ -148,6 +148,9 @@ tower (shockline) → the summit.
   heaped armor, mist rolling over it, far-off flashes of fire and lightning. Hollow knights
   walk it. The castle gate above the High pass (double jump and shockline together) is
   still to come.
+- From the summit, the way down into each face's last climb is sealed by that face's evil
+  (a wall of fire over the Fire shaft, lightning across the Storm tower) until Storm holds
+  its piece, so neither face can be entered from the top and its first boss skipped.
 
 `tools/check_reach.py` checks the layouts: that each room can be crossed with the abilities
 it needs, and that every ability gate and secret really needs its ability.

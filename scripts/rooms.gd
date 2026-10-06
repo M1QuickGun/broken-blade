@@ -179,6 +179,16 @@ const SIGNS := {
 	"high_pass": ["The high pass. Above it, the castle gate: it will take the spin and the shockline together. (Still to come.)"],
 }
 
+## Doors sealed until Storm holds a piece: from the summit, the way down into each face's last
+## climb is sealed by that face's evil until he's won its piece, so neither face can be
+## entered from the top and its rooms skipped. [ability, element, what he's told].
+const DOOR_SEALS := {
+	"high_pass": {"y": ["double_jump", "fire",
+		"A wall of fire seals the way down. It will only part for one who has taken the fire's piece."]},
+	"summit_ledge": {"y": ["shockline", "storm",
+		"Lightning crackles across the way down, sealing it. Only the one who holds the tip may pass."]},
+}
+
 ## The survivors at the refuge, for each "N" in a room in reading order: their name, their
 ## art (art/npcs/<art>.png, an idle strip of 64 px frames facing right), and what they say
 ## (a new line each time Storm walks up to them).
