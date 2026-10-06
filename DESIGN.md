@@ -300,8 +300,8 @@ rods; the shockline reaches it there. Touching it doesn't hurt; its spells do:
 - *Beam:* it locks on to Storm's height and fires across the whole arena.
 - *Copies:* two fainter copies at other rods (one blow pops one); all three send an orb.
 - Below half health a third row of bolts and quicker casting. Beaten, the storm turns on it:
-  bolt after bolt strikes it, faster and faster, until a last great one blasts it apart,
-  leaving a mask shard.
+  bolt after bolt strikes it, faster and faster, as it sinks slowly to the ground, until a
+  last great one blasts it apart, leaving a mask shard.
 
 ### Enemies
 - **Mossback beetle** (Foothills): as big as Storm. Patrols; spotting him ahead, it braces
