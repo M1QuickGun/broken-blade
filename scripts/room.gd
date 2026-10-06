@@ -18,6 +18,7 @@ const Centipede := preload("res://scripts/centipede.gd")
 const Colossus := preload("res://scripts/colossus.gd")
 const Bat := preload("res://scripts/bat.gd")
 const Drake := preload("res://scripts/drake.gd")
+const Wisp := preload("res://scripts/wisp.gd")
 
 const PIECE_ABILITIES := {"I": "dash", "F": "double_jump", "L": "shockline", "W": "wall_jump"}
 
@@ -48,6 +49,8 @@ const SPIKE_TEX := preload("res://art/world/spikes.png")
 const FOREST_SHEET := preload("res://art/world/forest_tileset.png")
 ## The Fire slopes' charred stone, ash on top; same corner layout as STONE_SHEET.
 const FIRE_SHEET := preload("res://art/world/fire_tileset.png")
+## The Lightning peaks' storm-worn slate; same corner layout as STONE_SHEET.
+const STORM_SHEET := preload("res://art/world/storm_tileset.png")
 const Atmosphere := preload("res://scripts/atmosphere.gd")
 const ICE_GATE_TEX := preload("res://art/world/frozen_gate.png")
 ## The part of the gate's art that isn't empty margin, so it can fill its doorway exactly.
@@ -87,6 +90,7 @@ var _forest := false
 var _woods := false
 var _cave := false
 var _fire := false
+var _storm := false
 ## The breakable earth lid ("=") and the frozen gate ("G"), while they stand.
 var _lid: StaticBody2D
 var _backdrop: Node2D
@@ -101,7 +105,8 @@ func build(name_: String) -> void:
 	_woods = _forest or room_name in Rooms.OVERGROWN_ROOMS or _ice
 	_cave = room_name in Rooms.CAVE_ROOMS
 	_fire = room_name in Rooms.FIRE_ROOMS
-	_woods = _woods or _fire
+	_storm = room_name in Rooms.STORM_ROOMS
+	_woods = _woods or _fire or _storm
 	_grid = PackedStringArray(Rooms.LAYOUTS[name_])
 	# Once the room's boss is beaten, its lid has fallen in and its frozen gate is broken.
 	if Rooms.BOSSES.has(room_name) and Game.defeated.has(Rooms.BOSSES[room_name].id):
@@ -131,7 +136,10 @@ func build(name_: String) -> void:
 			woods.size_px = size_px
 			woods.solid = _grid
 			woods.seed_text = room_name
-			if _fire:
+			if _storm:
+				# Dimmed and cooled to sit behind the slate; the spire's inside darker still.
+				woods.backdrop_tint = Color(0.62, 0.62, 0.72) if woods.style == "rain" else Color(0.45, 0.45, 0.55)
+			elif _fire:
 				# The forge painting glows: dimmed so the room's own embers stand out.
 				woods.backdrop_tint = Color(0.7, 0.66, 0.64) if woods.style == "ash" else Color(0.5, 0.46, 0.45)
 			elif _ice:
@@ -207,7 +215,8 @@ func _add_props() -> void:
 	var layer := Node2D.new()
 	layer.z_index = -1
 	# Lit like the painted backdrop behind them, a touch brighter as they stand nearer.
-	layer.modulate = Color(0.78, 0.82, 0.88) if _ice else (Color(0.9, 0.82, 0.76) if _fire else Color(0.85, 0.88, 0.86))
+	layer.modulate = Color(0.78, 0.82, 0.88) if _ice else (Color(0.9, 0.82, 0.76) if _fire
+		else (Color(0.74, 0.74, 0.84) if _storm else Color(0.85, 0.88, 0.86)))
 	add_child(layer)
 	for prop: Array in list:
 		var tex: Texture2D = load("res://art/world/props/%s.png" % prop[0])
@@ -238,6 +247,8 @@ func _ring_style() -> String:
 func _atmosphere_style() -> String:
 	if _fire:
 		return "ash" if roof_px == 0.0 else "forge"
+	if _storm:
+		return "rain" if roof_px == 0.0 else "static"
 	if not _ice:
 		return "forest"
 	return "snow" if roof_px == 0.0 else "cave"
@@ -353,6 +364,10 @@ func _scan_cells() -> void:
 			match c:
 				"P":
 					spawn_point = feet
+				"E" when _storm:
+					var wisp := Wisp.new()
+					wisp.position = feet
+					add_child(wisp)
 				"E" when _fire:
 					var bat := Bat.new()
 					bat.position = feet
@@ -524,7 +539,7 @@ func _draw_backdrop() -> void:
 
 
 func _draw() -> void:
-	var sheet: Texture2D = ICE_SHEET if _ice else FIRE_SHEET if _fire else (FOREST_SHEET if _forest or _cave else STONE_SHEET)
+	var sheet: Texture2D = ICE_SHEET if _ice else FIRE_SHEET if _fire else STORM_SHEET if _storm 		else (FOREST_SHEET if _forest or _cave else STONE_SHEET)
 
 	for vy in range(-int(roof_px / TILE), size_tiles.y + 1):
 		for vx in size_tiles.x + 1:

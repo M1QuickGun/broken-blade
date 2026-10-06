@@ -123,7 +123,7 @@ double jump tutorial: platforms five tiles apart over spikes, walls spiked so th
 can't skip it) → Drake's roost (the rematch, open to the sky: a mask shard) → Fire shaft (climbed
 with the double jump) → High pass.
 
-**Lightning peaks (east), laid out, art and bosses still to come:** Cliff road (slide under a
+**Lightning peaks (east), with their own look and spark wisps; bosses still to come:** Cliff road (slide under a
 rockfall) → Storm bridges (rest; a secret ledge only the double jump reaches) → Spire (the
 bound thing's first fight; for now the lightning tip waits on its plinth) → Anchor gorge (the
 shockline tutorial: a spiked chasm crossed ring to ring) → Thunderbird's eyrie (the rematch; a
@@ -140,7 +140,10 @@ Every region has its own painted backdrop and weather: the Foothills forest (lig
 the canopy), the Frozen village outdoors (snow falling over the terraced houses, icicles),
 and its caverns (frost drifting in the cold, icicles); the Fire slopes' burned village
 (embers rising, ash and smoke drifting, embers smouldering on the ground) and the forge
-under the rock (embers thicker, heat glowing up from below, molten drips under overhangs).
+under the rock (embers thicker, heat glowing up from below, molten drips under overhangs);
+the Lightning peaks under the storm (rain slanting in the wind, lightning flashes with thunder
+after) and inside the spire and the tower (static drifting, water dripping, arcs jumping
+across the rock). Scenery props are drawn flat, straight-on, to sit in the 2D world.
 
 ### Bosses: two fights per region
 Every region's boss is fought twice. The first fight, partway through, wins the region's
@@ -273,6 +276,10 @@ to spin up onto. It drops out of the smoke and fights on the wing. In a fixed or
   lesson in the Guardian Centipede's warning signs.
 - **Frozen thrall** (Frozen village): a villager the cold turned into a husk. It shambles
   after Storm when he's near and lunges when he's close.
+- **Spark wisp** (Lightning peaks): a knot of static around a stone core with one eye. It
+  hangs in the air drifting after Storm, then charges, a thin line showing its aim (it stops
+  tracking just before it fires), and zaps a beam along it to the rock. The shockline can
+  catch it like a ring.
 - **Ash bat** (Fire slopes): a bat of charred flesh with embers in its wings. It hangs in the
   air above its roost, drifting after Storm; then it screeches, flaring up, and dives at
   where he stood in a straight line, and swoops back up. A small lesson in the drake's dives.

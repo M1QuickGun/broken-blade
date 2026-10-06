@@ -225,6 +225,22 @@ def main():
     whump = lowpass(noise(d), sweep(900, 150, d)) * env(d, 0.06, 2.0)
     save("wing", mix(whump, tone(sweep(70, 40, d), d) * env(d, 0.05, 2.0) * 0.5), 0.75)
 
+    # Thunder: a sharp crack, then a long low roll.
+    d = 2.6
+    crack = highpass(noise(d), 1200) * env(d, 0.002, 18.0)
+    roll = lowpass(noise(d), sweep(400, 90, d)) * (0.6 + 0.4 * np.sin(t_axis(d) * 2 * np.pi * 3.0))
+    save("thunder", mix(crack * 0.7, roll * env(d, 0.08, 1.4)), 0.85)
+
+    # A lightning zap: a hard buzzing snap.
+    d = 0.3
+    buzz = tone(sweep(1400, 500, d), d, "square") * (rng.uniform(0, 1, int(RATE * d)) > 0.4)
+    save("zap", mix(lowpass(buzz, 5000) * 0.6, highpass(noise(d), 4000) * 0.5) * env(d, 0.002, 2.0), 0.6)
+
+    # Static crackling: scattered ticks.
+    d = 0.35
+    ticks = highpass(noise(d), 3000) * (rng.uniform(0, 1, int(RATE * d)) > 0.92)
+    save("crackle", ticks * env(d, 0.01, 1.0), 0.5)
+
 
 if __name__ == "__main__":
     main()

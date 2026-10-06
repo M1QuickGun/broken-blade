@@ -11,6 +11,11 @@ extends Node2D
 ##   down through slow smoke, a red glow low in the sky, and embers smouldering on the ground.
 ## - "forge" (the Fire slopes, under rock): the same embers thicker, heat glowing up from
 ##   below, and molten drips glowing under every overhang.
+## - "rain" (the Lightning peaks, outdoors): rain slanting down in the wind and splashing on
+##   the ground, and now and then lightning: the room flashes white and thunder follows.
+## - "static" (the Lightning peaks, under rock: the spire and the tower): static drifting and
+##   flickering in the dark, water dripping from the overhangs, and arcs of lightning
+##   jumping across the rock now and then.
 ## The room adds one of each (front = false / true) and hands over its size and cells.
 
 const TILE := 16
@@ -20,6 +25,8 @@ const BACKDROPS := {
 	"cave": preload("res://art/world/ice_cave_bg.png"),
 	"ash": preload("res://art/world/fire_village_bg.png"),
 	"forge": preload("res://art/world/forge_bg.png"),
+	"rain": preload("res://art/world/storm_peaks_bg.png"),
+	"static": preload("res://art/world/spire_bg.png"),
 }
 ## How much the backdrop follows the camera's movement across the room: 0 would pin it
 ## to the screen, 1 to the room.
@@ -45,8 +52,14 @@ const COLOR_EMBER_HOT := Color(1.0, 0.86, 0.5)
 const COLOR_ASH := Color(0.62, 0.6, 0.58)
 const COLOR_SMOKE := Color(0.08, 0.07, 0.07)
 const COLOR_HEAT := Color(1.0, 0.36, 0.1)
+const COLOR_RAIN := Color(0.7, 0.78, 0.92)
+const COLOR_FLASH := Color(0.9, 0.9, 1.0)
+const COLOR_SPARK := Color(0.78, 0.66, 1.0)
+const COLOR_ARC := Color(0.92, 0.88, 1.0)
+## Seconds between lightning flashes outdoors (at random within this range).
+const FLASH_EVERY := Vector2(5.0, 11.0)
 
-## "forest", "snow", "cave", "ash" or "forge".
+## "forest", "snow", "cave", "ash", "forge", "rain" or "static".
 var style := "forest"
 var front := false
 var size_px := Vector2.ZERO
@@ -70,6 +83,18 @@ var _embers: Array[Dictionary] = []
 var _smoke: Array[Dictionary] = []
 ## Smouldering spots on the ground (outdoors) or molten drips under overhangs (the forge).
 var _glows: Array[Dictionary] = []
+## The storm: raindrops, splashes on the ground (where each lands), drips under the rock,
+## arcs crackling across it, and when the next flash comes and how bright the last one is.
+var _rain: Array[Dictionary] = []
+var _ground: Array[Vector2] = []
+var _splashes: Array[Dictionary] = []
+var _drips: Array[Dictionary] = []
+var _arcs: Array[Dictionary] = []
+var _arc_spots: Array[Vector2] = []
+var _next_flash := 0.0
+var _flash := 0.0
+var _thunder_in := -1.0
+var _rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
@@ -90,6 +115,9 @@ func _ready() -> void:
 	var cols := int(size_px.x / TILE)
 	if style == "ash" or style == "forge":
 		_setup_fire(rng, cols)
+		return
+	if style == "rain" or style == "static":
+		_setup_storm(rng, cols)
 		return
 	if style != "forest":
 		_setup_frost(rng, cols)
@@ -187,9 +215,74 @@ func _setup_fire(rng: RandomNumberGenerator, cols: int) -> void:
 					"len": rng.randf_range(2.0, 5.0), "phase": rng.randf() * TAU, "drip": false})
 
 
+## Rain and splashes outdoors; drips, static and arcs under the rock.
+func _setup_storm(rng: RandomNumberGenerator, cols: int) -> void:
+	_rng.seed = rng.randi()
+	var area := size_px.x * size_px.y
+	for cy in solid.size():
+		for cx in cols:
+			if not _solid(cx, cy):
+				continue
+			if cy > 0 and not _solid(cx, cy - 1):
+				_ground.append(Vector2((cx + 0.5) * TILE, cy * TILE))
+			if not _solid(cx, cy + 1) and cy + 1 < solid.size():
+				_arc_spots.append(Vector2((cx + 0.5) * TILE, (cy + 1) * TILE))
+				if style == "static" and rng.randf() < 0.12:
+					_drips.append({"x": (cx + rng.randf_range(0.2, 0.8)) * TILE, "y": (cy + 1) * TILE,
+						"t": rng.randf() * 3.0, "every": rng.randf_range(1.5, 3.5)})
+	if style == "rain":
+		for i in int(area / 700.0):
+			_rain.append({"x": rng.randf() * size_px.x, "y": rng.randf() * size_px.y,
+				"speed": rng.randf_range(320.0, 420.0), "len": rng.randf_range(5.0, 10.0), "depth": rng.randf()})
+		_next_flash = rng.randf_range(2.0, FLASH_EVERY.y)
+	else:
+		for i in int(area / 2600.0):
+			_flakes.append({"x": rng.randf() * size_px.x, "y": rng.randf() * size_px.y,
+				"speed": rng.randf_range(3.0, 9.0), "sway": rng.randf_range(4.0, 12.0),
+				"phase": rng.randf() * TAU, "depth": rng.randf()})
+		_next_flash = rng.randf_range(1.0, 3.0)  # (here: the next arc across the rock)
+
+
+func _update_storm(delta: float) -> void:
+	_next_flash -= delta
+	_flash = maxf(0.0, _flash - delta * 2.5)
+	if style == "rain":
+		if _next_flash <= 0.0:
+			_next_flash = _rng.randf_range(FLASH_EVERY.x, FLASH_EVERY.y)
+			_flash = 1.0
+			_thunder_in = _rng.randf_range(0.3, 1.2)
+		if _thunder_in > 0.0:
+			_thunder_in -= delta
+			if _thunder_in <= 0.0:
+				Sfx.play("thunder", -6.0, 0.15)
+		# A splash or two where the rain hits the ground.
+		if not _ground.is_empty():
+			for i in 2:
+				if _rng.randf() < 0.6:
+					_splashes.append({"pos": _ground[_rng.randi() % _ground.size()] + Vector2(_rng.randf_range(-8, 8), 0),
+						"life": 0.25})
+	else:
+		for d in _drips:
+			d.t += delta
+		if _next_flash <= 0.0 and _arc_spots.size() > 1:
+			_next_flash = _rng.randf_range(1.5, 4.0)
+			var a: Vector2 = _arc_spots[_rng.randi() % _arc_spots.size()]
+			var b: Vector2 = a + Vector2(_rng.randf_range(-60, 60), _rng.randf_range(10, 50))
+			_arcs.append({"from": a, "to": b, "life": 0.18, "seed": _rng.randi()})
+			Sfx.play("crackle", -18.0, 0.2)
+	for sp in _splashes:
+		sp.life -= delta
+	_splashes = _splashes.filter(func(sp: Dictionary) -> bool: return sp.life > 0.0)
+	for arc in _arcs:
+		arc.life -= delta
+	_arcs = _arcs.filter(func(arc: Dictionary) -> bool: return arc.life > 0.0)
+
+
 func _process(delta: float) -> void:
 	if front:
 		_time += delta
+		if style == "rain" or style == "static":
+			_update_storm(delta)
 		queue_redraw()
 	else:
 		_update_backdrop()
@@ -240,6 +333,9 @@ func _draw_back() -> void:
 
 
 func _draw_front() -> void:
+	if style == "rain" or style == "static":
+		_draw_storm()
+		return
 	if style == "ash" or style == "forge":
 		_draw_fire()
 		return
@@ -357,6 +453,58 @@ func _draw_fire() -> void:
 		var r := lerpf(0.5, 1.1, e.depth)
 		draw_circle(Vector2(x, y), r + 1.5, Color(COLOR_EMBER, alpha * 0.2))
 		draw_circle(Vector2(x, y), r, Color(COLOR_EMBER_HOT if e.depth > 0.7 else COLOR_EMBER, alpha))
+
+
+func _draw_storm() -> void:
+	if style == "rain":
+		# Rain slanting in the wind, near drops longer and brighter.
+		var slant := Vector2(0.28, 1.0).normalized()
+		for r in _rain:
+			var fall: float = r.speed * lerpf(0.7, 1.15, r.depth)
+			var y: float = fmod(r.y + _time * fall, size_px.y + 20.0) - 10.0
+			var x: float = fmod(r.x + (y + 10.0) * 0.28 + size_px.x * 4.0, size_px.x)
+			var tail: Vector2 = slant * r.len * lerpf(0.6, 1.2, r.depth)
+			draw_line(Vector2(x, y), Vector2(x, y) - tail, Color(COLOR_RAIN, lerpf(0.15, 0.4, r.depth)), 1.0)
+		for sp in _splashes:
+			var t: float = 1.0 - sp.life / 0.25
+			var p: Vector2 = sp.pos
+			draw_line(p, p + Vector2(-2.0 - 2.0 * t, -2.0 - t), Color(COLOR_RAIN, 0.5 * (1.0 - t)), 1.0)
+			draw_line(p, p + Vector2(2.0 + 2.0 * t, -2.0 - t), Color(COLOR_RAIN, 0.5 * (1.0 - t)), 1.0)
+		if _flash > 0.0:
+			# Lightning: the whole room lit white for a moment, flickering.
+			var flicker := 1.0 if _flash > 0.75 or (_flash > 0.4 and _flash < 0.55) else 0.45
+			draw_rect(Rect2(Vector2.ZERO, size_px), Color(COLOR_FLASH, 0.28 * _flash * flicker))
+		return
+	# Under the rock: static drifting and flickering.
+	for f in _flakes:
+		var y: float = fmod(f.y - _time * f.speed + size_px.y * 4.0, size_px.y)
+		var x: float = f.x + sin(_time * 0.5 + f.phase) * f.sway
+		var alpha := 0.2 + 0.6 * maxf(0.0, sin(_time * 3.1 + f.phase * 3.0))
+		draw_rect(Rect2(x, y, 1, 1), Color(COLOR_SPARK, alpha * lerpf(0.4, 1.0, f.depth)))
+	for d in _drips:
+		# A drop swelling under the rock, falling, and swelling again.
+		var t: float = fmod(d.t, d.every)
+		var swell := clampf(t / (d.every - 0.6), 0.0, 1.0)
+		var x: float = d.x
+		var y0: float = d.y
+		if t < d.every - 0.6:
+			draw_circle(Vector2(x, y0 + 1.0 + swell), 0.6 + swell, Color(COLOR_RAIN, 0.6))
+		else:
+			var fall: float = (t - (d.every - 0.6)) * 260.0
+			draw_line(Vector2(x, y0 + fall), Vector2(x, y0 + fall - 4.0), Color(COLOR_RAIN, 0.6), 1.0)
+	for arc in _arcs:
+		# A jagged arc of lightning jumping across the rock.
+		var rng := RandomNumberGenerator.new()
+		rng.seed = arc.seed + int(_time * 30.0)
+		var pts := PackedVector2Array()
+		var from: Vector2 = arc.from
+		var to: Vector2 = arc.to
+		for i in 7:
+			var t := i / 6.0
+			var off := Vector2.ZERO if i == 0 or i == 6 else Vector2(rng.randf_range(-6, 6), rng.randf_range(-6, 6))
+			pts.append(from.lerp(to, t) + off)
+		draw_polyline(pts, Color(COLOR_SPARK, 0.5), 3.0)
+		draw_polyline(pts, COLOR_ARC, 1.0)
 
 
 func _draw_ellipse(center: Vector2, radii: Vector2, color: Color) -> void:

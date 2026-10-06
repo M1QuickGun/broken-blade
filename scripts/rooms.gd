@@ -3,7 +3,7 @@ extends RefCounted
 ## tools/build_rooms.py: edit the rooms there and rerun it.
 ##
 ## Legend:  #  solid stone      .  empty          ^  spikes
-##          P  start position   E  the region's enemy (beetle / thrall / ash bat)  *  shockline anchor
+##          P  start position   E  the region's enemy (beetle / thrall / ash bat / spark wisp)  *  shockline anchor
 ##          U  a burrow grub, waiting in the earth
 ##          I / F / L  ice, fire and lightning blade pieces (dash, double jump, shockline)
 ##          W          the sword catcher technique (wall jump)
@@ -39,7 +39,8 @@ const ICE_ROOMS := [
 ## The Fire slopes, west of the Crossroads: charred stone, the burned village under the sky
 ## and the forge under the rock, ash bats.
 const FIRE_ROOMS := ["ashen_road", "burning_homes", "forge", "cinder_steps", "drake_roost", "fire_shaft"]
-## The Lightning peaks, east of the Crossroads (their own looks still to come).
+## The Lightning peaks, east of the Crossroads: storm-worn slate, rain and lightning under
+## the sky, static in the spire and the tower, spark wisps.
 const STORM_ROOMS := ["cliff_road", "storm_bridges", "spire", "anchor_gorge", "thunder_eyrie", "storm_tower"]
 
 ## Boss fights. The doors lock until the boss falls; `reward` (a map letter) appears where
@@ -80,6 +81,11 @@ const PROPS := {
 		["burned_house_b", 5, 19], ["burned_house", 22, 19], ["burned_house_c", 39, 19],
 		["burned_house_b", 49, 16], ["burned_house_d", 59, 19],
 	],
+	"cliff_road": [["lightning_rod", 9, 15], ["lightning_rod", 36, 15], ["watchtower", 53, 15]],
+	"storm_bridges": [
+		["lightning_rod", 7, 19], ["bridge_post", 30, 19], ["watchtower", 41, 16], ["lightning_rod", 58, 19],
+	],
+	"anchor_gorge": [["lightning_rod", 5, 13], ["lightning_rod", 59, 13]],
 }
 
 ## Sign text for each "?" in a room, in reading order (top to bottom, left to right).
