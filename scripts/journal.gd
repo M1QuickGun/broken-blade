@@ -35,10 +35,11 @@ func _entries() -> Array:
 	if _page == 0:
 		for id in Rooms.BESTIARY:
 			var info: Array = Rooms.BESTIARY[id]
-			list.append(info if Game.journal.has(id) else ["???", "Not yet met."])
+			list.append([tr(info[0]), tr(info[1])] if Game.journal.has(id) else ["???", tr("Not yet met.")])
 	else:
 		for text in Game.lore:
-			list.append([text.left(34) + ("..." if text.length() > 34 else ""), text])
+			var shown := tr(text)
+			list.append([shown.left(34) + ("..." if shown.length() > 34 else ""), shown])
 		if list.is_empty():
 			list.append(["(nothing yet)", "Signs, carvings and notes Storm reads are kept here."])
 	return list

@@ -67,7 +67,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		_finish()
 	elif event.is_action_pressed("jump") or event.is_action_pressed("ui_accept") or event.is_action_pressed("attack"):
 		get_viewport().set_input_as_handled()
-		var text: String = panels[_panel][1]
+		var text: String = tr(panels[_panel][1])
 		if _time < FADE + text.length() / TYPE_SPEED:
 			_time = FADE + text.length() / TYPE_SPEED  # show the whole line first
 		else:
@@ -104,7 +104,7 @@ func _draw_panel() -> void:
 		_canvas.draw_texture_rect(tex, Rect2((SIZE - tex_size) / 2.0 + drift, tex_size), false, Color(1, 1, 1, fade))
 	# The story, typed out over a dark band at the bottom.
 	_canvas.draw_rect(Rect2(0, SIZE.y - 96, SIZE.x, 96), Color(0, 0, 0, 0.55 * fade))
-	var text: String = panels[_panel][1]
+	var text: String = tr(panels[_panel][1])
 	var shown := text.left(int(maxf(0.0, _time - FADE * 0.6) * TYPE_SPEED))
 	var font := Game.font
 	var at := Vector2(80, SIZE.y - 62)

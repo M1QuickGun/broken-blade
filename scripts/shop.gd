@@ -162,14 +162,14 @@ func _draw_shop() -> void:
 		if chosen:
 			_canvas.draw_rect(Rect2(panel.position.x + 6, y - 11, panel.size.x - 12, 15), Color(COLOR_EDGE, 0.15))
 		var afford: bool = Game.crowns >= ware[3]
-		_canvas.draw_string(font, Vector2(panel.position.x + 14, y), ware[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 8,
+		_canvas.draw_string(font, Vector2(panel.position.x + 14, y), tr(ware[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 8,
 			COLOR_TEXT if chosen else COLOR_DIM)
 		_canvas.draw_string(font, Vector2(panel.end.x - 60, y), "%d" % ware[3], HORIZONTAL_ALIGNMENT_RIGHT, 46, 8,
 			COLOR_GOLD if afford else Color(0.6, 0.35, 0.3))
 		y += 16
 	if not list.is_empty():
 		var ware: Array = list[clampi(_choice, 0, list.size() - 1)]
-		_canvas.draw_multiline_string(font, Vector2(panel.position.x + 12, panel.end.y - 34), ware[2],
+		_canvas.draw_multiline_string(font, Vector2(panel.position.x + 12, panel.end.y - 34), tr(ware[2]),
 			HORIZONTAL_ALIGNMENT_LEFT, panel.size.x - 24, 8, -1, COLOR_DIM)
 	if _note_time > 0.0:
 		_canvas.draw_string(font, Vector2(panel.position.x, panel.end.y + 14), _note, HORIZONTAL_ALIGNMENT_CENTER, panel.size.x, 8,

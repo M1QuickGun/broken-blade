@@ -153,12 +153,12 @@ func _process(delta: float) -> void:
 		_boss = boss
 	if boss and boss.title != _shown_title:
 		_shown_title = boss.title
-		_card_title = boss.title
+		_card_title = tr(boss.title)
 		var sub = boss.get("subtitle")
-		_card_sub = sub if sub is String else ""
+		_card_sub = tr(sub) if sub is String else ""
 		for info: Dictionary in Rooms.BOSSES.values():
 			if _card_sub == "" and info.id == boss.get("boss_id") and info.title == boss.title:
-				_card_sub = info.get("subtitle", "")
+				_card_sub = tr(info.get("subtitle", ""))
 		_card_time = 0.0
 	elif not boss:
 		_shown_title = ""
@@ -182,7 +182,7 @@ func _process(delta: float) -> void:
 
 ## An area's name, fading in and out across the top of the screen.
 func show_area(text: String) -> void:
-	_area_title = text
+	_area_title = tr(text)
 	_area_time = 0.0
 
 
@@ -237,8 +237,16 @@ func _draw_danger() -> void:
 		_danger.draw_rect(Rect2(480 - w, 0, w, 270), Color(c, c.a * (1.0 - i * 0.22)))
 
 
+## Translates a line; one in "Name: words" form (someone speaking) has its words translated.
+func _translate(text: String) -> String:
+	var said := text.find(": ")
+	if said > 0 and said < 24:
+		return text.left(said) + ": " + tr(text.substr(said + 2))
+	return tr(text)
+
+
 func show_message(text: String) -> void:
-	_message.text = Game.fill_prompts(text)
+	_message.text = Game.fill_prompts(_translate(text))
 	if _message_tween:
 		_message_tween.kill()
 	_message_tween = create_tween()

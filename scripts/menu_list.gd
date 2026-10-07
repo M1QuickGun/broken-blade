@@ -83,7 +83,7 @@ func _draw() -> void:
 	var shown := _shown()
 	for i in shown.size():
 		var option: Dictionary = shown[i]
-		var text: String = option.text.call() if option.text is Callable else option.text
+		var text: String = tr(option.text.call() if option.text is Callable else option.text)
 		var chosen := i == selected
 		var y := i * LINE_HEIGHT
 		var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
