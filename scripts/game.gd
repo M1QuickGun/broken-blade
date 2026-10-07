@@ -59,6 +59,9 @@ var pins: Array = []
 ## The boss rush (from the title, once the end's been seen): every boss in turn on one life
 ## of masks, nothing saved but the best time.
 var boss_rush := false
+## The demo build (exported with the "demo" feature): the Foothills and the Frozen village.
+var demo := OS.has_feature("demo")
+const DEMO_REGIONS := ["foothills", "ice"]
 var rush_best := 0.0
 const RUSH := [["gate_cavern", "f"], ["frost_arena", "k"], ["frost_throne", "m"], ["forge", "t"],
 	["drake_roost", "w"], ["spire", "t"], ["thunder_eyrie", "v"], ["mirror_hall", "m"], ["throne_room", "j"]]

@@ -320,6 +320,12 @@ func _on_door_entered(door: String) -> void:
 	if _transitioning:
 		return
 	var link: Array = Rooms.LINKS[room.room_name][door]
+	if Game.demo and Rooms.region_of(link[0]) not in Game.DEMO_REGIONS:
+		# The demo ends at the edge of the Frozen village.
+		hud.show_message("The rest of the mountain waits in the full game. Thank you for playing the demo.")
+		player.velocity.x = -player.velocity.x
+		player.global_position = room.to_global(room.door_spawn(door))
+		return
 	_transitioning = true
 	player.controls_locked = true
 	await hud.fade_out(DOOR_FADE)

@@ -129,6 +129,8 @@ func _draw_title() -> void:
 	var font := Game.font
 	_centered(font, "BROKEN BLADE", 150, 64, COLOR_TITLE)
 	_centered(font, "a shard, a hilt, and a mountain to climb", 268, 16, COLOR_SUB)
+	var version := "v%s%s" % [ProjectSettings.get_setting("application/config/version", ""), "  demo" if Game.demo else ""]
+	_canvas.draw_string(font, Vector2(16, SIZE.y - 16), version, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(COLOR_SUB, 0.6))
 	_canvas.draw_rect(Rect2(Vector2.ZERO, SIZE), Color(0, 0, 0, _fade))
 
 
