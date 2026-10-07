@@ -38,10 +38,8 @@ func _ready() -> void:
 			"adjust": func(step: int) -> void: _volume("music_volume", step), "pick": func() -> void: _volume("music_volume", 1)},
 		{"text": func() -> String: return "Sound   < %d%% >" % roundi(Game.sfx_volume * 100),
 			"adjust": func(step: int) -> void: _volume("sfx_volume", step), "pick": func() -> void: _volume("sfx_volume", 1)},
-		{"text": func() -> String: return "Fullscreen   %s" % ("On" if Game.fullscreen else "Off"),
-			"adjust": func(_step: int) -> void: _toggle_fullscreen(), "pick": _toggle_fullscreen},
-		{"text": func() -> String: return "Screen shake   %s" % ("On" if Game.screen_shake else "Off"),
-			"adjust": func(_step: int) -> void: _toggle("screen_shake"), "pick": func() -> void: _toggle("screen_shake")},
+		{"text": "Video", "pick": _show_video},
+		{"text": "Accessibility", "pick": _show_access},
 		{"text": func() -> String: return "Play timer   %s" % ("On" if Game.show_timer else "Off"),
 			"adjust": func(_step: int) -> void: _toggle("show_timer"), "pick": func() -> void: _toggle("show_timer")},
 		{"text": "Controls", "pick": _show_controls},
@@ -58,6 +56,61 @@ func _ready() -> void:
 	_set_open(false)
 
 
+## A page of settings in place of the main list, with Back at the end.
+func _show_page(list: Array) -> void:
+	list.append({"text": "Back", "pick": func() -> void:
+		_menu.options = _main_options
+		_menu.selected = 0})
+	_menu.options = list
+	_menu.selected = 0
+
+
+func _show_video() -> void:
+	var names := {"fullscreen": "Fullscreen", "borderless": "Borderless", "windowed": "Windowed"}
+	var modes := ["fullscreen", "borderless", "windowed"]
+	_show_page([
+		{"text": func() -> String: return "Window   < %s >" % names[Game.window_mode],
+			"adjust": func(step: int) -> void: _change("window_mode", modes[(modes.find(Game.window_mode) + step + 3) % 3]),
+			"pick": func() -> void: _change("window_mode", modes[(modes.find(Game.window_mode) + 1) % 3])},
+		{"text": func() -> String:
+			var size: Vector2i = Game.WINDOW_SIZES[Game.window_size]
+			return "Window size   < %d x %d >" % [size.x, size.y],
+			"visible": func() -> bool: return Game.window_mode == "windowed",
+			"adjust": func(step: int) -> void: _change("window_size", posmod(Game.window_size + step, Game.WINDOW_SIZES.size())),
+			"pick": func() -> void: _change("window_size", posmod(Game.window_size + 1, Game.WINDOW_SIZES.size()))},
+		{"text": func() -> String: return "Vsync   %s" % ("On" if Game.vsync else "Off"),
+			"adjust": func(_step: int) -> void: _change("vsync", not Game.vsync), "pick": func() -> void: _change("vsync", not Game.vsync)},
+		{"text": func() -> String: return "Frame limit   < %s >" % ("None" if Game.fps_cap == 0 else str(Game.fps_cap)),
+			"adjust": func(step: int) -> void: _change("fps_cap", Game.FPS_CAPS[posmod(Game.FPS_CAPS.find(Game.fps_cap) + step, Game.FPS_CAPS.size())]),
+			"pick": func() -> void: _change("fps_cap", Game.FPS_CAPS[posmod(Game.FPS_CAPS.find(Game.fps_cap) + 1, Game.FPS_CAPS.size())])},
+		{"text": func() -> String: return "Pixel-perfect scaling   %s" % ("On" if Game.pixel_perfect else "Off"),
+			"adjust": func(_step: int) -> void: _change("pixel_perfect", not Game.pixel_perfect),
+			"pick": func() -> void: _change("pixel_perfect", not Game.pixel_perfect)},
+	])
+
+
+func _show_access() -> void:
+	var speeds := [1.0, 0.85, 0.7]
+	_show_page([
+		{"text": func() -> String: return "Game speed   < %d%% >" % roundi(Game.game_speed * 100),
+			"adjust": func(step: int) -> void: _change("game_speed", speeds[posmod(speeds.find(Game.game_speed) + step, 3)]),
+			"pick": func() -> void: _change("game_speed", speeds[posmod(speeds.find(Game.game_speed) + 1, 3)])},
+		{"text": func() -> String: return "Gentle blows (every hit takes one mask)   %s" % ("On" if Game.gentle else "Off"),
+			"adjust": func(_step: int) -> void: _change("gentle", not Game.gentle), "pick": func() -> void: _change("gentle", not Game.gentle)},
+		{"text": func() -> String: return "Fewer flashes   %s" % ("On" if Game.reduce_flashes else "Off"),
+			"adjust": func(_step: int) -> void: _change("reduce_flashes", not Game.reduce_flashes),
+			"pick": func() -> void: _change("reduce_flashes", not Game.reduce_flashes)},
+		{"text": func() -> String: return "Screen shake   %s" % ("On" if Game.screen_shake else "Off"),
+			"adjust": func(_step: int) -> void: _toggle("screen_shake"), "pick": func() -> void: _toggle("screen_shake")},
+	])
+
+
+func _change(setting: String, value) -> void:
+	Game.set(setting, value)
+	Game.apply_settings()
+	Game.save_settings()
+
+
 ## The controls: each action and its key; pick one, then press the key to put in its place.
 func _show_controls() -> void:
 	var list := []
@@ -68,11 +121,7 @@ func _show_controls() -> void:
 			"pick": func() -> void:
 				_waiting = action
 				_menu.active = false})
-	list.append({"text": "Back", "pick": func() -> void:
-		_menu.options = _main_options
-		_menu.selected = 0})
-	_menu.options = list
-	_menu.selected = 0
+	_show_page(list)
 
 
 func _unhandled_input(event: InputEvent) -> void:

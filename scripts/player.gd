@@ -1117,7 +1117,7 @@ func _slash_rect() -> Rect2:
 func _hitstop() -> void:
 	Engine.time_scale = 0.05
 	await get_tree().create_timer(HITSTOP_TIME, true, false, true).timeout
-	Engine.time_scale = 1.0
+	Engine.time_scale = Game.game_speed
 
 
 func _check_damage() -> void:
@@ -1224,6 +1224,8 @@ func _hurt_by_hazard() -> void:
 func _take_damage(amount := 1) -> void:
 	if Game.hard:
 		amount *= 2
+	if Game.gentle:
+		amount = 1
 	Sfx.play("hurt", -2.0)
 	hp = maxi(0, hp - amount)
 	hp_changed.emit(hp, Game.max_hp)

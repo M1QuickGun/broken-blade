@@ -28,7 +28,7 @@ static func _spawn(parent: Node, at: Vector2, color: Color, count: int, speed: f
 static func slow_motion(tree: SceneTree, scale := 0.25, seconds := 0.7) -> void:
 	Engine.time_scale = scale
 	await tree.create_timer(seconds, true, false, true).timeout
-	Engine.time_scale = 1.0
+	Engine.time_scale = Game.game_speed
 
 
 var _color := Color.WHITE

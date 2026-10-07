@@ -527,7 +527,7 @@ func _draw_pass() -> void:
 			_draw_ellipse(Vector2(x + s.r * 0.6, y - 4.0), Vector2(s.r, s.r * 0.25), Color(0.75, 0.77, 0.82, 0.05))
 		if _flash > 0.0:
 			var tint := COLOR_EMBER if _thunder_in > 0.0 else COLOR_SPARK
-			draw_rect(Rect2(Vector2.ZERO, size_px), Color(tint, 0.08 * _flash))
+			draw_rect(Rect2(Vector2.ZERO, size_px), Color(tint, (0.02 if Game.reduce_flashes else 0.08) * _flash))
 	for f in _flakes:
 		# Snow at the refuge; ash and snow blowing across the battlefield.
 		var fall: float = f.speed * lerpf(0.5, 1.2, f.depth)
@@ -590,7 +590,8 @@ func _draw_storm() -> void:
 		if _flash > 0.0:
 			# Lightning: the whole room lit white for a moment, flickering.
 			var flicker := 1.0 if _flash > 0.75 or (_flash > 0.4 and _flash < 0.55) else 0.45
-			draw_rect(Rect2(Vector2.ZERO, size_px), Color(COLOR_FLASH, 0.28 * _flash * flicker))
+			var strength := 0.06 if Game.reduce_flashes else 0.28
+			draw_rect(Rect2(Vector2.ZERO, size_px), Color(COLOR_FLASH, strength * _flash * (1.0 if Game.reduce_flashes else flicker)))
 		return
 	# Under the rock: static drifting and flickering.
 	for f in _flakes:

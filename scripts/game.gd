@@ -98,6 +98,20 @@ const SETTINGS_PATH := "user://settings.json"
 var music_volume := 0.8
 var sfx_volume := 0.8
 var fullscreen := true
+## Video: the window ("fullscreen", "borderless" or "windowed"), its size when windowed,
+## vsync, a frame-rate cap (0 = none), and whole-number scaling of the picture.
+var window_mode := "fullscreen"
+var window_size := 0
+var vsync := true
+var fps_cap := 0
+var pixel_perfect := false
+const WINDOW_SIZES := [Vector2i(1280, 720), Vector2i(1600, 900), Vector2i(1920, 1080), Vector2i(2560, 1440)]
+const FPS_CAPS := [0, 30, 60, 120, 144]
+## Accessibility: fewer and softer flashes, the whole game slowed, and every blow on Storm
+## taking only one mask.
+var reduce_flashes := false
+var game_speed := 1.0
+var gentle := false
 
 
 ## The game's lettering (art/font/broken_blade.ttf), crisp, with the system font behind it
@@ -407,9 +421,34 @@ func apply_settings() -> void:
 	AudioServer.set_bus_mute(AudioServer.get_bus_index("Music"), music_volume <= 0.0)
 	AudioServer.set_bus_volume_db(AudioServer.get_bus_index("SFX"), linear_to_db(maxf(sfx_volume, 0.001)))
 	AudioServer.set_bus_mute(AudioServer.get_bus_index("SFX"), sfx_volume <= 0.0)
-	var mode := DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED
-	if DisplayServer.window_get_mode() != mode:
-		DisplayServer.window_set_mode(mode)
+	Engine.time_scale = game_speed
+	Engine.max_fps = fps_cap
+	if DisplayServer.get_name() == "headless":
+		return
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if vsync else DisplayServer.VSYNC_DISABLED)
+	get_tree().root.content_scale_stretch = Window.CONTENT_SCALE_STRETCH_INTEGER if pixel_perfect \
+		else Window.CONTENT_SCALE_STRETCH_FRACTIONAL
+	fullscreen = window_mode != "windowed"
+	match window_mode:
+		"fullscreen":
+			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, false)
+			if DisplayServer.window_get_mode() != DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN:
+				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
+		"borderless":
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
+			var screen := DisplayServer.window_get_current_screen()
+			DisplayServer.window_set_position(DisplayServer.screen_get_position(screen))
+			DisplayServer.window_set_size(DisplayServer.screen_get_size(screen))
+		_:
+			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, false)
+			if DisplayServer.window_get_mode() != DisplayServer.WINDOW_MODE_WINDOWED:
+				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+			var size: Vector2i = WINDOW_SIZES[clampi(window_size, 0, WINDOW_SIZES.size() - 1)]
+			DisplayServer.window_set_size(size)
+			var screen := DisplayServer.window_get_current_screen()
+			DisplayServer.window_set_position(DisplayServer.screen_get_position(screen)
+				+ (DisplayServer.screen_get_size(screen) - size) / 2)
 
 
 func save_settings() -> void:
@@ -418,7 +457,9 @@ func save_settings() -> void:
 	write_safely(SETTINGS_PATH, JSON.stringify({
 			"music_volume": music_volume, "sfx_volume": sfx_volume, "fullscreen": fullscreen,
 			"screen_shake": screen_shake, "show_timer": show_timer, "bindings": bindings,
-			"achievements": achievements.keys(),
+			"achievements": achievements.keys(), "window_mode": window_mode, "window_size": window_size,
+			"vsync": vsync, "fps_cap": fps_cap, "pixel_perfect": pixel_perfect, "reduce_flashes": reduce_flashes,
+			"game_speed": game_speed, "gentle": gentle,
 		}, "\t"))
 
 
@@ -429,6 +470,14 @@ func load_settings() -> void:
 			music_volume = clampf(float(data.get("music_volume", music_volume)), 0.0, 1.0)
 			sfx_volume = clampf(float(data.get("sfx_volume", sfx_volume)), 0.0, 1.0)
 			fullscreen = bool(data.get("fullscreen", fullscreen))
+			window_mode = str(data.get("window_mode", "fullscreen" if fullscreen else "windowed"))
+			window_size = int(data.get("window_size", window_size))
+			vsync = bool(data.get("vsync", vsync))
+			fps_cap = int(data.get("fps_cap", fps_cap))
+			pixel_perfect = bool(data.get("pixel_perfect", pixel_perfect))
+			reduce_flashes = bool(data.get("reduce_flashes", reduce_flashes))
+			game_speed = clampf(float(data.get("game_speed", game_speed)), 0.5, 1.0)
+			gentle = bool(data.get("gentle", gentle))
 			screen_shake = bool(data.get("screen_shake", screen_shake))
 			show_timer = bool(data.get("show_timer", show_timer))
 			for id in data.get("achievements", []):
@@ -549,6 +598,7 @@ func unlock(ability: String) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("toggle_fullscreen"):
 		fullscreen = not fullscreen
+		window_mode = "fullscreen" if fullscreen else "windowed"
 		apply_settings()
 		save_settings()
 
