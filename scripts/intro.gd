@@ -106,11 +106,11 @@ func _draw_panel() -> void:
 	_canvas.draw_rect(Rect2(0, SIZE.y - 96, SIZE.x, 96), Color(0, 0, 0, 0.55 * fade))
 	var text: String = panels[_panel][1]
 	var shown := text.left(int(maxf(0.0, _time - FADE * 0.6) * TYPE_SPEED))
-	var font := ThemeDB.fallback_font
+	var font := Game.font
 	var at := Vector2(80, SIZE.y - 62)
-	_canvas.draw_multiline_string(font, at + Vector2(2, 2), shown, HORIZONTAL_ALIGNMENT_CENTER, SIZE.x - 160, 20,
+	_canvas.draw_multiline_string(font, at + Vector2(2, 2), shown, HORIZONTAL_ALIGNMENT_CENTER, SIZE.x - 160, 16,
 		-1, Color(0, 0, 0, fade))
-	_canvas.draw_multiline_string(font, at, shown, HORIZONTAL_ALIGNMENT_CENTER, SIZE.x - 160, 20, -1,
+	_canvas.draw_multiline_string(font, at, shown, HORIZONTAL_ALIGNMENT_CENTER, SIZE.x - 160, 16, -1,
 		Color(COLOR_TEXT, fade))
-	_canvas.draw_string(font, Vector2(SIZE.x - 210, 30), Game.fill_prompts("{jump}: next     {pause}: skip"), HORIZONTAL_ALIGNMENT_LEFT, -1, 13,
+	_canvas.draw_string(font, Vector2(SIZE.x - 210, 30), Game.fill_prompts("{jump}: next     {pause}: skip"), HORIZONTAL_ALIGNMENT_LEFT, -1, 16,
 		Color(0.6, 0.65, 0.75, 0.6 * fade))

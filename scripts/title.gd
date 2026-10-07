@@ -122,7 +122,7 @@ func _draw_title() -> void:
 	_canvas.draw_set_transform(Vector2(SIZE.x / 2.0, 205), PI / 2.0, Vector2(3.0, 3.0))
 	_canvas.draw_texture(BLADE, -Vector2(BLADE.get_size()) / 2.0, Color(1, 1, 1, 0.55))
 	_canvas.draw_set_transform(Vector2.ZERO)
-	var font := ThemeDB.fallback_font
+	var font := Game.font
 	_centered(font, "BROKEN BLADE", 150, 64, COLOR_TITLE)
 	_centered(font, "a shard, a hilt, and a mountain to climb", 268, 16, COLOR_SUB)
 	_canvas.draw_rect(Rect2(Vector2.ZERO, SIZE), Color(0, 0, 0, _fade))

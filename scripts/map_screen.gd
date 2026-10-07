@@ -141,16 +141,16 @@ func _draw_map() -> void:
 		var p := SIZE / 2.0 + _pan
 		_canvas.draw_circle(p, 4.5, Color(0, 0, 0, 0.6))
 		_canvas.draw_circle(p, 3.5, COLOR_STORM)
-	var font := ThemeDB.fallback_font
-	_canvas.draw_string(font, Vector2(24, 36), "Map", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color("e8ecf4"))
+	var font := Game.font
+	_canvas.draw_string(font, Vector2(24, 36), "Map", HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Color("e8ecf4"))
 	_canvas.draw_string(font, Vector2(24, SIZE.y - 24), "Move to look around.   M / Esc to close.",
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 14, COLOR_TEXT)
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 16, COLOR_TEXT)
 	for i in REGION_NAMES.size():
 		var key: String = REGION_NAMES[i][0]
 		var at := Vector2(24 + i * 150, 60)
 		_canvas.draw_rect(Rect2(at, Vector2(12, 10)), REGION_COLORS[key][0])
 		_canvas.draw_rect(Rect2(at, Vector2(12, 10)), REGION_COLORS[key][1], false, 1.0)
-		_canvas.draw_string(font, at + Vector2(18, 10), REGION_NAMES[i][1], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, COLOR_TEXT)
+		_canvas.draw_string(font, at + Vector2(18, 10), REGION_NAMES[i][1], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, COLOR_TEXT)
 	_canvas.draw_circle(Vector2(SIZE.x - 150, SIZE.y - 30), 3.5, COLOR_SHRINE)
-	_canvas.draw_string(font, Vector2(SIZE.x - 140, SIZE.y - 24), "Rest shrine", HORIZONTAL_ALIGNMENT_LEFT, -1, 14,
+	_canvas.draw_string(font, Vector2(SIZE.x - 140, SIZE.y - 24), "Rest shrine", HORIZONTAL_ALIGNMENT_LEFT, -1, 16,
 		COLOR_TEXT)

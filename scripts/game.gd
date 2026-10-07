@@ -61,6 +61,8 @@ const SAVE_PATH := "user://save_%d.json"
 ## The single save from before there were slots; moved into slot 1 the first time.
 const OLD_SAVE_PATH := "user://save.json"
 const SLOTS := 3
+## Bumped when the save's contents change shape; loading fills in anything older saves lack.
+const SAVE_VERSION := 2
 ## Which slot is being played.
 var slot := 1
 ## Time played on this save, in seconds (counted while a game is running and unpaused).
@@ -98,7 +100,17 @@ var sfx_volume := 0.8
 var fullscreen := true
 
 
+## The game's lettering (art/font/broken_blade.ttf), crisp, with the system font behind it
+## for any character it lacks.
+var font: FontFile
+
+
 func _ready() -> void:
+	font = load("res://art/font/broken_blade.ttf")
+	font.antialiasing = TextServer.FONT_ANTIALIASING_NONE
+	font.hinting = TextServer.HINTING_NONE
+	font.subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
+	font.fallbacks = [SystemFont.new()]
 	_setup_input()
 	_setup_audio_buses()
 	load_settings()
@@ -191,16 +203,13 @@ func new_game() -> void:
 
 
 func has_save() -> bool:
-	return FileAccess.file_exists(SAVE_PATH % slot)
+	return FileAccess.file_exists(SAVE_PATH % slot) or FileAccess.file_exists(SAVE_PATH % slot + ".bak")
 
 
 ## What a slot holds, for the title screen: {} if it's empty.
 func slot_summary(n: int) -> Dictionary:
-	var path := SAVE_PATH % n
-	if not FileAccess.file_exists(path):
-		return {}
-	var data = JSON.parse_string(FileAccess.get_file_as_string(path))
-	if typeof(data) != TYPE_DICTIONARY:
+	var data = read_json(SAVE_PATH % n)
+	if data == null:
 		return {}
 	var count := 0
 	for ability in data.get("abilities", []):
@@ -219,8 +228,9 @@ func any_finished() -> bool:
 
 
 func erase_slot(n: int) -> void:
-	if FileAccess.file_exists(SAVE_PATH % n):
-		DirAccess.remove_absolute(SAVE_PATH % n)
+	for path in [SAVE_PATH % n, SAVE_PATH % n + ".bak"]:
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(path)
 
 
 static func clock(seconds: float) -> String:
@@ -241,18 +251,44 @@ func save_game() -> void:
 		"lost_point": [lost_point.x, lost_point.y], "hone": hone, "maps": maps.keys(),
 		"rescued": rescued.keys(), "play_time": play_time, "journal": journal.keys(), "lore": lore, "hard": hard,
 	}
+	data["version"] = SAVE_VERSION
 	check_achievements()
-	var file := FileAccess.open(SAVE_PATH % slot, FileAccess.WRITE)
-	if file:
-		file.store_string(JSON.stringify(data, "\t"))
+	write_safely(SAVE_PATH % slot, JSON.stringify(data, "\t"))
+
+
+## Writes a file so a crash or power cut mid-write can't ruin it: to a temporary file first,
+## then swapped in, the old one kept as "<path>.bak" (loading falls back to it).
+static func write_safely(path: String, text: String) -> void:
+	var temp := path + ".tmp"
+	var file := FileAccess.open(temp, FileAccess.WRITE)
+	if file == null:
+		push_error("Couldn't write %s" % temp)
+		return
+	file.store_string(text)
+	file.flush()
+	file.close()
+	if FileAccess.file_exists(path):
+		DirAccess.remove_absolute(path + ".bak")
+		DirAccess.rename_absolute(path, path + ".bak")
+	DirAccess.rename_absolute(temp, path)
+
+
+## A save's contents, or the backup's if the save itself can't be read; null if neither.
+static func read_json(path: String):
+	for candidate in [path, path + ".bak"]:
+		if FileAccess.file_exists(candidate):
+			var data = JSON.parse_string(FileAccess.get_file_as_string(candidate))
+			if typeof(data) == TYPE_DICTIONARY:
+				return data
+	return null
 
 
 ## Reads progress back; false if there's no save (or it can't be read).
 func load_game() -> bool:
 	if not has_save():
 		return false
-	var data = JSON.parse_string(FileAccess.get_file_as_string(SAVE_PATH % slot))
-	if typeof(data) != TYPE_DICTIONARY:
+	var data = read_json(SAVE_PATH % slot)
+	if data == null:
 		return false
 	new_game()
 	play_time = float(data.get("play_time", 0.0))
@@ -379,9 +415,7 @@ func apply_settings() -> void:
 func save_settings() -> void:
 	if DisplayServer.get_name() == "headless":
 		return  # a headless test run: never touch the player's settings
-	var file := FileAccess.open(SETTINGS_PATH, FileAccess.WRITE)
-	if file:
-		file.store_string(JSON.stringify({
+	write_safely(SETTINGS_PATH, JSON.stringify({
 			"music_volume": music_volume, "sfx_volume": sfx_volume, "fullscreen": fullscreen,
 			"screen_shake": screen_shake, "show_timer": show_timer, "bindings": bindings,
 			"achievements": achievements.keys(),

@@ -76,6 +76,6 @@ func _draw() -> void:
 	draw_texture_rect_region(art, Rect2(-DRAW / 2.0, -DRAW, DRAW, DRAW), Rect2(frame * FRAME, 0, FRAME, FRAME))
 	draw_set_transform(Vector2.ZERO)
 	if _near:
-		var font := ThemeDB.fallback_font
+		var font := Game.font
 		var bob := sin(_time * 3.0)
 		draw_string(font, Vector2(-40, -DRAW - 4 + bob), "%s: trade" % Game.prompt("interact"), HORIZONTAL_ALIGNMENT_CENTER, 80, 8, Color(0.95, 0.85, 0.6))

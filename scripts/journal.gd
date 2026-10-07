@@ -67,7 +67,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _draw_journal() -> void:
-	var font := ThemeDB.fallback_font
+	var font := Game.font
 	var panel := Rect2(30, 24, 420, 222)
 	_canvas.draw_rect(Rect2(Vector2.ZERO, SIZE), Color(0, 0, 0, 0.5))
 	_canvas.draw_rect(panel, COLOR_PANEL)
@@ -75,7 +75,7 @@ func _draw_journal() -> void:
 	var tabs := ["Bestiary", "Lore"]
 	for i in 2:
 		var at := Vector2(panel.position.x + 14 + i * 80, panel.position.y + 16)
-		_canvas.draw_string(font, at, tabs[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, COLOR_EDGE if i == _page else COLOR_DIM)
+		_canvas.draw_string(font, at, tabs[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 8, COLOR_EDGE if i == _page else COLOR_DIM)
 	_canvas.draw_line(Vector2(panel.position.x + 8, panel.position.y + 22), Vector2(panel.end.x - 8, panel.position.y + 22),
 		Color(COLOR_EDGE, 0.5), 1.0)
 	var list := _entries()
@@ -86,15 +86,15 @@ func _draw_journal() -> void:
 		var y := panel.position.y + 38 + row * 16
 		if i == _choice:
 			_canvas.draw_rect(Rect2(panel.position.x + 6, y - 11, 170, 15), Color(COLOR_EDGE, 0.15))
-		_canvas.draw_string(font, Vector2(panel.position.x + 12, y), list[i][0], HORIZONTAL_ALIGNMENT_LEFT, 160, 9,
+		_canvas.draw_string(font, Vector2(panel.position.x + 12, y), list[i][0], HORIZONTAL_ALIGNMENT_LEFT, 160, 8,
 			COLOR_TEXT if i == _choice else COLOR_DIM)
 	_canvas.draw_line(Vector2(panel.position.x + 184, panel.position.y + 28), Vector2(panel.position.x + 184, panel.end.y - 18),
 		Color(COLOR_EDGE, 0.3), 1.0)
 	var entry: Array = list[_choice]
 	if _page == 0:
-		_canvas.draw_string(font, Vector2(panel.position.x + 194, panel.position.y + 40), entry[0], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, COLOR_EDGE)
+		_canvas.draw_string(font, Vector2(panel.position.x + 194, panel.position.y + 40), entry[0], HORIZONTAL_ALIGNMENT_LEFT, -1, 8, COLOR_EDGE)
 	_canvas.draw_multiline_string(font, Vector2(panel.position.x + 194, panel.position.y + (58 if _page == 0 else 40)), entry[1],
-		HORIZONTAL_ALIGNMENT_LEFT, panel.size.x - 206, 10, -1, COLOR_TEXT)
+		HORIZONTAL_ALIGNMENT_LEFT, panel.size.x - 206, 8, -1, COLOR_TEXT)
 	var found := 0
 	if _page == 0:
 		for id in Rooms.BESTIARY:

@@ -789,7 +789,7 @@ func _draw() -> void:
 		if phase == 1:
 			_draw_hilt(Vector2(0, _lid_y - position.y), true, PI)
 			if _near_hilt:
-				var font := ThemeDB.fallback_font
+				var font := Game.font
 				draw_string(font, Vector2(-14, _lid_y - position.y - 26), "W / E", HORIZONTAL_ALIGNMENT_CENTER,
 					28, 8, Color(1, 0.95, 0.8, 0.85))
 		return

@@ -29,7 +29,7 @@ func _ready() -> void:
 	_menu = MenuList.new()
 	_menu.position = Vector2(0, 170)
 	_menu.size = Vector2(SIZE.x, 340)
-	_menu.font_size = 18
+	_menu.font_size = 16
 	_menu.options = [
 		{"text": "Resume", "pick": close},
 		{"text": "Map", "pick": _pick_map},
@@ -153,8 +153,8 @@ func _toggle_fullscreen() -> void:
 
 func _draw_backing() -> void:
 	_canvas.draw_rect(Rect2(Vector2.ZERO, SIZE), Color(0.02, 0.03, 0.05, 0.72))
-	var font := ThemeDB.fallback_font
+	var font := Game.font
 	var text := "Paused"
-	var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 36).x
-	_canvas.draw_string(font, Vector2((SIZE.x - width) / 2.0, 130), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 36,
+	var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 32).x
+	_canvas.draw_string(font, Vector2((SIZE.x - width) / 2.0, 130), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 32,
 		Color("e8ecf4"))

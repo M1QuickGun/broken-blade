@@ -180,22 +180,22 @@ func show_area(text: String) -> void:
 func _draw_card() -> void:
 	if _area_time >= 0.0:
 		var a := clampf(minf(_area_time / 0.8, (CARD_TIME - _area_time) / 0.8), 0.0, 1.0)
-		var f := ThemeDB.fallback_font
+		var f := Game.font
 		_card.draw_string(f, Vector2(0, 47), _area_title, HORIZONTAL_ALIGNMENT_CENTER, 480, 16, Color(0, 0, 0, a * 0.8))
 		_card.draw_string(f, Vector2(0, 46), _area_title, HORIZONTAL_ALIGNMENT_CENTER, 480, 16, Color(0.88, 0.86, 0.8, a))
 		_card.draw_line(Vector2(190, 52), Vector2(290, 52), Color(0.75, 0.62, 0.45, a * 0.8), 1.0)
 	if _card_time < 0.0:
 		return
 	var alpha := clampf(minf(_card_time / 0.5, (CARD_TIME - _card_time) / 0.8), 0.0, 1.0)
-	var font := ThemeDB.fallback_font
+	var font := Game.font
 	var y := 96.0
 	_card.draw_rect(Rect2(0, y - 30, 480, 58), Color(0, 0, 0, 0.35 * alpha))
-	_card.draw_string(font, Vector2(0, y + 1), _card_title, HORIZONTAL_ALIGNMENT_CENTER, 480, 22, Color(0, 0, 0, alpha))
-	_card.draw_string(font, Vector2(0, y), _card_title, HORIZONTAL_ALIGNMENT_CENTER, 480, 22, Color(0.92, 0.9, 0.86, alpha))
+	_card.draw_string(font, Vector2(0, y + 1), _card_title, HORIZONTAL_ALIGNMENT_CENTER, 480, 16, Color(0, 0, 0, alpha))
+	_card.draw_string(font, Vector2(0, y), _card_title, HORIZONTAL_ALIGNMENT_CENTER, 480, 16, Color(0.92, 0.9, 0.86, alpha))
 	var grow := clampf(_card_time / 0.9, 0.0, 1.0)
 	_card.draw_line(Vector2(240 - 110 * grow, y + 7), Vector2(240 + 110 * grow, y + 7), Color(0.75, 0.62, 0.45, alpha), 1.0)
 	if _card_sub != "":
-		_card.draw_string(font, Vector2(0, y + 21), _card_sub, HORIZONTAL_ALIGNMENT_CENTER, 480, 11, Color(0.7, 0.72, 0.8, alpha))
+		_card.draw_string(font, Vector2(0, y + 21), _card_sub, HORIZONTAL_ALIGNMENT_CENTER, 480, 8, Color(0.7, 0.72, 0.8, alpha))
 
 
 func _draw_boss_bar() -> void:
@@ -256,7 +256,7 @@ func fade_in(duration: float) -> void:
 func _make_label(pos: Vector2) -> Label:
 	var label := Label.new()
 	label.position = pos
-	label.add_theme_font_size_override("font_size", 10)
+	label.add_theme_font_size_override("font_size", 8)
 	label.add_theme_color_override("font_color", COLOR_TEXT)
 	add_child(label)
 	return label
@@ -279,16 +279,16 @@ func _update_pieces() -> void:
 
 func _draw_timer() -> void:
 	if Game.show_timer:
-		var font := ThemeDB.fallback_font
-		_timer.draw_string(font, Vector2(0, 10), Game.clock(Game.play_time), HORIZONTAL_ALIGNMENT_RIGHT, 70, 10, Color(COLOR_TEXT, 0.8))
+		var font := Game.font
+		_timer.draw_string(font, Vector2(0, 10), Game.clock(Game.play_time), HORIZONTAL_ALIGNMENT_RIGHT, 70, 8, Color(COLOR_TEXT, 0.8))
 
 
 func _draw_crowns() -> void:
-	var font := ThemeDB.fallback_font
+	var font := Game.font
 	_crowns.draw_rect(Rect2(-1, -4, 7, 8), Color("6b4f22"))
 	_crowns.draw_rect(Rect2(0, -3, 5, 6), Color(0.95, 0.78, 0.36))
 	_crowns.draw_rect(Rect2(1, -2, 1, 2), Color(1, 0.96, 0.8))
-	_crowns.draw_string(font, Vector2(10, 4), str(Game.crowns), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, COLOR_TEXT)
+	_crowns.draw_string(font, Vector2(10, 4), str(Game.crowns), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, COLOR_TEXT)
 
 
 func _draw_flasks() -> void:

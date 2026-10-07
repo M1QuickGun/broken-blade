@@ -141,20 +141,20 @@ func _close() -> void:
 
 
 func _draw_shop() -> void:
-	var font := ThemeDB.fallback_font
+	var font := Game.font
 	var panel := Rect2(90, 40, 300, 190)
 	_canvas.draw_rect(Rect2(Vector2.ZERO, SIZE), Color(0, 0, 0, 0.45))
 	_canvas.draw_rect(panel, COLOR_PANEL)
 	_canvas.draw_rect(panel, COLOR_EDGE, false, 1.0)
-	_canvas.draw_string(font, Vector2(panel.position.x + 12, panel.position.y + 18), title, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, COLOR_EDGE)
+	_canvas.draw_string(font, Vector2(panel.position.x + 12, panel.position.y + 18), title, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, COLOR_EDGE)
 	# What Storm carries.
 	var purse := "%d" % Game.crowns
 	_canvas.draw_rect(Rect2(panel.end.x - 46, panel.position.y + 9, 5, 6), COLOR_GOLD)
-	_canvas.draw_string(font, Vector2(panel.end.x - 38, panel.position.y + 16), purse, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, COLOR_GOLD)
+	_canvas.draw_string(font, Vector2(panel.end.x - 38, panel.position.y + 16), purse, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, COLOR_GOLD)
 	_canvas.draw_line(Vector2(panel.position.x + 10, panel.position.y + 25), Vector2(panel.end.x - 10, panel.position.y + 25), Color(COLOR_EDGE, 0.5), 1.0)
 	var list := _available()
 	if list.is_empty():
-		_canvas.draw_string(font, Vector2(panel.position.x + 12, panel.position.y + 50), "Nothing more to trade.", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, COLOR_DIM)
+		_canvas.draw_string(font, Vector2(panel.position.x + 12, panel.position.y + 50), "Nothing more to trade.", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, COLOR_DIM)
 	var y := panel.position.y + 42
 	for i in list.size():
 		var ware: Array = list[i]
@@ -162,17 +162,17 @@ func _draw_shop() -> void:
 		if chosen:
 			_canvas.draw_rect(Rect2(panel.position.x + 6, y - 11, panel.size.x - 12, 15), Color(COLOR_EDGE, 0.15))
 		var afford: bool = Game.crowns >= ware[3]
-		_canvas.draw_string(font, Vector2(panel.position.x + 14, y), ware[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 10,
+		_canvas.draw_string(font, Vector2(panel.position.x + 14, y), ware[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 8,
 			COLOR_TEXT if chosen else COLOR_DIM)
-		_canvas.draw_string(font, Vector2(panel.end.x - 60, y), "%d" % ware[3], HORIZONTAL_ALIGNMENT_RIGHT, 46, 10,
+		_canvas.draw_string(font, Vector2(panel.end.x - 60, y), "%d" % ware[3], HORIZONTAL_ALIGNMENT_RIGHT, 46, 8,
 			COLOR_GOLD if afford else Color(0.6, 0.35, 0.3))
 		y += 16
 	if not list.is_empty():
 		var ware: Array = list[clampi(_choice, 0, list.size() - 1)]
 		_canvas.draw_multiline_string(font, Vector2(panel.position.x + 12, panel.end.y - 34), ware[2],
-			HORIZONTAL_ALIGNMENT_LEFT, panel.size.x - 24, 9, -1, COLOR_DIM)
+			HORIZONTAL_ALIGNMENT_LEFT, panel.size.x - 24, 8, -1, COLOR_DIM)
 	if _note_time > 0.0:
-		_canvas.draw_string(font, Vector2(panel.position.x, panel.end.y + 14), _note, HORIZONTAL_ALIGNMENT_CENTER, panel.size.x, 10,
+		_canvas.draw_string(font, Vector2(panel.position.x, panel.end.y + 14), _note, HORIZONTAL_ALIGNMENT_CENTER, panel.size.x, 8,
 			Color(COLOR_TEXT, clampf(_note_time, 0.0, 1.0)))
 	_canvas.draw_string(font, Vector2(panel.position.x + 12, panel.end.y - 8), Game.fill_prompts("Up / down: choose     {jump}: buy     {pause}: leave"),
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(COLOR_DIM, 0.7))

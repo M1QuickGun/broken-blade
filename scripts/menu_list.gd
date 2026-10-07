@@ -15,7 +15,7 @@ const COLOR_MARK := Color("9fe6ff")
 const LINE_HEIGHT := 30.0
 
 var options: Array = []
-var font_size := 20
+var font_size := 16
 var selected := 0
 ## Read input this frame (menus beneath one that's open stay still).
 var active := true
@@ -79,7 +79,7 @@ func _process(_delta: float) -> void:
 
 
 func _draw() -> void:
-	var font := ThemeDB.fallback_font
+	var font := Game.font
 	var shown := _shown()
 	for i in shown.size():
 		var option: Dictionary = shown[i]
