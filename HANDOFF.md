@@ -35,6 +35,11 @@ controls are in `README.md`.
   centipede's first fight stays asleep: it wakes on the hilt). Saving and settings are off
   in headless runs, so tests can't touch the player's files.
 - `tools/make_music.py` / `make_ambience.py` / `make_sfx.py`: regenerate the audio.
+- `tools/make_store_art.py`: the Steam capsules, library hero and logo into `press/steam/`.
+- `tools/extract_strings.py`: gathers the game's text into `translations/strings.csv`.
+- `tools/export.sh`: builds the game and the demo (needs Godot's export templates).
+- The font (`art/font/broken_blade.ttf`, made with PixelLab) had a short capital O; it was
+  fixed by hand (fontTools). Check new glyph sets for the same.
 - `tools/check_reach.py`: reachability check (jump, double jump, wall climb, shockline,
   slide limits) for the fire and lightning regions' gates and secrets.
 - `tools/make_sfx.py`: synthesizes every sound effect into `audio/sfx/`.
