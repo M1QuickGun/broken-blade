@@ -86,30 +86,33 @@ const BOSSES := {
 	# The Guardian Centipede: pinned in the pit under the ring by the hilt (beaten, it leaves
 	# the hilt itself), then risen again in the cavern before the frozen gate.
 	"ring": {"id": "centipede_1", "kind": "centipede", "phase": 1, "title": "The Guardian Centipede", "hp": 12,
+		"subtitle": "Warden of the hilt",
 		"reward": "W"},
 	"gate_cavern": {"id": "centipede_2", "kind": "centipede", "phase": 2,
-		"title": "The Guardian Centipede, Risen", "hp": 20},
+		"title": "The Guardian Centipede, Risen", "hp": 20, "subtitle": "It would not stay buried"},
 	# The Frost Colossus: frozen into the arena's wall with the ice piece in its chest, then
 	# broken out and walking in the throne room.
 	"frost_arena": {"id": "colossus_1", "kind": "colossus", "phase": 1, "title": "The Frost Colossus",
-		"hp": 14, "reward": "I"},
+		"hp": 14, "reward": "I", "subtitle": "Bound in ice, holding the ice"},
 	"frost_throne": {"id": "colossus_2", "kind": "colossus", "phase": 2, "title": "The Frost Colossus, Unbound",
-		"hp": 22, "reward": "H"},
+		"hp": 22, "reward": "H", "subtitle": "The village's last guardian"},
 	# The Ashen Drake: grounded in the forge by the fire piece driven through its wing (it
 	# breaks out through the roof when the piece comes loose), then free and flying in its
 	# roost.
-	"forge": {"id": "drake_1", "kind": "drake", "phase": 1, "title": "The Ashen Drake", "hp": 16, "reward": "F"},
+	"forge": {"id": "drake_1", "kind": "drake", "phase": 1, "title": "The Ashen Drake", "hp": 16, "reward": "F",
+		"subtitle": "Pinned by the fire's piece"},
 	"drake_roost": {"id": "drake_2", "kind": "drake", "phase": 2, "title": "The Ashen Drake, Unbound",
-		"hp": 22, "reward": "H"},
+		"hp": 22, "reward": "H", "subtitle": "Free of the forge"},
 	# The Stormcaller: the king's court sorcerer, who first sealed the evil, taken by it and
 	# chained to the spire's plinth by the lightning tip; then freed and towering in its eyrie.
 	"spire": {"id": "stormcaller_1", "kind": "stormcaller", "phase": 1, "title": "The Stormcaller, Bound",
-		"hp": 14, "reward": "L"},
+		"hp": 14, "reward": "L", "subtitle": "The king's sorcerer, chained by the tip"},
 	"thunder_eyrie": {"id": "stormcaller_2", "kind": "stormcaller", "phase": 2, "title": "The Stormcaller",
-		"hp": 22, "reward": "H"},
+		"hp": 22, "reward": "H", "subtitle": "Who first sealed the evil"},
 	# The Hollow King: the evil sitting on the throne in the dead king's armor, Storm's father.
 	# Beaten, it tears out of him, and the end follows.
-	"throne_room": {"id": "hollow_king", "kind": "hollow_king", "phase": 1, "title": "The Hollow King", "hp": 34},
+	"throne_room": {"id": "hollow_king", "kind": "hollow_king", "phase": 1, "title": "The Hollow King", "hp": 22,
+		"subtitle": "What wears your father's crown"},
 }
 
 ## Scenery standing on the ground, drawn behind Storm: [kind, x tile, row it stands on].

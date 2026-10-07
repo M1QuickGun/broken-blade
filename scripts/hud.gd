@@ -1,6 +1,7 @@
 extends CanvasLayer
 ## Health masks, blade piece count, on-screen messages and screen fades.
 
+const Rooms := preload("res://scripts/rooms.gd")
 const COLOR_MASK_FULL := Color("e6e9f0")
 const COLOR_MASK_EMPTY := Color("2a2e3a")
 const COLOR_TEXT := Color("c9ced9")
@@ -55,6 +56,12 @@ var _boss_label: Label
 ## The boss being fought (a boss.gd node), or null. Untyped: read for its title and hp.
 var _boss = null
 var _message_tween: Tween
+## The boss's name across the screen as its fight begins (and when it changes, mid-fight).
+var _card: Control
+var _card_title := ""
+var _card_sub := ""
+var _card_time := -1.0
+var _shown_title := ""
 var _hurt: ColorRect
 
 
@@ -93,6 +100,12 @@ func _ready() -> void:
 	_boss_label.size = Vector2(BOSS_BAR_SIZE.x, 12)
 	_boss_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
+	_card = Control.new()
+	_card.size = Vector2(480, 270)
+	_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_card.draw.connect(_draw_card)
+	add_child(_card)
+
 	_fade = ColorRect.new()
 	_fade.color = Color(0, 0, 0, 0)
 	_fade.size = Vector2(480, 270)
@@ -107,13 +120,48 @@ func _ready() -> void:
 	_update_pieces()
 
 
-func _process(_delta: float) -> void:
+const CARD_TIME := 3.2
+
+
+func _process(delta: float) -> void:
 	var boss = get_tree().get_first_node_in_group("boss")
 	if boss != _boss:
 		_boss = boss
+	if boss and boss.title != _shown_title:
+		_shown_title = boss.title
+		_card_title = boss.title
+		var sub = boss.get("subtitle")
+		_card_sub = sub if sub is String else ""
+		for info: Dictionary in Rooms.BOSSES.values():
+			if _card_sub == "" and info.id == boss.get("boss_id") and info.title == boss.title:
+				_card_sub = info.get("subtitle", "")
+		_card_time = 0.0
+	elif not boss:
+		_shown_title = ""
+	if _card_time >= 0.0:
+		_card_time += delta
+		if _card_time > CARD_TIME:
+			_card_time = -1.0
+		_card.queue_redraw()
 	# (Read every frame: a boss can change its name mid-fight.)
 	_boss_label.text = boss.title if boss else ""
 	_boss_bar.queue_redraw()
+
+
+## The boss's name, large, with a line under it and a smaller line of who it is.
+func _draw_card() -> void:
+	if _card_time < 0.0:
+		return
+	var alpha := clampf(minf(_card_time / 0.5, (CARD_TIME - _card_time) / 0.8), 0.0, 1.0)
+	var font := ThemeDB.fallback_font
+	var y := 96.0
+	_card.draw_rect(Rect2(0, y - 30, 480, 58), Color(0, 0, 0, 0.35 * alpha))
+	_card.draw_string(font, Vector2(0, y + 1), _card_title, HORIZONTAL_ALIGNMENT_CENTER, 480, 22, Color(0, 0, 0, alpha))
+	_card.draw_string(font, Vector2(0, y), _card_title, HORIZONTAL_ALIGNMENT_CENTER, 480, 22, Color(0.92, 0.9, 0.86, alpha))
+	var grow := clampf(_card_time / 0.9, 0.0, 1.0)
+	_card.draw_line(Vector2(240 - 110 * grow, y + 7), Vector2(240 + 110 * grow, y + 7), Color(0.75, 0.62, 0.45, alpha), 1.0)
+	if _card_sub != "":
+		_card.draw_string(font, Vector2(0, y + 21), _card_sub, HORIZONTAL_ALIGNMENT_CENTER, 480, 11, Color(0.7, 0.72, 0.8, alpha))
 
 
 func _draw_boss_bar() -> void:

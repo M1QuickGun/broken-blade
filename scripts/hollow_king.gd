@@ -2,7 +2,7 @@ extends Node2D
 ## The Hollow King (the throne room): the evil sitting on the throne in the dead king's
 ## armor, Storm's father, a phantom blade of smoke and violet light in his hand.
 ##
-## Phase 1, the King. He sits slumped on the throne until Storm comes near, then rises and
+## Phase 1, the King. He kneels before the throne until Storm comes near, then rises and
 ## steps down to fight on the floor, turning each piece's evil against him in turn:
 ## - Slash: he stalks Storm, raises the blade high and brings it down in a great arc in front
 ##   of him; afterwards he's slow to recover: the opening.
@@ -14,7 +14,9 @@ extends Node2D
 ##   (the Stormcaller): keep moving.
 ## - Thrust: he draws the blade back, a thin line along the floor showing its reach, and
 ##   drives it out low across the room: jump it.
-## Below half health he moves faster.
+## Below 40% his armor cracks and light bleeds out of it: he fights faster, and adds
+## judgement: phantom blades hang over Storm one after another and plunge down (each marked
+## on the floor first).
 ##
 ## Beaten, the King falls to his knees, and the evil tears out of him: phase 2, the evil
 ## unbound, towering over the room (the King's empty armor left kneeling below). Touching it
@@ -26,7 +28,8 @@ extends Node2D
 ##   or be up on a ring.
 ## - Ruin: ice, fire and lightning fall all over the room, each marked on the floor first.
 ## - Orbs: it breathes three orbs of dark that drift after Storm; strike them to pop them.
-## Below 40% it fights faster. Beaten, light breaks through it and it comes apart.
+## Below 40% it fights faster. Beaten, light breaks through it, its arms fall away and it
+## splits apart down the middle.
 
 signal defeated
 ## Emitted when it wakes; the room bars its doors then.
@@ -39,7 +42,20 @@ const IDLE := preload("res://art/bosses/king/idle.png")
 const WALK := preload("res://art/bosses/king/walk.png")
 const CAST := preload("res://art/bosses/king/cast.png")
 const THRUST := preload("res://art/bosses/king/thrust.png")
+const SLASH := preload("res://art/bosses/king/slash.png")
+const KNEEL := preload("res://art/bosses/king/kneel.png")
 const EVIL := preload("res://art/bosses/king/evil.png")
+## The evil cut for moving: its body without arms, and each arm (art cut from EVIL at
+## ARM_L_AT / ARM_R_AT, hung from its shoulder).
+const EVIL_BODY := preload("res://art/bosses/king/evil_body.png")
+const ARM_L := preload("res://art/bosses/king/evil_arm_l.png")
+const ARM_R := preload("res://art/bosses/king/evil_arm_r.png")
+const ARM_L_AT := Vector2(0, 64)
+const ARM_R_AT := Vector2(174, 64)
+const SHOULDER_L := Vector2(72, 84)
+const SHOULDER_R := Vector2(184, 84)
+const HAND_L := Vector2(40, 189)
+const HAND_R := Vector2(216, 189)
 const FRAME := 128
 ## The King's frames drawn this big (world units), his feet this far down the frame.
 const DRAW := 96.0
@@ -57,8 +73,14 @@ const LAYER_ENEMY := 4
 
 const PATTERN_1 := ["slash", "ice", "slash", "fire", "thrust", "bolts", "slash", "thrust"]
 const PATTERN_2 := ["claw", "ruin", "claw", "sweep", "orbs", "claw", "sweep", "ruin"]
+## Cracked (below 40%), the King's pattern with judgement in it.
+const PATTERN_CRACKED := ["slash", "judgement", "fire", "slash", "thrust", "judgement", "ice", "bolts"]
+const CRACK_AT := 0.4
+const JUDGEMENT := 3
+const JUDGEMENT_EVERY := 0.55
+const JUDGEMENT_WARNING := 0.9
 ## The evil's health once it tears free.
-const EVIL_HP := 26
+const EVIL_HP := 28
 const FAST_PACE := 0.78
 const EVIL_FAST_AT := 0.4
 const EVIL_FAST_PACE := 0.72
@@ -95,6 +117,8 @@ var boss_id := ""
 var kind := "hollow_king"
 var phase := 1
 var title := ""
+## Set when the evil tears free (the HUD shows it under the title).
+var subtitle := ""
 var max_hp := 18
 var hp := 0
 
@@ -127,6 +151,8 @@ var _strikes: Array[Dictionary] = []
 var _next_ruin := 0.0
 var _hunt := 0
 var _done := false
+## Below 40% the King's armor cracks.
+var _cracked := false
 
 var _body_box: Hitbox
 var _blade_box: Hitbox
@@ -231,8 +257,14 @@ func take_hit(damage: int, _from_dir: Vector2) -> void:
 	var at := _head if phase == 2 else _pos + Vector2(0, -40)
 	Effects.sparks(get_parent(), at, COLOR_VIOLET, 14)
 	Effects.sparks(get_parent(), at, COLOR_VIOLET_HOT, 6, 160.0)
-	if phase == 1 and hp <= max_hp / 2:
+	if phase == 1 and not _cracked and hp > 0 and hp <= int(max_hp * CRACK_AT):
+		# His armor cracks; light bleeds out of it.
+		_cracked = true
 		_pace = FAST_PACE
+		_shake = 0.5
+		Sfx.play("shatter", -2.0, 0.0)
+		Sfx.play("roar", -4.0, 0.0)
+		Effects.sparks(get_parent(), _pos + Vector2(0, -40), COLOR_VIOLET_HOT, 24, 180.0)
 	if phase == 2 and hp <= int(max_hp * EVIL_FAST_AT):
 		_pace = EVIL_FAST_PACE
 	if hp > 0:
@@ -294,7 +326,7 @@ func _enter(state: St, time := 0.0) -> void:
 
 
 func _next_attack() -> String:
-	var pattern: Array = PATTERN_1 if phase == 1 else PATTERN_2
+	var pattern: Array = (PATTERN_CRACKED if _cracked else PATTERN_1) if phase == 1 else PATTERN_2
 	var attack: String = pattern[_move % pattern.size()]
 	_move += 1
 	return attack
@@ -333,7 +365,7 @@ func _phase_1(p: Vector2, delta: float) -> void:
 				match _attack:
 					"slash":
 						_enter(St.WALK, 2.6)
-					"ice", "fire", "bolts":
+					"ice", "fire", "bolts", "judgement":
 						_enter(St.CAST, 0.9)
 					"thrust":
 						_enter(St.THRUST_WINDUP, 1.0)
@@ -362,7 +394,14 @@ func _phase_1(p: Vector2, delta: float) -> void:
 				_timer = BOLT_EVERY * _pace
 				var x := clampf(p.x, _left + 12.0, _right - 12.0)
 				_strikes.append({"x": x, "t": BOLT_WARNING, "kind": "bolt"})
-			elif _hunt <= 0 and _strikes.is_empty():
+			elif _timer <= 0.0 and _hunt < 0:
+				# Judgement: a phantom blade over where he stands, then the next.
+				_hunt += 1
+				_timer = JUDGEMENT_EVERY * _pace
+				var x := clampf(p.x, _left + 12.0, _right - 12.0)
+				_strikes.append({"x": x, "t": JUDGEMENT_WARNING, "kind": "blade"})
+				Sfx.play("swing", -10.0, 0.2)
+			elif _hunt == 0 and _strikes.is_empty():
 				_enter(St.RECOVER, 0.6)
 		St.THRUST_WINDUP:
 			_face(p)
@@ -395,6 +434,7 @@ func _phase_1(p: Vector2, delta: float) -> void:
 				max_hp = EVIL_HP
 				hp = EVIL_HP
 				title = "The Evil Unbound"
+				subtitle = "What the blade was made to hold"
 				_pace = 1.0
 				_move = 0
 				add_to_group("shock_target")
@@ -424,6 +464,9 @@ func _cast(p: Vector2) -> void:
 			_enter(St.RECOVER, 1.0)
 		"bolts":
 			_hunt = BOLTS
+			_enter(St.BOLT_WAIT, 0.0)
+		"judgement":
+			_hunt = -JUDGEMENT  # (counted up from below zero: blades, not bolts)
 			_enter(St.BOLT_WAIT, 0.0)
 
 
@@ -534,7 +577,7 @@ func _update_strikes(delta: float) -> void:
 		if s.t <= 0.0:
 			landed.append(s)
 			match s.kind:
-				"bolt":
+				"bolt", "blade":
 					var proj := Projectile.new()
 					proj.kind = "bolt"
 					proj.height = _floor
@@ -603,8 +646,15 @@ func _restore_camera() -> void:
 func _draw() -> void:
 	for s in _strikes:
 		# Where each strike will land: a glow on the floor, brightening as it comes.
-		var grow := clampf(1.0 - s.t / (RUIN_WARNING if phase == 2 else BOLT_WARNING), 0.0, 1.0)
-		var color: Color = {"bolt": COLOR_SPARK, "icicle": COLOR_ICE, "ember": COLOR_FIRE}[s.kind]
+		var warning := RUIN_WARNING if phase == 2 else (JUDGEMENT_WARNING if s.kind == "blade" else BOLT_WARNING)
+		var grow := clampf(1.0 - s.t / warning, 0.0, 1.0)
+		var color: Color = {"bolt": COLOR_SPARK, "blade": COLOR_VIOLET, "icicle": COLOR_ICE, "ember": COLOR_FIRE}[s.kind]
+		if s.kind == "blade":
+			# A phantom blade hanging point-down over the spot, sinking as it comes.
+			var tip := Vector2(s.x, _floor - 90.0 + 50.0 * grow * grow) - position
+			draw_line(tip, tip + Vector2(0, -46), Color(COLOR_VIOLET, 0.35 + 0.4 * grow), 5.0)
+			draw_line(tip, tip + Vector2(0, -46), Color(COLOR_VIOLET_HOT, 0.5 + 0.4 * grow), 1.5)
+			draw_line(tip + Vector2(-8, -40), tip + Vector2(8, -40), Color(COLOR_VIOLET_HOT, 0.6 * grow + 0.2), 2.0)
 		_draw_ellipse(Vector2(s.x, _floor) - position, Vector2(5.0 + 9.0 * grow, 2.5), Color(color, 0.25 + 0.4 * grow))
 		if s.kind == "bolt" and fmod(_time, 0.1) < 0.06:
 			draw_line(Vector2(s.x, 0) - position, Vector2(s.x, _floor) - position, Color(color, 0.1 + 0.3 * grow), 1.0)
@@ -623,7 +673,22 @@ func _draw_king() -> void:
 		tint = Color(0.55, 0.52, 0.6, _armor_alpha)
 	var tex: Texture2D = IDLE
 	var frame := 0
+	var t := clampf(1.0 - _timer / _state_time, 0.0, 1.0)
 	match _state:
+		St.DORMANT:
+			tex = KNEEL
+			frame = 7
+		St.RISE:
+			# Up out of his kneel, then down off the dais.
+			tex = KNEEL if t < 0.45 else IDLE
+			frame = clampi(7 - int(t / 0.45 * 8.0), 0, 7) if t < 0.45 else 0
+		St.KNEEL:
+			tex = KNEEL
+			frame = mini(int(t * 8.0), 7)
+		St.TEAR, St.HOVER, St.CLAW_AIM, St.CLAW_FALL, St.CLAW_DOWN, St.CLAW_RISE, St.SWEEP_WARN, \
+				St.SWEEP, St.RUIN, St.ORBS, St.DYING:
+			tex = KNEEL
+			frame = 7
 		St.WALK:
 			tex = WALK
 			frame = int(_time * 8.0) % 8
@@ -637,18 +702,19 @@ func _draw_king() -> void:
 			tex = THRUST
 			frame = 6 + mini(int((1.0 - _timer / _state_time) * 2.0), 1)
 		St.SLASH_WINDUP:
-			tex = THRUST
-			frame = mini(int((1.0 - _timer / _state_time) * 5.0), 4)
-		St.SLASH, St.RECOVER:
-			tex = WALK if _attack == "slash" else CAST
-			frame = 4 if _attack == "slash" else 7
+			tex = SLASH
+			frame = mini(int(t * 6.0), 5)
+		St.SLASH:
+			tex = SLASH
+			frame = 6 if t < 0.5 else 7
+		St.RECOVER:
+			tex = SLASH if _attack == "slash" else THRUST if _attack == "thrust" else CAST
+			frame = 7
 	var at := _pos - position
 	var size := DRAW
 	var drop := 0.0
-	if _state == St.KNEEL or _state == St.TEAR or phase == 2:
-		drop = 14.0 * clampf(1.0 - _timer / _state_time, 0.0, 1.0) if _state == St.KNEEL else 14.0
 	if _state == St.DORMANT:
-		tint = Color(0.6, 0.58, 0.66)  # slumped in the dark on his throne
+		tint = Color(0.6, 0.58, 0.66)  # kneeling in the dark before his throne
 	if _state == St.SLASH_WINDUP:
 		# The phantom blade raised high, glowing brighter.
 		var g := clampf(1.0 - _timer / _state_time, 0.0, 1.0)
@@ -658,9 +724,21 @@ func _draw_king() -> void:
 	draw_texture_rect_region(tex, Rect2(Vector2(-size / 2.0, -size * FEET + drop), Vector2(size, size)),
 		Rect2(frame * FRAME, 0, FRAME, FRAME), tint)
 	draw_set_transform(Vector2.ZERO)
+	if _cracked and phase == 1 and _state != St.TEAR:
+		# Light bleeding out of the cracks in his armor.
+		var pulse := 0.6 + 0.4 * sin(_time * 7.0)
+		var rng := RandomNumberGenerator.new()
+		rng.seed = 11
+		var chest := at + Vector2(_dir * 2.0, -48.0 + (16.0 if _state == St.KNEEL else 0.0))
+		draw_circle(chest, 16.0, Color(COLOR_VIOLET, 0.12 * pulse))
+		for k in 7:
+			var from := chest + Vector2(rng.randf_range(-8, 8), rng.randf_range(-14, 22))
+			var pts := PackedVector2Array([from])
+			for i in 3:
+				pts.append(pts[-1] + Vector2(rng.randf_range(-5, 5), rng.randf_range(-6, 6)))
+			draw_polyline(pts, Color(COLOR_VIOLET_HOT, 0.75 * pulse), 1.0)
 	if _state == St.SLASH:
 		# The great arc of the blade coming down.
-		var t := clampf(1.0 - _timer / _state_time, 0.0, 1.0)
 		var center := at + Vector2(_dir * 10.0, -36.0)
 		var pts := PackedVector2Array()
 		for i in 9:
@@ -685,21 +763,69 @@ func _draw_evil() -> void:
 	var size := EVIL_DRAW * lerpf(0.2, 1.0, _grow)
 	var tint := Color(3, 3, 3) if _flash > 0.0 else Color.WHITE
 	tint.a = _evil_alpha
+	var t := 0.0
 	if _state == St.DYING:
-		var t := clampf(1.0 - _timer / _state_time, 0.0, 1.0)
+		t = clampf(1.0 - _timer / _state_time, 0.0, 1.0)
 		tint = tint.lerp(Color(2.5, 2.5, 2.8, _evil_alpha), t * 0.6)
-	var top_left := _head - position - EVIL_HEAD * size + Vector2(0, sin(_time * 1.3) * 2.0)
-	draw_texture_rect(EVIL, Rect2(top_left, Vector2(size, size)), false, tint)
+	var origin := _head - position - EVIL_HEAD * size + Vector2(0, sin(_time * 1.3) * 2.0)
+	var k := size / 256.0
+	# The arms, hung from the shoulders behind the body, swaying; the one reaching out for
+	# a claw thins away into the smoke that carries it.
+	var reaching := _claw_side()
+	for side in [-1, 1]:
+		var tex: Texture2D = ARM_L if side < 0 else ARM_R
+		var at: Vector2 = ARM_L_AT if side < 0 else ARM_R_AT
+		var shoulder: Vector2 = SHOULDER_L if side < 0 else SHOULDER_R
+		var sway: float = sin(_time * 1.1 + side) * 0.06 * side
+		var arm_tint := tint
+		var fall := 0.0
+		if reaching == side:
+			arm_tint.a *= 0.25
+		if _state == St.DYING:
+			fall = 120.0 * t * t  # its arms fall away first
+			arm_tint.a *= 1.0 - clampf(t * 1.4, 0.0, 1.0)
+		var pivot := origin + shoulder * k + Vector2(0, fall)
+		draw_set_transform(pivot, sway + side * 0.3 * t, Vector2.ONE)
+		draw_texture_rect(tex, Rect2((at - shoulder) * k, Vector2(tex.get_size()) * k), false, arm_tint)
+		draw_set_transform(Vector2.ZERO)
 	if _state == St.DYING:
-		# Cracks of light breaking out of it.
-		var t := clampf(1.0 - _timer / _state_time, 0.0, 1.0)
+		# Splitting down the middle, light pouring out of the gap.
+		var gap := 40.0 * t * t
+		var half := Vector2(128, 256)
+		draw_rect(Rect2(origin + Vector2(128 * k - gap / 2.0, 0), Vector2(gap, size)), Color(COLOR_VIOLET_HOT, 0.8 * t))
+		draw_texture_rect_region(EVIL_BODY, Rect2(origin - Vector2(gap / 2.0, 0), half * k),
+			Rect2(Vector2.ZERO, half), tint)
+		draw_texture_rect_region(EVIL_BODY, Rect2(origin + Vector2(128 * k + gap / 2.0, 0), half * k),
+			Rect2(Vector2(128, 0), half), tint)
 		var rng := RandomNumberGenerator.new()
 		rng.seed = 7
-		for k in int(3 + t * 9):
+		for i in int(3 + t * 9):
 			var a := rng.randf() * TAU
 			var from := _head - position + Vector2(rng.randf_range(-30, 30), rng.randf_range(-10, 90))
 			draw_line(from, from + Vector2.from_angle(a) * rng.randf_range(20, 60) * t,
 				Color(COLOR_VIOLET_HOT, 0.8 * _evil_alpha), 2.0)
+	else:
+		draw_texture_rect(EVIL_BODY, Rect2(origin, Vector2(size, size)), false, tint)
+	if reaching != 0:
+		# The reaching arm, stretched out into a tendril of smoke to the claw.
+		var shoulder: Vector2 = origin + (SHOULDER_L if reaching < 0 else SHOULDER_R) * k
+		var hand := _claw - position + Vector2(0, -CLAW_DRAW.y * 0.4)
+		var bend := (shoulder + hand) / 2.0 + Vector2(reaching * 30.0, -20.0 + sin(_time * 3.0) * 6.0)
+		var pts := PackedVector2Array()
+		for i in 13:
+			var u := i / 12.0
+			pts.append(shoulder.lerp(bend, u).lerp(bend.lerp(hand, u), u))
+		for i in 12:
+			var w := lerpf(16.0, 6.0, i / 11.0)
+			draw_line(pts[i], pts[i + 1], Color(COLOR_SMOKE, 0.9 * _evil_alpha), w)
+		draw_polyline(pts, Color([COLOR_ICE, COLOR_FIRE, COLOR_SPARK][int(_time * 2.0) % 3], 0.5 * _evil_alpha), 1.0)
+
+
+## Which arm is out after a claw (-1 left, 1 right), or 0.
+func _claw_side() -> int:
+	if _state not in [St.CLAW_AIM, St.CLAW_FALL, St.CLAW_DOWN, St.CLAW_RISE, St.SWEEP_WARN, St.SWEEP]:
+		return 0
+	return -1 if _claw.x < _head.x else 1
 
 
 func _draw_claw() -> void:
