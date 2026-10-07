@@ -4,6 +4,8 @@ extends Node2D
 
 signal door_entered(door: String)
 signal sign_read(text: String)
+## A survivor at the refuge was asked to trade.
+signal shop_opened(shop: String, title: String)
 signal boss_defeated(title: String)
 
 const Rooms := preload("res://scripts/rooms.gd")
@@ -23,6 +25,10 @@ const Wisp := preload("res://scripts/wisp.gd")
 const Stormcaller := preload("res://scripts/stormcaller.gd")
 const HollowKing := preload("res://scripts/hollow_king.gd")
 const Shade := preload("res://scripts/shade.gd")
+const Pot := preload("res://scripts/pot.gd")
+const Purse := preload("res://scripts/purse.gd")
+const Coin := preload("res://scripts/coin.gd")
+const FlaskPickup := preload("res://scripts/flask_pickup.gd")
 const Npc := preload("res://scripts/npc.gd")
 
 const PIECE_ABILITIES := {"I": "dash", "F": "double_jump", "L": "shockline", "W": "wall_jump"}
@@ -130,6 +136,7 @@ var _summit := false
 ## The king's castle at the summit.
 var _castle := false
 var _npc_count := 0
+var _rescued_spot := 0
 ## The breakable earth lid ("=") and the frozen gate ("G"), while they stand.
 var _lid: StaticBody2D
 var _backdrop: Node2D
@@ -173,6 +180,10 @@ func build(name_: String) -> void:
 	_build_doors()
 	_setup_boss()
 	_add_props()
+	if Game.lost_room == room_name and Game.lost_crowns > 0:
+		var purse := Purse.new()
+		purse.position = Game.lost_point
+		add_child(purse)
 	if _woods:
 		for is_front in [false, true]:
 			var woods := Atmosphere.new()
@@ -438,6 +449,8 @@ func _scan_cells() -> void:
 						npc.title = who.name
 						npc.art = load("res://art/npcs/%s.png" % who.art)
 						npc.lines = who.lines
+						npc.shop = who.get("shop", "")
+						npc.trade.connect(func(shop: String, title: String) -> void: shop_opened.emit(shop, title))
 						npc.position = feet
 						npc.read.connect(func(text: String) -> void: sign_read.emit(text))
 						add_child(npc)
@@ -448,6 +461,22 @@ func _scan_cells() -> void:
 					add_child(wisp)
 				"Y", "V":
 					_spawn_extra(c, feet)
+				"Q":
+					_add_lost_survivor(feet)
+				"Z":
+					_add_rescued_survivor(feet)
+				"K":
+					if not Game.collected.has("%s:%d,%d" % [room_name, x, y]):
+						var flask := FlaskPickup.new()
+						flask.id = "%s:%d,%d" % [room_name, x, y]
+						flask.position = Vector2((x + 0.5) * TILE, (y + 0.5) * TILE)
+						add_child(flask)
+				"O":
+					var pot := Pot.new()
+					pot.position = feet
+					pot.tint = Color(0.8, 0.88, 1.0) if _ice or _castle else Color(0.75, 0.68, 0.66) if _fire \
+						else Color.WHITE
+					add_child(pot)
 				"E" when _fire:
 					var bat := Bat.new()
 					bat.position = feet
@@ -631,6 +660,57 @@ func _on_door_body_entered(_body: Node2D, letter: String) -> void:
 		door_entered.emit(letter)
 
 
+## A lost survivor where they hid (until found: then they're at the refuge).
+func _add_lost_survivor(feet: Vector2) -> void:
+	var who: Dictionary = Rooms.SURVIVORS.get(room_name, {})
+	if who.is_empty() or Game.rescued.has(who.id):
+		return
+	var npc := _survivor_npc(who, feet)
+	npc.on_meet = func() -> String:
+		Game.rescued[who.id] = true
+		Game.save_game()
+		return "%s\n(%s sets off for the refuge.)" % [who.found, who.name]
+	add_child(npc)
+
+
+## The survivors who made it, each at their place in the refuge; met there the first time,
+## they give Storm their gift.
+func _add_rescued_survivor(feet: Vector2) -> void:
+	var list: Array = Rooms.SURVIVORS.values()
+	var index := _rescued_spot
+	_rescued_spot += 1
+	if index >= list.size() or not Game.rescued.has(list[index].id):
+		return
+	var who: Dictionary = list[index]
+	var npc := _survivor_npc(who, feet)
+	var gift_id := "gift:%s" % who.id
+	if not Game.collected.has(gift_id):
+		npc.on_meet = func() -> String:
+			Game.collected[gift_id] = true
+			match who.gift:
+				"crowns":
+					Coin.drop(self, feet + Vector2(0, -16), who.amount)
+				"mask":
+					Game.add_mask(gift_id + ":mask")
+				"flask":
+					Game.add_flask(gift_id + ":flask")
+				"hone":
+					Game.hone += 1
+			Game.save_game()
+			return who.thanks
+	add_child(npc)
+
+
+func _survivor_npc(who: Dictionary, feet: Vector2) -> Node2D:
+	var npc := Npc.new()
+	npc.title = who.name
+	npc.art = load("res://art/npcs/%s.png" % who.art)
+	npc.lines = who.lines
+	npc.position = feet
+	npc.read.connect(func(text: String) -> void: sign_read.emit(text))
+	return npc
+
+
 func _add_mask_shard(id: String, pos: Vector2) -> void:
 	if Game.collected.has(id):
 		return
@@ -720,6 +800,8 @@ func _on_boss_defeated(info: Dictionary, where: Vector2, exact := false) -> void
 	queue_redraw()
 	if info.has("reward"):
 		_add_reward(info.reward, where if exact else Vector2(where.x, _boss_spawn.y - TILE))
+	# A pile of crowns where it fell.
+	Coin.drop(self, (where if exact else Vector2(where.x, _boss_spawn.y - TILE)) + Vector2(0, -8), 40 * info.phase)
 	if not is_nan(_after_shrine.x):
 		# A shrine kindles where the fight ended, and Storm will wake here from now on.
 		var shrine := Shrine.new()

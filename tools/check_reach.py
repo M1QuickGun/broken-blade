@@ -212,6 +212,16 @@ EXPECT = [
     ("library", "g", "h", ["all"], []),
     ("bell_tower", "h", "i", ["all"], ["fire"]),
     ("throne_approach", "i", "j", ["base"], []),
+    ("rockfall", "a", "m", ["storm"], ["base", "fire"]),
+    ("frozen_street", "g", "n", ["fire"], ["base", "storm"]),
+    ("smoke_hollow", "t", "u", ["storm"], ["base", "fire"]),
+    ("lookout", "s", "u", ["fire"], ["base", "storm"]),
+    ("windward_pass", "z", "w", ["all"], ["fire", "storm"]),
+    ("hollow_oak", "m", "H", ["base"], []),
+    ("snowed_loft", "n", "K", ["base"], []),
+    ("charcoal_loft", "u", "H", ["base"], []),
+    ("bell_hut", "u", "K", ["base"], []),
+    ("watch_post", "w", "H", ["base"], []),
 ]
 
 

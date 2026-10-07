@@ -57,6 +57,7 @@ var _boss_label: Label
 var _boss = null
 var _message_tween: Tween
 ## The boss's name across the screen as its fight begins (and when it changes, mid-fight).
+var _crowns: Control
 var _card: Control
 var _card_title := ""
 var _card_sub := ""
@@ -99,6 +100,12 @@ func _ready() -> void:
 	_boss_label = _make_label(BOSS_BAR_POS + Vector2(0, -14))
 	_boss_label.size = Vector2(BOSS_BAR_SIZE.x, 12)
 	_boss_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+
+	_crowns = Control.new()
+	_crowns.position = FLASKS_POS + Vector2(0, 14)
+	_crowns.draw.connect(_draw_crowns)
+	add_child(_crowns)
+	Game.crowns_changed.connect(func(_count: int) -> void: _crowns.queue_redraw())
 
 	_card = Control.new()
 	_card.size = Vector2(480, 270)
@@ -241,6 +248,14 @@ func _update_pieces() -> void:
 	_pieces_label.text = "Blade  %d / %d" % [Game.pieces, Game.MAX_PIECES]
 	if not names.is_empty():
 		_pieces_label.text += "   " + "  ".join(names)
+
+
+func _draw_crowns() -> void:
+	var font := ThemeDB.fallback_font
+	_crowns.draw_rect(Rect2(-1, -4, 7, 8), Color("6b4f22"))
+	_crowns.draw_rect(Rect2(0, -3, 5, 6), Color(0.95, 0.78, 0.36))
+	_crowns.draw_rect(Rect2(1, -2, 1, 2), Color(1, 0.96, 0.8))
+	_crowns.draw_string(font, Vector2(10, 4), str(Game.crowns), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, COLOR_TEXT)
 
 
 func _draw_flasks() -> void:

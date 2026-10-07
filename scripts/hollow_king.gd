@@ -80,7 +80,7 @@ const JUDGEMENT := 3
 const JUDGEMENT_EVERY := 0.55
 const JUDGEMENT_WARNING := 0.9
 ## The evil's health once it tears free.
-const EVIL_HP := 28
+const EVIL_HP := 56
 const FAST_PACE := 0.78
 const EVIL_FAST_AT := 0.4
 const EVIL_FAST_PACE := 0.72

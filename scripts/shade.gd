@@ -7,6 +7,7 @@ extends Node2D
 ## above.
 
 const Effects := preload("res://scripts/effects.gd")
+const Coin := preload("res://scripts/coin.gd")
 const LAYER_ENEMY := 4
 
 const TEX := preload("res://art/enemies/shade.png")
@@ -33,7 +34,7 @@ const COLOR_EYE := Color(0.82, 0.72, 1.0)
 
 enum St { DRIFT, FADE, RISE, LUNGE, SPENT }
 
-var hp := 3
+var hp := 6
 
 var _state := St.DRIFT
 var _timer := 0.0
@@ -154,6 +155,7 @@ func take_hit(damage: int, from_dir: Vector2) -> void:
 		Sfx.play("enemy_die", -4.0)
 		Effects.puff(get_parent(), position, COLOR_SHADOW)
 		Effects.sparks(get_parent(), position, COLOR_EYE, 10, 80.0)
+		Coin.drop(get_parent(), position, randi_range(5, 8))
 		queue_free()
 		return
 	if from_dir != Vector2.ZERO:

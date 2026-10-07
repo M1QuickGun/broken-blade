@@ -7,6 +7,7 @@ extends Node2D
 ## it hangs a few tiles above.
 
 const Effects := preload("res://scripts/effects.gd")
+const Coin := preload("res://scripts/coin.gd")
 const LAYER_WORLD := 1
 const LAYER_ENEMY := 4
 
@@ -33,7 +34,7 @@ const COLOR_CORE := Color(0.95, 0.92, 1.0)
 
 enum St { DRIFT, CHARGE, ZAP }
 
-var hp := 2
+var hp := 4
 
 var _state := St.DRIFT
 var _timer := 0.0
@@ -169,6 +170,7 @@ func take_hit(damage: int, from_dir: Vector2) -> void:
 		Sfx.play("enemy_die", -4.0)
 		Sfx.play("crackle", -6.0)
 		Effects.sparks(get_parent(), position, COLOR_CORE, 14, 110.0)
+		Coin.drop(get_parent(), position, randi_range(3, 6))
 		queue_free()
 		return
 	# Knocked away, and its charge broken.

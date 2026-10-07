@@ -721,7 +721,7 @@ func _slide_strike() -> bool:
 		var target: Object = hit.collider
 		if not target.has_method("take_hit") or target.get("slide_through") == true:
 			continue  # (something a slide passes under, like a drake's breath or belly)
-		target.take_hit(1, Vector2(_dash_dir, 0))
+		target.take_hit(Game.blade_damage(), Vector2(_dash_dir, 0))
 		_dash_time = 0.0
 		velocity = Vector2(-_dash_dir * SLIDE_BOUNCE.x, SLIDE_BOUNCE.y)
 		_no_jump_cut = true
@@ -771,7 +771,7 @@ func _update_spin() -> void:
 		if to.length() > radius + SPIN_HIT_SLACK:
 			continue
 		_spin_hit.append(target)
-		target.take_hit(1, to.normalized() if to != Vector2.ZERO else Vector2(facing, 0))
+		target.take_hit(Game.blade_damage(), to.normalized() if to != Vector2.ZERO else Vector2(facing, 0))
 		struck = true
 	if struck and not _spin_landed:
 		_spin_landed = true  # one hit-freeze a spin, however many things it catches
@@ -996,7 +996,7 @@ func _snap_to_ring() -> void:
 func _shock_strike(enemy: Node2D) -> void:
 	_end_shockline()
 	var side := signf(_shock_dir.x) if _shock_dir.x != 0.0 else float(facing)
-	enemy.take_hit(1, Vector2(side, 0))
+	enemy.take_hit(Game.blade_damage(), Vector2(side, 0))
 	velocity = Vector2(-side * SHOCK_STRIKE_BOUNCE.x, SHOCK_STRIKE_BOUNCE.y)
 	_no_jump_cut = true
 	_strike(Vector2(side, 0))
@@ -1066,7 +1066,7 @@ func _slash_check() -> void:
 			if _swing_hit.has(target):
 				continue
 			_swing_hit.append(target)
-			target.take_hit(1, _slash_dir)
+			target.take_hit(Game.blade_damage(), _slash_dir)
 			hit_enemy = true
 		elif target.is_in_group("hazard"):
 			hit_hazard_tile = true

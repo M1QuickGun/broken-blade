@@ -7,6 +7,7 @@ extends CharacterBody2D
 ## feet of its roost; it hangs a few tiles above.
 
 const Effects := preload("res://scripts/effects.gd")
+const Coin := preload("res://scripts/coin.gd")
 const LAYER_WORLD := 1
 const LAYER_ENEMY := 4
 
@@ -40,7 +41,7 @@ const COLOR_EMBER := Color(1.0, 0.55, 0.18)
 
 enum St { HOVER, SCREECH, DIVE, CLIMB }
 
-var hp := 2
+var hp := 4
 ## "ash" (the Fire slopes), "frost" (its frostbitten kin in the Frozen village's colours) or
 ## "crow" (the Last Stand).
 var kind := "ash"
@@ -162,6 +163,7 @@ func take_hit(damage: int, from_dir: Vector2) -> void:
 			_:
 				Effects.puff(get_parent(), global_position, Color(0.4, 0.36, 0.34))
 				Effects.sparks(get_parent(), global_position, COLOR_EMBER, 12, 90.0)
+		Coin.drop(get_parent(), position, randi_range(3, 5))
 		queue_free()
 		return
 	if from_dir != Vector2.ZERO:

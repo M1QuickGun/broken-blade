@@ -30,6 +30,7 @@ controls are in `README.md`.
   room.gd `FLOOR_SHEETS`, rooms.gd `FLOORS`), made with PixelLab's sidescroller tileset tool
   (32px, 4x4 corner layout as STONE_TILES; download the metadata's spritesheet_url) and
   toned toward the region's colours.
+- `tools/check_map.py`: checks no two rooms overlap on the map (run after adding rooms).
 - `tools/check_reach.py`: reachability check (jump, double jump, wall climb, shockline,
   slide limits) for the fire and lightning regions' gates and secrets.
 - `tools/make_sfx.py`: synthesizes every sound effect into `audio/sfx/`.

@@ -6,6 +6,7 @@ signal ability_unlocked(ability: String)
 signal rested
 signal max_hp_changed(max_hp: int)
 signal flasks_changed(count: int, max_count: int)
+signal crowns_changed(count: int)
 
 ## Art is drawn at 2x the world's pixel density: the world uses 16 px tiles, sprites use 32.
 ## Sprites are placed at 1 / ART_SCALE and the camera zooms by ART_SCALE.
@@ -36,6 +37,20 @@ var defeated := {}
 var collected := {}
 ## Rooms Storm has been in, for the map.
 var visited := {}
+## Crowns, the old kingdom's coin: carried, and (after a fall) left behind in a purse where
+## he last stood, until he takes it back or falls again.
+var crowns := 0
+var lost_crowns := 0
+var lost_room := ""
+var lost_point := Vector2.ZERO
+## Bought from the refuge: how many times Bram has honed the blade, and Wren's area maps.
+var hone := 0
+var maps := {}
+## Survivors found out in the world (they make for the refuge), and their gifts given.
+var rescued := {}
+
+## A blow of the blade: two, and one more for each time Bram has honed it.
+const BASE_DAMAGE := 2
 
 ## The save (progress) and the settings live in the user's data folder.
 const SAVE_PATH := "user://save.json"
@@ -66,6 +81,13 @@ func new_game() -> void:
 	defeated = {}
 	collected = {}
 	visited = {}
+	crowns = 0
+	lost_crowns = 0
+	lost_room = ""
+	lost_point = Vector2.ZERO
+	hone = 0
+	maps = {}
+	rescued = {}
 
 
 func has_save() -> bool:
@@ -81,6 +103,9 @@ func save_game() -> void:
 		"abilities": abilities.keys(), "max_hp": max_hp, "max_flasks": max_flasks,
 		"rest_room": rest_room, "rest_point": [rest_point.x, rest_point.y],
 		"defeated": defeated.keys(), "collected": collected.keys(), "visited": visited.keys(),
+		"crowns": crowns, "lost_crowns": lost_crowns, "lost_room": lost_room,
+		"lost_point": [lost_point.x, lost_point.y], "hone": hone, "maps": maps.keys(),
+		"rescued": rescued.keys(),
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file:
@@ -111,7 +136,55 @@ func load_game() -> bool:
 		collected[id] = true
 	for room in data.get("visited", []):
 		visited[room] = true
+	crowns = int(data.get("crowns", 0))
+	lost_crowns = int(data.get("lost_crowns", 0))
+	lost_room = str(data.get("lost_room", ""))
+	var lost: Array = data.get("lost_point", [0, 0])
+	lost_point = Vector2(lost[0], lost[1])
+	hone = int(data.get("hone", 0))
+	for region in data.get("maps", []):
+		maps[region] = true
+	for id in data.get("rescued", []):
+		rescued[id] = true
 	return true
+
+
+# --- Crowns ---
+
+func blade_damage() -> int:
+	return BASE_DAMAGE + hone
+
+
+func add_crowns(count: int) -> void:
+	crowns += count
+	crowns_changed.emit(crowns)
+
+
+## Pays `count` crowns if Storm has them; false if he can't afford it.
+func spend(count: int) -> bool:
+	if crowns < count:
+		return false
+	crowns -= count
+	crowns_changed.emit(crowns)
+	save_game()
+	return true
+
+
+## Storm fell: what he carried stays behind where he last stood (any purse left from an
+## earlier fall is lost).
+func drop_crowns(room: String, point: Vector2) -> void:
+	lost_crowns = crowns
+	lost_room = room if crowns > 0 else ""
+	lost_point = point
+	crowns = 0
+	crowns_changed.emit(crowns)
+
+
+func recover_crowns() -> void:
+	add_crowns(lost_crowns)
+	lost_crowns = 0
+	lost_room = ""
+	save_game()
 
 
 # --- Settings ---
@@ -204,6 +277,16 @@ func add_mask(id: String) -> void:
 	collected[id] = true
 	max_hp += 1
 	max_hp_changed.emit(max_hp)
+	save_game()
+
+
+## A flask found: one more to carry, for good.
+func add_flask(id: String) -> void:
+	if collected.has(id):
+		return
+	collected[id] = true
+	max_flasks += 1
+	refill_flasks()
 	save_game()
 
 

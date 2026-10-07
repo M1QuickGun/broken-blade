@@ -474,3 +474,20 @@ brick, and cooled basalt with magma seams on the upper road; the lightning peaks
 and old fitted masonry for the Spire, the Storm tower and the aqueduct; road stone at the
 Crossroads, timber floors in the Refuge, frozen battlefield earth on the summit. Rooms
 narrower than the screen sit in the middle of it, solid rock drawn on to its edges.
+
+### Crowns, the refuge's trades, and the lost
+Crowns, the old kingdom's coin, spill from fallen enemies, from clay pots in the ruins
+(strike them) and in a pile from every boss; they fly to Storm when he's near. When he
+falls, what he carried stays behind in a purse where he last stood on solid ground: walk
+back to it to take them back; fall again first and they're gone. A blow of the blade does 2
+(every health is counted to match), and the refuge trades:
+- **Old Bram** hones the blade (each honing adds 1 to every blow): 150, then 400.
+- **Sister Maud** has spare flasks (120, then 320) and an old guard's mask (450).
+- **Wren** sells each region's map: its rooms show faintly on the map before they're walked.
+
+Five survivors are hiding out in the world, one in a hidden room above each region, each
+behind an ability found later (the hollow oak over the rockfall: the shockline; the snowed
+loft over the frozen street: the double jump; the charcoal loft over the smoke hollow: the
+shockline; the bell hut over the lookout: the double jump; the watch post over the windward
+pass: both). Found, they set off for the refuge; met there, they give something (crowns, a
+mask, a flask, a honing). Each hidden room also holds a mask shard or a flask.

@@ -11,13 +11,13 @@ Checked off as each lands. Order is roughly the order of work.
 - [ ] Its own music
 
 ## 2. More game
-- [ ] Currency (shards: dropped by enemies, found in pots), left where Storm falls and
+- [x] Currency (shards: dropped by enemies, found in pots), left where Storm falls and
       picked back up
-- [ ] Shops at the refuge: Bram (blade damage), Maud (flasks), Wren (area maps, pins)
-- [ ] A lost survivor hidden in each region; found, they move to the refuge and give
+- [x] Shops at the refuge: Bram (blade damage), Maud (flasks), Wren (area maps, pins)
+- [x] A lost survivor hidden in each region; found, they move to the refuge and give
       something
 - [ ] A mini-boss or elite per region
-- [ ] Secrets to come back for: in each early region, one or two places a later ability
+- [~] Secrets to come back for (a hidden room per region, each behind a later ability): in each early region, one or two places a later ability
       opens (mask shards, flask upgrades, lore)
 - [ ] More castle: the crypt, the armory, the king's quarters
 - [ ] More mask shards and flask upgrades; four shards make a mask

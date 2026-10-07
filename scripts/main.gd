@@ -10,6 +10,7 @@ const Title := preload("res://scripts/title.gd")
 const PauseMenu := preload("res://scripts/pause_menu.gd")
 const MapScreen := preload("res://scripts/map_screen.gd")
 const Intro := preload("res://scripts/intro.gd")
+const Shop := preload("res://scripts/shop.gd")
 
 const START_ROOM := "landing"
 ## Debug warps (keys 6-9, -, =, [, ], \ and '): action -> [room, the door to arrive by].
@@ -196,6 +197,11 @@ func _load_room(room_name: String, door: String, at := Vector2.INF) -> void:
 	move_child(room, 0)
 	room.door_entered.connect(_on_door_entered)
 	room.sign_read.connect(hud.show_message)
+	room.shop_opened.connect(func(shop: String, title: String) -> void:
+		var trading := Shop.new()
+		trading.shop = shop
+		trading.title = title
+		add_child(trading))
 	room.boss_defeated.connect(func(title: String) -> void:
 		hud.show_message("%s falls." % title)
 		Game.save_game()
@@ -254,6 +260,8 @@ func _on_player_hit_hazard() -> void:
 
 func _on_player_died() -> void:
 	_transitioning = true
+	# What he carried stays where he last stood on solid ground.
+	Game.drop_crowns(room.room_name, room.to_local(player.safe_position))
 	# Let him fall: the death plays out (in slow motion at first) before the fade.
 	await get_tree().create_timer(1.6, true, false, true).timeout
 	await hud.fade_out(0.6)

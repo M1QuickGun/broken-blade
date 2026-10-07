@@ -24,6 +24,7 @@ extends CharacterBody2D
 
 const Effects := preload("res://scripts/effects.gd")
 const Projectile := preload("res://scripts/projectile.gd")
+const Coin := preload("res://scripts/coin.gd")
 const LAYER_WORLD := 1
 const LAYER_ENEMY := 4
 
@@ -37,26 +38,26 @@ const COLOR_DIRT := Color("3b352b")
 ## (art pixels) and animation speed. Sheets are horizontal strips facing right. "sink" sets
 ## art with thin legs a little into the ground so it doesn't look like it's hovering.
 const KINDS := {
-	"beetle": {"size": Vector2(28, 22), "draw": 36.0, "hp": 4, "speed": 28.0,
+	"beetle": {"size": Vector2(28, 22), "draw": 36.0, "hp": 8, "speed": 28.0,
 		"tex": preload("res://art/enemies/beetle.png"), "frame": 64, "fps": 7.0},
-	"thrall": {"size": Vector2(14, 28), "draw": 36.0, "hp": 3, "speed": 18.0,
+	"thrall": {"size": Vector2(14, 28), "draw": 36.0, "hp": 6, "speed": 18.0,
 		"tex": preload("res://art/enemies/thrall.png"), "frame": 64, "fps": 6.0},
-	"hatchling": {"size": Vector2(32, 24), "draw": 32.0, "hp": 3, "speed": 35.0, "sink": 4.0,
+	"hatchling": {"size": Vector2(32, 24), "draw": 32.0, "hp": 6, "speed": 35.0, "sink": 4.0,
 		"tex": preload("res://art/enemies/hatchling.png"), "frame": 32, "fps": 9.0},
-	"grub": {"size": Vector2(28, 20), "draw": 28.0, "hp": 2, "speed": 45.0, "sink": 4.0,
+	"grub": {"size": Vector2(28, 20), "draw": 28.0, "hp": 4, "speed": 45.0, "sink": 4.0,
 		"tex": preload("res://art/enemies/hatchling.png"), "frame": 32, "fps": 12.0},
-	"toad": {"size": Vector2(20, 16), "draw": 34.0, "hp": 2, "speed": 0.0,
+	"toad": {"size": Vector2(20, 16), "draw": 34.0, "hp": 4, "speed": 0.0,
 		"tex": preload("res://art/enemies/toad.png"), "frame": 64, "fps": 10.0},
-	"hound": {"size": Vector2(26, 18), "draw": 40.0, "hp": 3, "speed": 26.0,
+	"hound": {"size": Vector2(26, 18), "draw": 40.0, "hp": 6, "speed": 26.0,
 		"tex": preload("res://art/enemies/hound.png"), "frame": 64, "fps": 9.0},
-	"husk": {"size": Vector2(14, 28), "draw": 38.0, "hp": 2, "speed": 20.0,
+	"husk": {"size": Vector2(14, 28), "draw": 38.0, "hp": 4, "speed": 20.0,
 		"tex": preload("res://art/enemies/husk.png"), "frame": 64, "fps": 6.0},
-	"conductor": {"size": Vector2(22, 26), "draw": 42.0, "hp": 4, "speed": 16.0, "sink": 4.0,
+	"conductor": {"size": Vector2(22, 26), "draw": 42.0, "hp": 8, "speed": 16.0, "sink": 4.0,
 		"tex": preload("res://art/enemies/conductor.png"), "frame": 64, "fps": 6.0},
-	"archer": {"size": Vector2(14, 30), "draw": 46.0, "hp": 3, "speed": 20.0,
+	"archer": {"size": Vector2(14, 30), "draw": 46.0, "hp": 6, "speed": 20.0,
 		"tex": preload("res://art/enemies/archer.png"), "frame": 64, "fps": 6.0,
 		"attack": preload("res://art/enemies/archer_attack.png")},
-	"knight": {"size": Vector2(16, 30), "draw": 46.0, "hp": 5, "speed": 24.0,
+	"knight": {"size": Vector2(16, 30), "draw": 46.0, "hp": 10, "speed": 24.0,
 		"tex": preload("res://art/enemies/knight.png"), "frame": 64, "fps": 6.0,
 		"attack": preload("res://art/enemies/knight_attack.png")},
 }
@@ -505,6 +506,8 @@ func take_hit(damage: int, from_dir: Vector2) -> void:
 		elif kind == "hound":
 			dust = Color(0.75, 0.9, 1.0)
 		Effects.puff(get_parent(), middle, dust)
+		if kind != "hatchling":
+			Coin.drop(get_parent(), position + Vector2(0, -8), randi_range(3, 6) + (4 if kind == "knight" else 0))
 		queue_free()
 		return
 	if from_dir.x != 0.0 and _state != St.CHARGE:

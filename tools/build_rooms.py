@@ -84,6 +84,9 @@ r.box(31, 12, 33, 14)
 r.box(42, 13, 46, 14)
 
 r = Room("rockfall", 56, 17)
+# Up from the high rock to a ring, and from the ring into the hollow oak above (the
+# shockline: come back once you have it).
+r.put(44, 2, "*")
 r.open_sky()
 r.floor(15)
 r.fill(0, 12, 0, 14, "a")
@@ -99,6 +102,7 @@ r.box(33, 8, 36, 8)
 r.put(34, 14, "U")
 r.fill(41, 15, 44, 15, "^")
 r.put(47, 14, "E")
+r.fill(43, 0, 45, 0, "m")
 
 # The sunken glade: the ground sank here long ago. Grubs nest in the soft earth of the dip.
 r = Room("sunken_glade", 50, 22)
@@ -177,6 +181,9 @@ r.put(20, 15, "B")
 
 # The frozen street: the village gate, where the cold caught everyone where they stood.
 r = Room("frozen_street", 56, 19)
+# A slab of fallen roof hanging over the street, and above it the loft of a house that
+# survived (the double jump).
+r.box(36, 7, 40, 7)
 r.open_sky()
 r.floor(17)
 r.fill(0, 14, 0, 16, "g")
@@ -186,6 +193,7 @@ r.box(23, 15, 26, 16)
 r.box(28, 13, 31, 13)
 r.put(16, 16, "E")
 
+r.fill(41, 0, 43, 0, "n")
 r = Room("village_square", 60, 19)
 r.open_sky()
 r.floor(17)
@@ -369,6 +377,8 @@ r.put(21, 19, "?")
 r.put(9, 19, "N")
 r.put(16, 19, "N")
 r.put(46, 19, "N")
+for x in (5, 25, 37, 41, 51):
+    r.put(x, 19, "Z")
 for (x, y) in [(30, 17), (36, 14), (30, 11), (36, 8), (30, 5)]:
     r.box(x, y, x + 4, y)
 
@@ -416,6 +426,9 @@ r.put(10, 14, "E")
 # The smoke hollow: the road drops into a ravine where the smoke pools and ash bats roost,
 # coals smouldering in its pits.
 r = Room("smoke_hollow", 56, 22)
+# Rings hung from an old crane, up into the charcoal burner's loft (the shockline).
+for x, y in [(44, 9), (36, 6), (44, 2)]:
+    r.put(x, y, "*")
 r.open_sky()
 r.floor(19)
 r.box(36, 15, 55, 18)
@@ -428,6 +441,7 @@ r.fill(14, 20, 17, 20, "^")
 r.put(24, 18, "E")
 r.put(44, 14, "E")
 
+r.fill(43, 0, 45, 0, "u")
 r = Room("burning_homes", 64, 22)
 r.open_sky()
 r.floor(19)
@@ -574,6 +588,8 @@ r.put(46, 14, "E")
 
 # The lookout: an old watch post over the storm peaks; the wisps drift about its rocks.
 r = Room("lookout", 52, 20)
+# Off the lookout's high rock, a slab, and above it the bell-ringer's hut (the double jump).
+r.box(30, 6, 34, 6)
 r.open_sky()
 r.floor(18)
 r.box(0, 15, 14, 17)
@@ -585,6 +601,7 @@ r.box(34, 12, 37, 12)
 r.put(21, 17, "E")
 r.put(42, 17, "E")
 
+r.fill(36, 0, 38, 0, "u")
 r = Room("storm_bridges", 64, 22)
 r.open_sky()
 r.floor(19)
@@ -737,6 +754,10 @@ r.fill(45, 0, 49, 0, "c")
 # The windward pass and the summit ledge: the high pass runs on east along the top of the
 # mountain, stepping down toward the head of the storm tower (wall jump back up the steps).
 r = Room("windward_pass", 72, 22)
+# A ring off the second step, a broken spar of a siege tower, and the old watch post above
+# (the shockline, then the double jump).
+r.put(48, 6, "*")
+r.box(53, 4, 57, 4)
 r.open_sky()
 for i, (x0, top) in enumerate([(0, 5), (14, 8), (28, 11), (42, 14), (56, 17)]):
     r.box(x0, top, x0 + 13 if i < 4 else 71, 21)
@@ -745,6 +766,7 @@ r.fill(71, 14, 71, 16, "y")
 r.put(4, 4, "?")
 r.put(21, 7, "E")
 
+r.fill(58, 0, 60, 0, "w")
 r = Room("summit_ledge", 74, 24)
 r.open_sky()
 for i, (x0, top) in enumerate([(0, 5), (18, 9), (36, 12), (52, 15), (64, 19)]):
@@ -757,6 +779,28 @@ r.put(56, 14, "E")
 r = Room("lift_shaft", 10, 85)
 r.fill(4, 0, 6, 0, "k")
 r.fill(4, 84, 6, 84, "l")
+
+# ---------------------------------------------------------------- Hidden rooms
+# A small room hidden above each region, its way in only open to an ability found later;
+# a lost survivor in each ("Q": Rooms.SURVIVORS), and a mask shard or a flask ("K").
+
+
+def hidden_room(name, door, gift):
+    r = Room(name, 22, 12)
+    r.floor(10)
+    r.air(10, 10, 12, 11)
+    r.fill(10, 11, 12, 11, door)
+    r.put(5, 9, "Q")
+    r.put(17, 9, gift)
+    r.box(14, 6, 19, 6)
+    return r
+
+
+hidden_room("hollow_oak", "m", "H")
+hidden_room("snowed_loft", "n", "K")
+hidden_room("charcoal_loft", "u", "H")
+hidden_room("bell_hut", "u", "K")
+hidden_room("watch_post", "w", "H")
 
 # ---------------------------------------------------------------- The castle
 # The king's castle at the summit, where the evil sits on the throne. Up through the broken
@@ -864,13 +908,15 @@ for x, y in [(10, 10), (22, 8), (34, 8), (46, 10)]:
 LINKS = {
     "landing": {"a": ("thicket", "a")},
     "thicket": {"a": ("landing", "a"), "b": ("rockfall", "a")},
-    "rockfall": {"a": ("thicket", "b"), "b": ("sunken_glade", "a")},
+    "rockfall": {"a": ("thicket", "b"), "b": ("sunken_glade", "a"), "m": ("hollow_oak", "m")},
+    "hollow_oak": {"m": ("rockfall", "m")},
     "sunken_glade": {"a": ("rockfall", "b"), "b": ("ring", "b")},
     "ring": {"b": ("sunken_glade", "b"), "d": ("cliff", "d")},
     "cliff": {"d": ("ring", "d"), "f": ("fern_gully", "f")},
     "fern_gully": {"f": ("cliff", "f"), "e": ("gate_cavern", "f")},
     "gate_cavern": {"f": ("fern_gully", "e"), "g": ("frozen_street", "g")},
-    "frozen_street": {"g": ("gate_cavern", "g"), "h": ("village_square", "g")},
+    "frozen_street": {"g": ("gate_cavern", "g"), "h": ("village_square", "g"), "n": ("snowed_loft", "n")},
+    "snowed_loft": {"n": ("frozen_street", "n")},
     "village_square": {"g": ("frozen_street", "h"), "h": ("icefall_hall", "h"), "j": ("ice_climb", "j")},
     "icefall_hall": {"h": ("village_square", "h"), "i": ("ice_caverns", "h")},
     "ice_caverns": {"h": ("icefall_hall", "i"), "k": ("frost_arena", "k"), "i": ("frozen_cellar", "i")},
@@ -888,7 +934,8 @@ LINKS = {
     "old_barracks": {"f": ("refuge", "f")},
     "storehouse": {"g": ("refuge", "g")},
     "ashen_road": {"q": ("crossroads", "q"), "s": ("smoke_hollow", "s")},
-    "smoke_hollow": {"s": ("ashen_road", "s"), "t": ("burning_homes", "s")},
+    "smoke_hollow": {"s": ("ashen_road", "s"), "t": ("burning_homes", "s"), "u": ("charcoal_loft", "u")},
+    "charcoal_loft": {"u": ("smoke_hollow", "u")},
     "burning_homes": {"s": ("smoke_hollow", "t"), "t": ("slag_works", "t")},
     "slag_works": {"t": ("burning_homes", "t"), "u": ("forge", "t")},
     "forge": {"t": ("slag_works", "u"), "v": ("cinder_steps", "v")},
@@ -899,7 +946,8 @@ LINKS = {
     "drake_roost": {"w": ("cinder_ridge", "b"), "x": ("fire_shaft", "x")},
     "fire_shaft": {"x": ("drake_roost", "x"), "y": ("high_pass", "y")},
     "cliff_road": {"r": ("crossroads", "r"), "s": ("lookout", "s")},
-    "lookout": {"s": ("cliff_road", "s"), "t": ("storm_bridges", "s")},
+    "lookout": {"s": ("cliff_road", "s"), "t": ("storm_bridges", "s"), "u": ("bell_hut", "u")},
+    "bell_hut": {"u": ("lookout", "u")},
     "storm_bridges": {"s": ("lookout", "t"), "t": ("rod_field", "t")},
     "rod_field": {"t": ("storm_bridges", "t"), "u": ("spire", "t")},
     "spire": {"t": ("rod_field", "u"), "u": ("anchor_gorge", "u")},
@@ -919,7 +967,8 @@ LINKS = {
     "bell_tower": {"h": ("library", "h"), "i": ("throne_approach", "i")},
     "throne_approach": {"i": ("bell_tower", "i"), "j": ("throne_room", "j")},
     "throne_room": {"j": ("throne_approach", "j")},
-    "windward_pass": {"z": ("high_pass", "z"), "y": ("summit_ledge", "z")},
+    "windward_pass": {"z": ("high_pass", "z"), "y": ("summit_ledge", "z"), "w": ("watch_post", "w")},
+    "watch_post": {"w": ("windward_pass", "w")},
     "summit_ledge": {"z": ("windward_pass", "y"), "y": ("storm_tower", "z")},
 }
 
@@ -970,6 +1019,42 @@ AFTER_SHRINES = {
     "gate_cavern": "g", "frost_arena": "l", "frost_throne": "n", "forge": "v",
     "drake_roost": "x", "spire": "u", "thunder_eyrie": "w", "throne_room": "j",
 }
+
+
+# Clay pots ("O", a few crowns each) on open floor in every room but the boss arenas, the
+# refuge and the shafts: one, or two in a wide room, a third and two thirds of the way along.
+NO_POTS = {"ring", "gate_cavern", "frost_arena", "frost_throne", "forge", "drake_roost", "spire",
+           "thunder_eyrie", "throne_room", "refuge", "lift_shaft", "landing"}
+
+
+def place_pots():
+    for name, room in ROOMS.items():
+        if name in NO_POTS:
+            continue
+        g = room.g
+        doors = [(x, y) for y, row in enumerate(g) for x, c in enumerate(row) if "a" <= c <= "z"]
+        busy = [(x, y) for y, row in enumerate(g) for x, c in enumerate(row) if c in "EUYVRS?BNHIFLW*O"]
+        spots = []
+        for y in range(2, room.h - 1):
+            for x in range(2, room.w - 2):
+                if g[y][x] != "." or g[y + 1][x] != "#" or g[y - 1][x] != ".":
+                    continue
+                if any(abs(dx - x) < 5 and abs(dy - y) < 4 for dx, dy in doors):
+                    continue
+                if any(abs(bx - x) < 4 and abs(by - y) < 3 for bx, by in busy):
+                    continue
+                spots.append((x, y))
+        targets = [0.35, 0.7] if room.w >= 40 else [0.5]
+        for t in targets:
+            if not spots:
+                break
+            want = room.w * t
+            x, y = min(spots, key=lambda c: abs(c[0] - want) + c[1] * 0.01)
+            if abs(x - want) > room.w * 0.25:
+                continue
+            g[y][x] = "O"
+            busy.append((x, y))
+            spots = [c for c in spots if abs(c[0] - x) >= 6 or abs(c[1] - y) >= 3]
 
 
 def place_shrines():
@@ -1159,6 +1244,7 @@ def gd_block():
 def main():
     place_extra()
     place_shrines()
+    place_pots()
     check()
     path = "scripts/rooms.gd"
     src = open(path, encoding="utf-8").read()

@@ -115,6 +115,12 @@ func _draw_map() -> void:
 	var center := Vector2(Rooms.MAP[current_room]) + storm_at / Rooms.TILE
 	for room in Rooms.MAP:
 		if not Game.visited.has(room) and room != current_room:
+			# A room not yet walked: drawn faintly from Wren's map of its region, if bought.
+			if Game.maps.has(_region(room)) and room not in Rooms.SECRET_ROOMS:
+				var faint := _room_rect(room, center)
+				var edge: Color = REGION_COLORS[_region(room)][1]
+				_canvas.draw_rect(faint, Color(edge, 0.08))
+				_canvas.draw_rect(faint, Color(edge, 0.35), false, 1.0)
 			continue
 		var r := _room_rect(room, center)
 		var here: bool = room == current_room
