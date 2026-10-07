@@ -519,3 +519,19 @@ Achievements (eleven) are kept across saves. Finishing the game opens hard mode 
 saves (every foe half again as tough, every blow on Storm doubled). Each region has its own
 music and ambient bed, bosses their own themes, and footsteps sound like the ground.
 
+### Trials
+One optional trial in each region, a room-long loop testing that region's ability: out along
+a lower course, up, and back along an upper one to a chest, with a drop beside it straight
+back down to the way in. Thorns line the wall by the drop, and the sides of anything slid
+under, so nothing short-cuts the course. The chests hold crowns; the two hardest a mask too.
+- **The Thorn Run** (off the fern gully, through a low crawl at its foot): spike pits, a
+  climb up a block and a hanging wall, pits under hanging thorns along the top.
+- **The Icefall Gauntlet** (off the ice climb): ice hanging to a hand's breadth of the floor,
+  slid under, pits between, ledges up, more ice to slide under along the top.
+- **The Ember Climb** (off the cinder steps): pits too wide and slabs too high for one jump.
+- **The Storm Rings** (off the chain ravine): a floor of spikes the length of the room,
+  crossed ring to ring, up by the rings and back along them.
+- **The Drill Yard** (off the old barracks, past the mask shard's shelf): every skill in a row.
+- **The King's Gauntlet** (off the gatehouse): the hardest, all of it.
+Opening every chest earns "Tried and True".
+

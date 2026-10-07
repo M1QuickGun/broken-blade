@@ -288,7 +288,9 @@ func _load_room(room_name: String, door: String, at := Vector2.INF) -> void:
 	Music.ambience(room.ambience())
 	player.step_sound = room.step_sound()
 	var region := Rooms.region_of(room_name)
-	if region != _region and room_name not in Rooms.SECRET_ROOMS:
+	if Rooms.TRIALS.has(room_name):
+		hud.show_area(Rooms.TRIALS[room_name].title)
+	elif region != _region and room_name not in Rooms.SECRET_ROOMS:
 		if _region != "":
 			hud.show_area(Rooms.REGION_TITLES[region])
 		_region = region

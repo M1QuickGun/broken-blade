@@ -31,6 +31,7 @@ const Pot := preload("res://scripts/pot.gd")
 const Purse := preload("res://scripts/purse.gd")
 const Coin := preload("res://scripts/coin.gd")
 const FlaskPickup := preload("res://scripts/flask_pickup.gd")
+const Chest := preload("res://scripts/chest.gd")
 const Npc := preload("res://scripts/npc.gd")
 
 const PIECE_ABILITIES := {"I": "dash", "F": "double_jump", "L": "shockline", "W": "wall_jump"}
@@ -504,6 +505,12 @@ func _scan_cells() -> void:
 					_spawn_extra(c, feet)
 				"Q":
 					_add_lost_survivor(feet)
+				"T":
+					var chest := Chest.new()
+					chest.trial = room_name
+					chest.position = feet
+					chest.opened.connect(func(text: String) -> void: sign_read.emit(text))
+					add_child(chest)
 				"X":
 					var info: Dictionary = Rooms.ELITES.get(room_name, {})
 					if not info.is_empty() and not Game.defeated.has(info.id):

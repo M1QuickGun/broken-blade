@@ -238,6 +238,19 @@ EXPECT = [
     ("bell_tower", "h", "k", ["all"], ["fire"]),
     ("kings_quarters", "k", "H", ["all"], []),
     ("mirror_hall", "m", "m", ["base"], []),
+    ("thorn_run", "k", "T", ["hilt"], ["none"]),
+    # (Slide-only gaps can't be checked as gates: this ignores walls between jumps.)
+    ("icefall_gauntlet", "k", "T", ["base"], []),
+    ("ember_climb", "k", "T", ["fire"], ["base", "storm"]),
+    ("storm_rings", "k", "T", ["storm"], ["base", "fire"]),
+    ("drill_yard", "k", "T", ["all"], ["fire", "storm"]),
+    ("kings_gauntlet", "k", "T", ["all"], ["fire", "storm"]),
+    ("fern_gully", "f", "k", ["base"], []),
+    ("ice_climb", "n", "k", ["base"], []),
+    ("cinder_steps", "v", "k", ["fire"], []),
+    ("chain_ravine", "v", "k", ["storm"], []),
+    ("old_barracks", "f", "k", ["hilt"], []),
+    ("castle_gate", "c", "k", ["all"], []),
 ]
 
 

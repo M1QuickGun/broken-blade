@@ -66,7 +66,7 @@ var rush_best := 0.0
 const RUSH := [["gate_cavern", "f"], ["frost_arena", "k"], ["frost_throne", "m"], ["forge", "t"],
 	["drake_roost", "w"], ["spire", "t"], ["thunder_eyrie", "v"], ["mirror_hall", "m"], ["throne_room", "j"]]
 ## What counts toward a save's completion, and how many of each there are.
-const COMPLETION := {"bosses": 10, "elites": 5, "survivors": 5, "masks": 17, "flasks": 6, "rooms": 66}
+const COMPLETION := {"bosses": 10, "elites": 5, "survivors": 5, "masks": 19, "flasks": 6, "rooms": 72, "trials": 6}
 
 ## A blow of the blade: two, and one more for each time Bram has honed it.
 const BASE_DAMAGE := 2
@@ -102,6 +102,7 @@ const ACHIEVEMENTS := {
 	"survivors": ["No One Left Behind", "Bring every lost survivor to the refuge."],
 	"dark_storm": ["Know Thyself", "Shatter Dark Storm."],
 	"ransom": ["A King's Ransom", "Carry a thousand crowns."],
+	"trials": ["Tried and True", "Open every trial's chest."],
 	"ending": ["The Keeper", "Reseal the evil."],
 	"hard_ending": ["The Long Watch", "Reseal the evil in hard mode."],
 }
@@ -380,11 +381,19 @@ func completion() -> int:
 			bosses += 1
 	var found: int = mini(bosses, COMPLETION.bosses) + mini(elites, COMPLETION.elites) \
 		+ mini(rescued.size(), COMPLETION.survivors) + clampi(max_hp - 5, 0, COMPLETION.masks) \
-		+ clampi(max_flasks - 3, 0, COMPLETION.flasks) + mini(visited.size(), COMPLETION.rooms)
+		+ clampi(max_flasks - 3, 0, COMPLETION.flasks) + mini(visited.size(), COMPLETION.rooms) 		+ mini(_trials_done(), COMPLETION.trials)
 	var total := 0
 	for key in COMPLETION:
 		total += COMPLETION[key]
 	return roundi(100.0 * found / total)
+
+
+func _trials_done() -> int:
+	var done := 0
+	for id in collected:
+		if str(id).begins_with("chest:"):
+			done += 1
+	return done
 
 
 ## Ready for the boss rush: every ability, a full set of masks and flasks, nothing beaten.
@@ -408,7 +417,7 @@ func check_achievements() -> void:
 		"lightning": defeated.has("stormcaller_1"),
 		"unbound": has.call(["centipede_2", "colossus_2", "drake_2", "stormcaller_2"]),
 		"elites": has.call(["brood_mother", "frost_knight", "cinder_brute", "storm_herald", "guard_captain"]),
-		"survivors": rescued.size() >= 5, "dark_storm": defeated.has("dark_storm"), "ransom": crowns >= 1000,
+		"survivors": rescued.size() >= 5, "dark_storm": defeated.has("dark_storm"), "ransom": crowns >= 1000, "trials": _trials_done() >= 6,
 		"ending": defeated.has("hollow_king"), "hard_ending": hard and defeated.has("hollow_king"),
 	}
 	for id in earned:

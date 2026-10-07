@@ -165,6 +165,10 @@ r.fill(0, 3, 0, 5, "f")
 r.fill(43, 3, 43, 5, "e")
 r.put(5, 5, "?")
 r.put(22, 27, "E")
+# The way into its trial.
+r.air(37, 25, 42, 27)
+r.air(32, 27, 36, 27)
+r.fill(43, 25, 43, 27, "k")
 
 # The gate cavern. Across it, the frozen gate (G) seals the way to the village. The
 # centipede's return turns its body into the arena's walls; its death shatters the gate.
@@ -316,6 +320,9 @@ r.box(10, 1, 21, 4)
 r.fill(27, 3, 27, 5, "o")
 r.put(22, 29, "?")
 
+# The way into its trial.
+r.box(1, 15, 5, 15)
+r.fill(0, 12, 0, 14, "k")
 r = Room("frozen_cellar", 24, 14)
 r.floor(12)
 r.fill(23, 8, 23, 10, "i")
@@ -391,6 +398,8 @@ r.box(20, 15, 24, 15)
 r.box(28, 12, 32, 12)
 r.box(40, 5, 46, 5)
 r.put(43, 4, "H")
+# The way into its trial.
+r.fill(47, 2, 47, 4, "k")
 
 # The storehouse: what the camp has left, and something wedged in behind the crates that
 # only a slide fits after.
@@ -496,6 +505,10 @@ for (x, y) in [(29, 43), (21, 38), (13, 33), (21, 28), (13, 23), (21, 18), (29, 
 r.box(33, 9, 35, 9)
 r.box(37, 6, 42, 6)
 r.fill(43, 3, 43, 5, "w")
+# The way into its trial.
+r.air(1, 19, 1, 23)
+r.box(1, 23, 6, 23)
+r.fill(0, 20, 0, 22, "k")
 
 # The Drake's roost: a ledge high on the mountain, open to the sky. It swoops down out of the
 # smoke when Storm walks in.
@@ -674,6 +687,10 @@ r.fill(1, 12, 1, 48, "^")
 r.fill(28, 2, 28, 51, "^")
 for i, y in enumerate(range(46, 9, -4)):
     r.put(10 if i % 2 == 0 else 19, y, "*")
+# The way into its trial.
+r.air(28, 20, 28, 24)
+r.box(24, 24, 28, 24)
+r.fill(29, 21, 29, 23, "k")
 
 # The gale ledges: a chasm on the upper road, crossed ring to ring over spikes, a wisp
 # hanging in the gap.
@@ -804,6 +821,110 @@ hidden_room("charcoal_loft", "u", "H")
 hidden_room("bell_hut", "u", "K")
 hidden_room("watch_post", "w", "H")
 
+# ---------------------------------------------------------------- Trials
+# One optional trial in each region: a loop out along a lower course, up, and back along an
+# upper one (two tiles thick) to a chest ("T": Rooms.TRIALS), with a drop beside it back down
+# to the way in. Thorns on the wall by the drop keep anyone from climbing straight up to the
+# chest. Each tests its region's ability. Drawn with the way in on the left; some mirrored.
+
+
+def trial_frame(name, door, top_from=7, top_to=47):
+    r = Room(name, 56, 20)
+    r.floor(18)
+    r.fill(0, 15, 0, 17, door)
+    r.fill(1, 8, 2, 14, "^")
+    r.box(top_from, 6, top_to, 7)
+    r.put(9, 5, "T")
+    return r
+
+
+def mirror(r):
+    r.g = [list(reversed(row)) for row in r.g]
+
+
+# The Thorn Run (the Foothills): spike pits to jump, a block and a hanging wall to climb, pits
+# along the top under hanging thorns. The sword catcher's trial.
+r = trial_frame("thorn_run", "k")
+for x0 in (10, 19, 28, 37):
+    r.fill(x0, 18, x0 + 3, 18, "^")
+r.box(50, 13, 54, 17)
+r.box(48, 3, 49, 11)
+for x0 in (18, 30):
+    r.fill(x0, 6, x0 + 3, 6, "^")
+r.fill(24, 1, 27, 1, "^")
+
+# The Icefall Gauntlet (the Frozen village): ice hanging almost to the floor, slid under, pits
+# between; ledges up the far wall; ice to slide under along the top. Mirrored.
+r = trial_frame("icefall_gauntlet", "k")
+for x0 in (12, 26, 40):
+    r.box(x0, 8, x0 + 3, 16)
+    r.fill(x0 - 1, 8, x0 - 1, 14, "^")
+    r.fill(x0 + 4, 8, x0 + 4, 14, "^")
+for x0 in (19, 33):
+    r.fill(x0, 18, x0 + 3, 18, "^")
+for x0, y in [(49, 15), (52, 12), (49, 9)]:
+    r.box(x0, y, x0 + 2, y)
+for x0 in (20, 34):
+    r.box(x0, 1, x0 + 3, 4)
+r.fill(27, 6, 30, 6, "^")
+mirror(r)
+
+# The Ember Climb (the Fire slopes): pits too wide for one jump, slabs too high for one, all
+# the way round. The spin's trial. Mirrored.
+r = trial_frame("ember_climb", "k", top_to=42)
+for x0 in (10, 22, 34):
+    r.fill(x0, 18, x0 + 5, 18, "^")
+r.fill(54, 2, 54, 17, "^")
+r.box(50, 13, 53, 13)
+r.box(44, 9, 47, 9)
+for x0 in (16, 29):
+    r.fill(x0, 6, x0 + 5, 6, "^")
+mirror(r)
+
+# The Storm Rings (the Lightning peaks): a floor of spikes the length of the room, crossed
+# ring to ring, then up by the rings and back along them. The shockline's trial.
+r = trial_frame("storm_rings", "k", top_to=23)
+r.fill(6, 18, 50, 18, "^")
+for x in (10, 17, 24, 31, 38, 45):
+    r.put(x, 13, "*")
+r.box(47, 15, 50, 15)
+for x, y in [(42, 10), (35, 6), (28, 5)]:
+    r.put(x, y, "*")
+
+# The Drill Yard (the Crossroads): where the old guard trained, every skill in a row: a slide,
+# a wide pit, rings over spikes, the slabs, then the top with a slide and a pit.
+r = trial_frame("drill_yard", "k", top_to=42)
+r.box(10, 8, 13, 16)
+r.fill(9, 8, 9, 14, "^")
+r.fill(14, 8, 14, 14, "^")
+r.fill(18, 18, 23, 18, "^")
+r.fill(28, 18, 44, 18, "^")
+for x in (32, 39):
+    r.put(x, 13, "*")
+r.fill(54, 2, 54, 17, "^")
+r.box(50, 13, 53, 13)
+r.box(44, 9, 47, 9)
+r.box(30, 1, 33, 4)
+r.fill(15, 6, 20, 6, "^")
+
+# The King's Gauntlet (the castle): the hardest. Rings over spikes, a slide, a wide pit, the
+# climb, and rings across a gap at the top. Mirrored.
+r = trial_frame("kings_gauntlet", "k", top_to=14)
+r.fill(6, 18, 24, 18, "^")
+for x in (10, 17, 24):
+    r.put(x, 13, "*")
+r.box(30, 8, 33, 16)
+r.fill(29, 8, 29, 14, "^")
+r.fill(34, 8, 34, 14, "^")
+r.fill(36, 18, 41, 18, "^")
+r.box(50, 13, 54, 17)
+r.box(48, 3, 49, 11)
+r.box(30, 6, 47, 7)
+for x in (25, 18):
+    r.put(x, 4, "*")
+mirror(r)
+
+
 # ---------------------------------------------------------------- The castle
 # The king's castle at the summit, where the evil sits on the throne. Up through the broken
 # gatehouse from the high pass, along the ramparts, through the great hall (the chapel above
@@ -824,6 +945,8 @@ r.box(14, 7, 28, 7)
 r.fill(29, 4, 29, 6, "d")
 r.put(6, 42, "?")
 r.put(22, 36, "E")
+# The way into its trial.
+r.fill(0, 7, 0, 9, "k")
 
 # The ramparts: the wall walk along the castle's west face, open to the storm, merlons to
 # jump and collapsed stretches over spikes; hollow archers on the walk.
@@ -967,7 +1090,8 @@ LINKS = {
     "sunken_glade": {"a": ("rockfall", "b"), "b": ("ring", "b")},
     "ring": {"b": ("sunken_glade", "b"), "d": ("cliff", "d")},
     "cliff": {"d": ("ring", "d"), "f": ("fern_gully", "f")},
-    "fern_gully": {"f": ("cliff", "f"), "e": ("gate_cavern", "f")},
+    "fern_gully": {"f": ("cliff", "f"), "e": ("gate_cavern", "f"), "k": ("thorn_run", "k")},
+    "thorn_run": {"k": ("fern_gully", "k")},
     "gate_cavern": {"f": ("fern_gully", "e"), "g": ("frozen_street", "g")},
     "frozen_street": {"g": ("gate_cavern", "g"), "h": ("village_square", "g"), "n": ("snowed_loft", "n")},
     "snowed_loft": {"n": ("frozen_street", "n")},
@@ -978,7 +1102,8 @@ LINKS = {
     "glacier_run": {"l": ("frost_arena", "l"), "m": ("frozen_depths", "l")},
     "frozen_depths": {"l": ("glacier_run", "m"), "m": ("frost_throne", "m")},
     "frost_throne": {"m": ("frozen_depths", "m"), "n": ("ice_climb", "n")},
-    "ice_climb": {"n": ("frost_throne", "n"), "j": ("village_square", "j"), "o": ("frozen_bridge", "o")},
+    "ice_climb": {"n": ("frost_throne", "n"), "j": ("village_square", "j"), "o": ("frozen_bridge", "o"), "k": ("icefall_gauntlet", "k")},
+    "icefall_gauntlet": {"k": ("ice_climb", "k")},
     "frozen_cellar": {"i": ("ice_caverns", "i")},
     "frozen_bridge": {"o": ("ice_climb", "o"), "p": ("crossroads", "p")},
     "crossroads": {"p": ("frozen_bridge", "p"), "q": ("ashen_road", "q"), "r": ("cliff_road", "r"),
@@ -986,7 +1111,8 @@ LINKS = {
     "lift_shaft": {"k": ("high_pass", "k"), "l": ("crossroads", "k"), "m": ("mirror_hall", "m")},
     "mirror_hall": {"m": ("lift_shaft", "m")},
     "refuge": {"e": ("crossroads", "e"), "f": ("old_barracks", "f"), "g": ("storehouse", "g")},
-    "old_barracks": {"f": ("refuge", "f")},
+    "old_barracks": {"f": ("refuge", "f"), "k": ("drill_yard", "k")},
+    "drill_yard": {"k": ("old_barracks", "k")},
     "storehouse": {"g": ("refuge", "g")},
     "ashen_road": {"q": ("crossroads", "q"), "s": ("smoke_hollow", "s")},
     "smoke_hollow": {"s": ("ashen_road", "s"), "t": ("burning_homes", "s"), "u": ("charcoal_loft", "u")},
@@ -994,7 +1120,8 @@ LINKS = {
     "burning_homes": {"s": ("smoke_hollow", "t"), "t": ("slag_works", "t")},
     "slag_works": {"t": ("burning_homes", "t"), "u": ("forge", "t")},
     "forge": {"t": ("slag_works", "u"), "v": ("cinder_steps", "v")},
-    "cinder_steps": {"v": ("forge", "v"), "w": ("bellows_hall", "w")},
+    "cinder_steps": {"v": ("forge", "v"), "w": ("bellows_hall", "w"), "k": ("ember_climb", "k")},
+    "ember_climb": {"k": ("cinder_steps", "k")},
     "bellows_hall": {"w": ("cinder_steps", "w"), "x": ("ember_span", "a")},
     "ember_span": {"a": ("bellows_hall", "x"), "b": ("cinder_ridge", "a")},
     "cinder_ridge": {"a": ("ember_span", "b"), "b": ("drake_roost", "w")},
@@ -1007,14 +1134,16 @@ LINKS = {
     "rod_field": {"t": ("storm_bridges", "t"), "u": ("spire", "t")},
     "spire": {"t": ("rod_field", "u"), "u": ("anchor_gorge", "u")},
     "anchor_gorge": {"u": ("spire", "u"), "v": ("chain_ravine", "v")},
-    "chain_ravine": {"v": ("anchor_gorge", "v"), "w": ("gale_ledges", "a")},
+    "chain_ravine": {"v": ("anchor_gorge", "v"), "w": ("gale_ledges", "a"), "k": ("storm_rings", "k")},
+    "storm_rings": {"k": ("chain_ravine", "k")},
     "gale_ledges": {"a": ("chain_ravine", "w"), "b": ("aqueduct", "a")},
     "aqueduct": {"a": ("gale_ledges", "b"), "b": ("thunder_eyrie", "v")},
     "thunder_eyrie": {"v": ("aqueduct", "b"), "w": ("storm_tower", "w")},
     "storm_tower": {"w": ("thunder_eyrie", "w"), "z": ("summit_ledge", "y")},
     "high_pass": {"y": ("fire_shaft", "y"), "z": ("windward_pass", "z"), "k": ("lift_shaft", "k"),
                   "c": ("castle_gate", "c")},
-    "castle_gate": {"c": ("high_pass", "c"), "d": ("ramparts", "d")},
+    "castle_gate": {"c": ("high_pass", "c"), "d": ("ramparts", "d"), "k": ("kings_gauntlet", "k")},
+    "kings_gauntlet": {"k": ("castle_gate", "k")},
     "ramparts": {"d": ("castle_gate", "d"), "e": ("great_hall", "e"), "k": ("armory", "k")},
     "armory": {"k": ("ramparts", "k")},
     "great_hall": {"e": ("ramparts", "e"), "f": ("chapel", "f"), "g": ("library", "g"), "k": ("crypt", "k")},
