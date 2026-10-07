@@ -48,6 +48,9 @@ var hone := 0
 var maps := {}
 ## Survivors found out in the world (they make for the refuge), and their gifts given.
 var rescued := {}
+## The journal: foes put down (Rooms.BESTIARY ids), and the signs and notes read, in order.
+var journal := {}
+var lore: Array = []
 
 ## A blow of the blade: two, and one more for each time Bram has honed it.
 const BASE_DAMAGE := 2
@@ -112,6 +115,8 @@ func new_game() -> void:
 	maps = {}
 	rescued = {}
 	play_time = 0.0
+	journal = {}
+	lore = []
 
 
 func has_save() -> bool:
@@ -155,7 +160,7 @@ func save_game() -> void:
 		"defeated": defeated.keys(), "collected": collected.keys(), "visited": visited.keys(),
 		"crowns": crowns, "lost_crowns": lost_crowns, "lost_room": lost_room,
 		"lost_point": [lost_point.x, lost_point.y], "hone": hone, "maps": maps.keys(),
-		"rescued": rescued.keys(), "play_time": play_time,
+		"rescued": rescued.keys(), "play_time": play_time, "journal": journal.keys(), "lore": lore,
 	}
 	var file := FileAccess.open(SAVE_PATH % slot, FileAccess.WRITE)
 	if file:
@@ -197,10 +202,23 @@ func load_game() -> bool:
 		maps[region] = true
 	for id in data.get("rescued", []):
 		rescued[id] = true
+	for id in data.get("journal", []):
+		journal[id] = true
+	lore = Array(data.get("lore", []))
 	return true
 
 
 # --- Crowns ---
+
+## A foe put down, for the bestiary.
+func note(id: String) -> void:
+	journal[id] = true
+
+
+func read_lore(text: String) -> void:
+	if text != "" and text not in lore:
+		lore.append(text)
+
 
 func blade_damage() -> int:
 	return BASE_DAMAGE + hone

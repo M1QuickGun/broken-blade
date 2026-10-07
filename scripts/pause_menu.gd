@@ -33,6 +33,7 @@ func _ready() -> void:
 	_menu.options = [
 		{"text": "Resume", "pick": close},
 		{"text": "Map", "pick": _pick_map},
+		{"text": "Journal", "pick": _open_journal},
 		{"text": func() -> String: return "Music   < %d%% >" % roundi(Game.music_volume * 100),
 			"adjust": func(step: int) -> void: _volume("music_volume", step), "pick": func() -> void: _volume("music_volume", 1)},
 		{"text": func() -> String: return "Sound   < %d%% >" % roundi(Game.sfx_volume * 100),
@@ -91,6 +92,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif _open and event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
 		close()
+
+
+func _open_journal() -> void:
+	var journal: CanvasLayer = load("res://scripts/journal.gd").new()
+	_menu.active = false
+	journal.closed.connect(func() -> void: _menu.active = true)
+	add_child(journal)
 
 
 func _pick_map() -> void:

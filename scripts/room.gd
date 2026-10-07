@@ -449,7 +449,13 @@ func _scan_cells() -> void:
 						var npc := Npc.new()
 						npc.title = who.name
 						npc.art = load("res://art/npcs/%s.png" % who.art)
-						npc.lines = who.lines
+						# What they say turns with what Storm's done: the newest news first.
+						var said: Array = []
+						var after: Dictionary = who.get("after", {})
+						for id in after:
+							if Game.defeated.has(id):
+								said = after[id] + said
+						npc.lines = said + who.lines
 						npc.shop = who.get("shop", "")
 						npc.trade.connect(func(shop: String, title: String) -> void: shop_opened.emit(shop, title))
 						npc.position = feet
@@ -538,7 +544,9 @@ func _scan_cells() -> void:
 					post.text = texts[_sign_count] if _sign_count < texts.size() else ""
 					_sign_count += 1
 					post.position = feet
-					post.read.connect(func(text: String) -> void: sign_read.emit(text))
+					post.read.connect(func(text: String) -> void:
+						Game.read_lore(text)
+						sign_read.emit(text))
 					add_child(post)
 				"*":
 					var anchor := Anchor.new()
@@ -809,6 +817,7 @@ func _lock_doors() -> void:
 
 
 func _on_boss_defeated(info: Dictionary, where: Vector2, exact := false) -> void:
+	Game.note(info.id)
 	_locked = false
 	if _gate:
 		_gate.queue_free()

@@ -599,6 +599,7 @@ func take_hit(damage: int, from_dir: Vector2) -> void:
 		elif kind == "hound":
 			dust = Color(0.75, 0.9, 1.0)
 		Effects.puff(get_parent(), middle, dust)
+		Game.note(elite if elite != "" else kind)
 		if elite != "":
 			remove_from_group("boss")
 			Game.defeated[elite] = true

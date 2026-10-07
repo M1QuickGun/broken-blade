@@ -171,6 +171,7 @@ func take_hit(damage: int, from_dir: Vector2) -> void:
 		Sfx.play("crackle", -6.0)
 		Effects.sparks(get_parent(), position, COLOR_CORE, 14, 110.0)
 		Coin.drop(get_parent(), position, randi_range(3, 6))
+		Game.note("wisp")
 		queue_free()
 		return
 	# Knocked away, and its charge broken.

@@ -257,24 +257,41 @@ const NPCS := {
 			"Sit by the fire a while. You look like the ones the soldiers carried down from the pass.",
 			"The army went up to the castle gate and never came back. Only their armor walks up there now.",
 			"Your flasks hold a shrine's flame. Rest at one and they fill again.",
-		]},
+		], "after": {
+			"colossus_2": ["The cold's letting go of the village. Some of the frozen ones... they're just people again, sleeping."],
+			"drake_2": ["The smoke over the west road is thinning. You did that."],
+			"stormcaller_2": ["The storm's gone quiet. I'd forgotten what silence sounds like."],
+			"hollow_king": ["You came back down. I didn't think the one who ended it would.",
+				"Whatever the blade asked of you up there, you don't have to tell me."],
+		}},
 		{"name": "Old Bram", "art": "smith", "shop": "smith", "lines": [
 			"That blade... I'd know that steel anywhere. I forged it, forty years gone, for your grandfather.",
 			"Find the pieces and bring them home to the hilt. A blade's only broken until someone mends it.",
 			"The fire in the great forge, west of here, is the fire that made it. What lives there now is wrong.",
-		]},
+		], "after": {
+			"colossus_1": ["The ice piece. Hold it up to the light. See the grain? That's my hammer, forty years ago."],
+			"drake_1": ["Fire and ice on one blade. I never thought I'd see them joined again."],
+			"stormcaller_1": ["The tip. Lightning in the point of it, like the old songs said."],
+			"hollow_king": ["It's whole. My blade, whole again. I can die a happy smith.", "Not yet, though. Someone has to keep it sharp."],
+		}},
 		{"name": "Wren", "art": "mapmaker", "shop": "maps", "lines": [
 			"Maps are all I have left. The mountain hasn't changed. Only what lives on it.",
 			"West, the fire. East, the storm. Both roads climb, and both meet again at the top, under the castle.",
 			"Rest at a shrine and look at your map. Where you've walked is all on it.",
-		]},
+		], "after": {
+			"centipede_2": ["The frozen gate's open? Then the whole lower mountain's yours to walk again."],
+			"hollow_king": ["I'll draw the castle properly now. Someone should remember what it looked like."],
+		}},
 	],
 	"old_barracks": [
 		{"name": "Hale", "art": "soldier", "lines": [
 			"I was at the gate the night the blade broke. I ran. The rest of them stayed.",
 			"Up on the pass they still march, what's left of them. Empty armor, burned and struck. Don't pity them. Put them down.",
 			"Their shields still hold. Get round behind them, or wait for the swing.",
-		]},
+		], "after": {
+			"guard_captain": ["The captain. You put him down? ...Good. He'd have hated what he'd become."],
+			"hollow_king": ["The king's at rest. I'll go up to the gate tomorrow and say the names."],
+		}},
 	],
 }
 
@@ -291,6 +308,40 @@ const ELITES := {
 		"subtitle": "Iron that calls the lightning", "tint": Color(0.95, 0.9, 1.25)},
 	"great_hall": {"id": "guard_captain", "kind": "knight", "title": "The Captain of the Guard",
 		"subtitle": "Still at his post", "tint": Color(1.2, 1.05, 0.75)},
+}
+
+## The journal's bestiary, in the order it lists them: id -> [name, a few words].
+const BESTIARY := {
+	"beetle": ["Mossback beetle", "As big as a man. It braces when it sees you, then charges; let it run into the wall."],
+	"grub": ["Burrow grub", "A centipede larva waiting in the earth. The ground rumbles before it bursts out."],
+	"toad": ["Moss toad", "Ferns grow from its back. It sits, then hops at you in long arcs."],
+	"hatchling": ["Hatchling", "The Guardian Centipede's young."],
+	"thrall": ["Frozen thrall", "A villager the cold took. It shambles after you and lunges close in."],
+	"hound": ["Frost hound", "Ice grown through a wolf. It runs you down, crouches, and leaps."],
+	"bat_frost": ["Frost bat", "The ash bat's frostbitten kin. A screech, then a dive."],
+	"bat_ash": ["Ash bat", "Charred flesh, embers in its wings. It screeches, flares, and dives in a straight line."],
+	"husk": ["Cinder husk", "A burnt villager still smouldering. Close in, its embers flare and it bursts."],
+	"wisp": ["Spark wisp", "Static around a stone eye. It aims a line, holds still, then fires along it."],
+	"conductor": ["Conductor", "An iron walker with a rod on its back. It charges up and sends shockwaves both ways."],
+	"knight": ["Hollow knight", "The royal army's empty armor. Its shield turns blows from the front; strike after its swing."],
+	"archer": ["Hollow archer", "Empty armor with a bow. It backs away and looses arrows; the blade cuts them down."],
+	"bat_crow": ["Carrion crow", "A crow off the battlefield. It hunts like the bats."],
+	"shade": ["Shade", "A scrap of the evil. It fades, wells up behind you and lunges. Open after."],
+	"brood_mother": ["The Brood Mother", "The mossbacks' matriarch. Ramming the wall shakes the roof down."],
+	"frost_knight": ["The Frost Knight", "Sworn to a village of ice. Frost runs from every swing."],
+	"cinder_brute": ["The Cinder Brute", "What the fire fed. It slams fire along the floor."],
+	"storm_herald": ["The Storm Herald", "Iron that calls the lightning, twice over."],
+	"guard_captain": ["The Captain of the Guard", "Still at his post. He swings twice."],
+	"centipede_1": ["The Guardian Centipede", "It held the hilt in the pit below the ring."],
+	"centipede_2": ["The Guardian Centipede, Risen", "It would not stay buried."],
+	"colossus_1": ["The Frost Colossus", "Frozen into the cavern wall with the ice piece in its chest."],
+	"colossus_2": ["The Frost Colossus, Unbound", "The village's last guardian, walking."],
+	"drake_1": ["The Ashen Drake", "Pinned in the forge by the fire piece through its wing."],
+	"drake_2": ["The Ashen Drake, Unbound", "Free, burning, and in the end burning itself."],
+	"stormcaller_1": ["The Stormcaller, Bound", "The king's sorcerer, chained to the spire by the tip."],
+	"stormcaller_2": ["The Stormcaller", "Who first sealed the evil, and was taken by it."],
+	"dark_storm": ["Dark Storm", "What the blade remembers of its bearer, made of black glass."],
+	"hollow_king": ["The Hollow King", "What wore your father's crown. The evil itself, unbound."],
 }
 
 ## Each region's name, shown across the screen on first stepping into it (and on the map).

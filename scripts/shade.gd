@@ -156,6 +156,7 @@ func take_hit(damage: int, from_dir: Vector2) -> void:
 		Effects.puff(get_parent(), position, COLOR_SHADOW)
 		Effects.sparks(get_parent(), position, COLOR_EYE, 10, 80.0)
 		Coin.drop(get_parent(), position, randi_range(5, 8))
+		Game.note("shade")
 		queue_free()
 		return
 	if from_dir != Vector2.ZERO:
