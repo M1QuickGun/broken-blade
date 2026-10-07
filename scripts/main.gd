@@ -44,6 +44,9 @@ var map_screen: CanvasLayer
 var _transitioning := false
 ## The region Storm is in, to name a new one as he steps into it.
 var _region := ""
+## The boss rush: which fight it's on, and the time so far.
+var _rush_index := 0
+var _rush_time := 0.0
 
 
 func _ready() -> void:
@@ -56,6 +59,15 @@ func _ready() -> void:
 
 
 func _on_title_chosen(choice: String) -> void:
+	if choice == "rush":
+		Game.start_boss_rush()
+		_start_world()
+		_rush_index = 0
+		_rush_time = 0.0
+		_load_room(Game.RUSH[0][0], Game.RUSH[0][1])
+		hud.show_message("The boss rush. Every boss, one after another.")
+		await hud.fade_in(0.8)
+		return
 	if choice == "new":
 		var hard := Game.hard
 		Game.new_game()
@@ -132,6 +144,33 @@ func _on_hp_changed(hp: int, _max_hp: int) -> void:
 
 ## The end: a moment in the quiet throne room, then the ending's panels, then the title.
 ## (Continuing afterwards wakes Storm at the shrine in the throne room.)
+## On to the next boss of the rush (healed), or the end of it with the time.
+func _next_rush_fight() -> void:
+	await get_tree().create_timer(2.5).timeout
+	_rush_index += 1
+	if _rush_index >= Game.RUSH.size():
+		var best := Game.rush_best == 0.0 or _rush_time < Game.rush_best
+		if best:
+			Game.rush_best = _rush_time
+			Game.save_settings()
+		hud.show_message("The rush is done: %s%s" % [Game.clock(_rush_time), "  (a new best)" if best else ""])
+		await get_tree().create_timer(4.0).timeout
+		_quit_to_title()
+		return
+	_transitioning = true
+	player.controls_locked = true
+	await hud.fade_out(0.4)
+	player.heal_full()
+	Game.refill_flasks()
+	_load_room(Game.RUSH[_rush_index][0], Game.RUSH[_rush_index][1])
+	await get_tree().physics_frame
+	camera.position = Vector2.ZERO
+	camera.reset_smoothing()
+	await hud.fade_in(0.4)
+	player.controls_locked = false
+	_transitioning = false
+
+
 func _play_ending() -> void:
 	player.controls_locked = true
 	await get_tree().create_timer(2.5).timeout
@@ -140,6 +179,9 @@ func _play_ending() -> void:
 	ending.panels = Intro.ENDING
 	add_child(ending)
 	await ending.finished
+	var credits: CanvasLayer = load("res://scripts/credits.gd").new()
+	add_child(credits)
+	await credits.finished
 	_quit_to_title()
 
 
@@ -170,6 +212,7 @@ func _travel_to(room_name: String, point: Vector2) -> void:
 func _quit_to_title() -> void:
 	Game.save_game()
 	Game.playing = false
+	Game.boss_rush = false
 	get_tree().paused = false
 	get_tree().reload_current_scene()
 
@@ -237,7 +280,9 @@ func _load_room(room_name: String, door: String, at := Vector2.INF) -> void:
 	room.boss_defeated.connect(func(title: String) -> void:
 		hud.show_message("%s falls." % title)
 		Game.save_game()
-		if Game.defeated.has("hollow_king") and room.room_name == "throne_room":
+		if Game.boss_rush:
+			_next_rush_fight()
+		elif Game.defeated.has("hollow_king") and room.room_name == "throne_room":
 			_play_ending())
 	Music.play(Rooms.music_for(room_name))
 	Music.ambience(room.ambience())
@@ -301,6 +346,13 @@ func _on_player_hit_hazard() -> void:
 
 
 func _on_player_died() -> void:
+	if Game.boss_rush:
+		_transitioning = true
+		await get_tree().create_timer(1.6, true, false, true).timeout
+		hud.show_message("The rush ends.")
+		await hud.fade_out(1.0)
+		_quit_to_title()
+		return
 	_transitioning = true
 	# What he carried stays where he last stood on solid ground.
 	Game.drop_crowns(room.room_name, room.to_local(player.safe_position))
@@ -363,6 +415,8 @@ func _update_camera(delta: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	_update_camera(delta)
+	if Game.boss_rush and not get_tree().paused:
+		_rush_time += delta
 	_update_music()
 	# Safety net: if Storm ever leaves the room's bounds (a gap in the walls, a missed
 	# door), put him back on the last solid ground instead of letting him fall forever.

@@ -56,6 +56,14 @@ var lore: Array = []
 var shrines := {}
 ## Pins Storm has put on the map (in map tiles).
 var pins: Array = []
+## The boss rush (from the title, once the end's been seen): every boss in turn on one life
+## of masks, nothing saved but the best time.
+var boss_rush := false
+var rush_best := 0.0
+const RUSH := [["gate_cavern", "f"], ["frost_arena", "k"], ["frost_throne", "m"], ["forge", "t"],
+	["drake_roost", "w"], ["spire", "t"], ["thunder_eyrie", "v"], ["mirror_hall", "m"], ["throne_room", "j"]]
+## What counts toward a save's completion, and how many of each there are.
+const COMPLETION := {"bosses": 10, "elites": 5, "survivors": 5, "masks": 17, "flasks": 6, "rooms": 66}
 
 ## A blow of the blade: two, and one more for each time Bram has honed it.
 const BASE_DAMAGE := 2
@@ -236,7 +244,8 @@ func slot_summary(n: int) -> Dictionary:
 		if ability in BLADE_ABILITIES:
 			count += 1
 	return {"pieces": count, "time": float(data.get("play_time", 0.0)), "room": str(data.get("rest_room", "")),
-		"done": "hollow_king" in data.get("defeated", []), "hard": bool(data.get("hard", false))}
+		"done": "hollow_king" in data.get("defeated", []), "hard": bool(data.get("hard", false)),
+		"completion": int(data.get("completion", 0))}
 
 
 ## Whether any save has seen the end (hard mode opens then).
@@ -263,6 +272,8 @@ static func clock(seconds: float) -> String:
 func save_game() -> void:
 	if DisplayServer.get_name() == "headless":
 		return  # a headless test run: never touch the player's real save
+	if boss_rush:
+		return  # (the rush keeps nothing but its best time)
 	var data := {
 		"abilities": abilities.keys(), "max_hp": max_hp, "max_flasks": max_flasks,
 		"rest_room": rest_room, "rest_point": [rest_point.x, rest_point.y],
@@ -272,6 +283,7 @@ func save_game() -> void:
 		"rescued": rescued.keys(), "play_time": play_time, "journal": journal.keys(), "lore": lore, "hard": hard, "shrines": shrines.values(), "pins": pins.map(func(p: Vector2) -> Array: return [p.x, p.y]),
 	}
 	data["version"] = SAVE_VERSION
+	data["completion"] = completion()
 	check_achievements()
 	write_safely(SAVE_PATH % slot, JSON.stringify(data, "\t"))
 
@@ -353,6 +365,37 @@ func load_game() -> bool:
 
 
 # --- Crowns ---
+
+## How much of the game this save has found, as a percentage.
+func completion() -> int:
+	var bosses := 0
+	var elites := 0
+	for id in defeated:
+		if id in ["brood_mother", "frost_knight", "cinder_brute", "storm_herald", "guard_captain"]:
+			elites += 1
+		else:
+			bosses += 1
+	var found: int = mini(bosses, COMPLETION.bosses) + mini(elites, COMPLETION.elites) \
+		+ mini(rescued.size(), COMPLETION.survivors) + clampi(max_hp - 5, 0, COMPLETION.masks) \
+		+ clampi(max_flasks - 3, 0, COMPLETION.flasks) + mini(visited.size(), COMPLETION.rooms)
+	var total := 0
+	for key in COMPLETION:
+		total += COMPLETION[key]
+	return roundi(100.0 * found / total)
+
+
+## Ready for the boss rush: every ability, a full set of masks and flasks, nothing beaten.
+func start_boss_rush() -> void:
+	new_game()
+	boss_rush = true
+	for ability in ["wall_jump", "dash", "double_jump", "shockline"]:
+		abilities[ability] = true
+	pieces = 3
+	max_hp = 9
+	max_flasks = 5
+	flasks = 5
+	hone = 1
+
 
 ## Earns whatever achievements this save now qualifies for (checked at every save).
 func check_achievements() -> void:
@@ -472,7 +515,7 @@ func save_settings() -> void:
 			"screen_shake": screen_shake, "show_timer": show_timer, "bindings": bindings,
 			"achievements": achievements.keys(), "window_mode": window_mode, "window_size": window_size,
 			"vsync": vsync, "fps_cap": fps_cap, "pixel_perfect": pixel_perfect, "reduce_flashes": reduce_flashes,
-			"game_speed": game_speed, "gentle": gentle,
+			"game_speed": game_speed, "gentle": gentle, "rush_best": rush_best,
 		}, "\t"))
 
 
@@ -491,6 +534,7 @@ func load_settings() -> void:
 			reduce_flashes = bool(data.get("reduce_flashes", reduce_flashes))
 			game_speed = clampf(float(data.get("game_speed", game_speed)), 0.5, 1.0)
 			gentle = bool(data.get("gentle", gentle))
+			rush_best = float(data.get("rush_best", 0.0))
 			screen_shake = bool(data.get("screen_shake", screen_shake))
 			show_timer = bool(data.get("show_timer", show_timer))
 			for id in data.get("achievements", []):

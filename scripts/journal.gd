@@ -100,6 +100,7 @@ func _draw_journal() -> void:
 		for id in Rooms.BESTIARY:
 			if Game.journal.has(id):
 				found += 1
-	var footer := "%d / %d" % [found, Rooms.BESTIARY.size()] if _page == 0 else "%d read" % Game.lore.size()
+	var footer := ("%d / %d" % [found, Rooms.BESTIARY.size()] if _page == 0 else "%d read" % Game.lore.size()) \
+		+ "     %d%% of the mountain found" % Game.completion()
 	_canvas.draw_string(font, Vector2(panel.position.x + 12, panel.end.y - 6), Game.fill_prompts("Left / right: page     {pause}: close     ") + footer,
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(COLOR_DIM, 0.7))

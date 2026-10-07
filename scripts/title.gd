@@ -42,6 +42,10 @@ func _ready() -> void:
 	_menu.options.append({"text": func() -> String: return "New games: %s" % ("Hard mode" if _hard else "Normal"),
 		"visible": func() -> bool: return Game.any_finished(),
 		"adjust": func(_step: int) -> void: _hard = not _hard, "pick": func() -> void: _hard = not _hard})
+	_menu.options.append({"text": func() -> String:
+			return "Boss rush" + ("   best %s" % Game.clock(Game.rush_best) if Game.rush_best > 0.0 else ""),
+		"visible": func() -> bool: return Game.any_finished(),
+		"pick": func() -> void: _choose("rush")})
 	_menu.options.append({"text": func() -> String: return "Cancel erasing" if _erasing else "Erase a save",
 		"pick": func() -> void:
 			_erasing = not _erasing
@@ -76,7 +80,7 @@ func _slot_text(n: int) -> String:
 	if info.is_empty():
 		return "Slot %d   -   %s" % [n, "empty" if _erasing else "New game"]
 	var where: String = Rooms.REGION_TITLES[Rooms.region_of(info.room)] if info.room != "" else "The Foothills"
-	return "Slot %d   %s   %d/3   %s%s%s" % [n, where, info.pieces, Game.clock(info.time),
+	return "Slot %d   %s   %d%%   %s%s%s" % [n, where, info.completion, Game.clock(info.time),
 		"   (hard)" if info.hard else "", "   (the end)" if info.done else ""]
 
 
