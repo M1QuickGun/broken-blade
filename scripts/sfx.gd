@@ -17,6 +17,15 @@ func _ready() -> void:
 		player.bus = "SFX"
 		add_child(player)
 		_players.append(player)
+	# Load every sound up front, so the first time one plays doesn't hitch the game.
+	var dir := DirAccess.open("res://audio/sfx")
+	if dir:
+		for file in dir.get_files():
+			var name := file.trim_suffix(".import").trim_suffix(".wav")
+			if file.ends_with(".wav") or file.ends_with(".wav.import"):
+				var path := "res://audio/sfx/%s.wav" % name
+				if not _cache.has(name) and ResourceLoader.exists(path):
+					_cache[name] = load(path)
 
 
 ## Plays a sound. `volume_db` adjusts it; `vary` is how much the pitch may wander.

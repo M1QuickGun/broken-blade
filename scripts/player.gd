@@ -242,6 +242,7 @@ var _wall_coyote_dir := 0
 var _spin_time := 0.0
 ## Enemies already struck by the current spin, so each is hit once.
 var _spin_hit: Array[Object] = []
+var _spin_landed := false
 ## Sideways push from a boss's wingbeats (units per second); the boss sets it and clears it.
 var wind := 0.0
 ## Struck down: he crumples where he stands (falling if he's in the air) until Main wakes him
@@ -567,7 +568,8 @@ func _is_small() -> bool:
 ## there's headroom (so a slide under a low ceiling doesn't wedge Storm into it).
 func _update_height() -> void:
 	var want := FULL_BODY
-	if _spin_time > 0.0:
+	if _spin_time > 0.0 and not is_on_floor():
+		# (Landing mid-spin he stands at once: tucked, he'd sink into the floor and pop back up.)
 		want = SPIN_BODY
 	elif _dash_time > 0.0:
 		want = SLIDE_BODY
@@ -745,6 +747,7 @@ func _start_spin() -> void:
 	_carry = 0.0
 	_spin_time = SPIN_TIME
 	_spin_hit.clear()
+	_spin_landed = false
 	_attack_anim = 0.0
 	_sprite.play("spin")
 	_sprite.frame = 0
@@ -770,7 +773,8 @@ func _update_spin() -> void:
 		_spin_hit.append(target)
 		target.take_hit(1, to.normalized() if to != Vector2.ZERO else Vector2(facing, 0))
 		struck = true
-	if struck:
+	if struck and not _spin_landed:
+		_spin_landed = true  # one hit-freeze a spin, however many things it catches
 		_hitstop()
 	for i in (3 if _embers.size() < MAX_EMBERS else 0):
 		var dir := Vector2.from_angle(randf() * TAU)

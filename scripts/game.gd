@@ -75,6 +75,8 @@ func has_save() -> bool:
 ## Writes progress. Called whenever something worth keeping happens: resting at a shrine,
 ## a pickup, a boss beaten.
 func save_game() -> void:
+	if DisplayServer.get_name() == "headless":
+		return  # a headless test run: never touch the player's real save
 	var data := {
 		"abilities": abilities.keys(), "max_hp": max_hp, "max_flasks": max_flasks,
 		"rest_room": rest_room, "rest_point": [rest_point.x, rest_point.y],
