@@ -491,3 +491,31 @@ loft over the frozen street: the double jump; the charcoal loft over the smoke h
 shockline; the bell hut over the lookout: the double jump; the watch post over the windward
 pass: both). Found, they set off for the refuge; met there, they give something (crowns, a
 mask, a flask, a honing). Each hidden room also holds a mask shard or a flask.
+
+### Elites
+One per region, an enemy grown big and mean and fought like a small boss (its name and health
+across the screen, its own music): the Brood Mother in the thicket (ramming the wall brings
+rocks down), the Frost Knight in the village square (frost from every swing), the Cinder
+Brute in the burning homes (slams fire along the floor), the Storm Herald on the storm
+bridges (two rounds of shockwaves), the Captain of the Guard in the great hall (swings
+twice). Beaten for good, each leaves a pile of crowns.
+
+### Dark Storm
+Behind a crack in the lift shaft's wall, the hall of mirrors: Dark Storm, made of what the
+blade remembers of its bearer, fights with Storm's own moves (slash and slash again, the
+floor dash, the plunge from above, the fire spin, the shockline zip) and shatters like glass.
+Nothing to win but the fight.
+
+### More castle
+The royal crypt under the great hall (the empty tomb carved with Storm's name), the armory
+over the ramparts, and the king's quarters off the bell tower, where his journal says he
+knew the seal's price, and chose to keep his son and let the kingdom pay.
+
+### The journal, menus and the rest
+The pause menu's journal keeps a bestiary of every foe put down and every sign and note
+read. Three save slots; a play timer; screen shake on or off; every action's key can be
+rebound; prompts name the keys or the controller's buttons, whichever is in use.
+Achievements (eleven) are kept across saves. Finishing the game opens hard mode for new
+saves (every foe half again as tough, every blow on Storm doubled). Each region has its own
+music and ambient bed, bosses their own themes, and footsteps sound like the ground.
+
