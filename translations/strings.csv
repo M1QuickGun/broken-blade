@@ -147,6 +147,8 @@ Conductor,Conductor
 An iron walker with a rod on its back. It charges up and sends shockwaves both ways.,An iron walker with a rod on its back. It charges up and sends shockwaves both ways.
 Hollow knight,Hollow knight
 The royal army's empty armor. Its shield turns blows from the front; strike after its swing.,The royal army's empty armor. Its shield turns blows from the front; strike after its swing.
+Royal sentinel,Royal sentinel
+"The castle's own guard, with a halberd. A line on the floor shows its thrust's reach: jump it.","The castle's own guard, with a halberd. A line on the floor shows its thrust's reach: jump it."
 Hollow archer,Hollow archer
 Empty armor with a bow. It backs away and looses arrows; the blade cuts them down.,Empty armor with a bow. It backs away and looses arrows; the blade cuts them down.
 Carrion crow,Carrion crow
@@ -168,6 +170,12 @@ Pinned in the forge by the fire piece through its wing.,Pinned in the forge by t
 "Who first sealed the evil, and was taken by it.","Who first sealed the evil, and was taken by it."
 "What the blade remembers of its bearer, made of black glass.","What the blade remembers of its bearer, made of black glass."
 "What wore your father's crown. The evil itself, unbound.","What wore your father's crown. The evil itself, unbound."
+The Thorn Run,The Thorn Run
+The Icefall Gauntlet,The Icefall Gauntlet
+The Ember Climb,The Ember Climb
+The Storm Rings,The Storm Rings
+The Drill Yard,The Drill Yard
+The King's Gauntlet,The King's Gauntlet
 The Foothills,The Foothills
 The Frozen Village,The Frozen Village
 The Crossroads,The Crossroads
@@ -273,6 +281,8 @@ Know Thyself,Know Thyself
 Shatter Dark Storm.,Shatter Dark Storm.
 A King's Ransom,A King's Ransom
 Carry a thousand crowns.,Carry a thousand crowns.
+Tried and True,Tried and True
+Open every trial's chest.,Open every trial's chest.
 The Keeper,The Keeper
 Reseal the evil.,Reseal the evil.
 The Long Watch,The Long Watch

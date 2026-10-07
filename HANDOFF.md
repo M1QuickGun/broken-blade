@@ -1,98 +1,119 @@
 # Handoff: where Broken Blade stands
 
-Notes for picking the project up in a new chat. The design itself is in `DESIGN.md`; the
-controls are in `README.md`.
+Notes for picking the project up in a new chat. Read this first. The design is in
+`DESIGN.md`, the controls in `README.md`, the release checklist in `ROADMAP.md`.
+
+## Where we are (2026-10-07)
+The game is complete start to finish (72 rooms, 10 boss fights, the ending) and has had a
+large polish pass, but **most of the last two sessions' work has never been played**. Storm
+is about to do a long playtest and will come back with many notes: the next chat starts
+with refining from those notes. Expect tuning, bugs, and layouts that need reworking.
+
+**Check first next playtest:** the text. The body font was unreadable (HUD-size text was
+rasterized at half the font's native size); fixed by rendering the font at 2x
+(`Game.font.oversampling`). If it's still poor, the fallback is drawing all HUD-layer text
+at size 16 (the size the boss names use, which Storm likes) and re-laying out the panels.
 
 ## Working with Storm (the developer)
-- He playtests; don't run the game to play it yourself. "start it up" means launch the game
-  for him:
+- He playtests; don't run the game to play it yourself (no windowed runs, no screenshot runs
+  unless he asks; `tools/capture.tscn` portfolio captures were approved once). "start it up"
+  means launch the game for him, in the background:
   `"/c/Users/miche/Downloads/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe" --path .`
-  (in the background).
+  (close any running copy first; the game autosaves).
 - Commit and push after every chunk of work (`main`, GitHub `M1QuickGun/broken-blade`).
-- Checks that are fine to run: `--headless --path . --import`, then
-  `--headless --path . --quit-after 3` (compile check), and throwaway headless scenes that
-  build rooms or run boss fights with a stand-in player (delete them afterwards, and delete
-  `%APPDATA%/Godot/app_userdata/Broken Blade/save.json` only if a test wrote one: it is
-  Storm's playtest save, so back it up before any test that would overwrite it).
-- `press/` (press and portfolio images) and `tools/make_press_images.py` /
-  `make_portfolio_images.py` come from other chats working on the same repo: commit them
-  along with everything else.
+- **His saves are sacred.** They live in `%APPDATA%/Godot/app_userdata/Broken Blade/`
+  (`save_1.json`..`save_3.json`, each with a `.bak`; `settings.json`). Never delete or
+  overwrite them. `Game.save_game()` and `save_settings()` do nothing in headless runs, so
+  headless tests are safe; anything else that touches those files must back them up first.
+  (Two of his saves were lost to tests on 2026-10-06 before this guard existed.)
+- Fine to run: `--headless --path . --import`, then `--headless --path . --quit-after 3`
+  (compile check; "leaked at exit" lines are harmless), `-s tools/smoke_test.gd`, and
+  throwaway headless test scripts in `tmp_test/` (delete them after).
+- He likes: being shown a plan before big new areas; flat straight-on props; bosses that
+  are fast and fair with clear wind-ups. He disliked the burned houses and three-quarter
+  props.
+- Editing tip: long Python edits are safest written to the scratchpad with the Write tool
+  and run from there (inline bash heredocs mangle backslashes). Edit scripts use
+  `assert s.count(a) == 1` replacements; a failed assert leaves that file untouched.
 
-## Tools
-- `tools/build_rooms.py`: every room layout and door link; regenerates `LINKS`, `MAP` and
-  `LAYOUTS` in `scripts/rooms.gd`. Checks two-way links and keeps enemies away from doors.
-  `EXTRA` places each region's second creature ("Y": toad, frost hound, cinder husk,
-  conductor, hollow archer) and flier ("V": frost bat, carrion crow) on the nearest open
-  floor to the spot given; room.gd picks which by region.
-  `SHRINES` puts a rest shrine by the door into every boss; `AFTER_SHRINES` an "S" in each
-  boss room, a shrine that kindles (and becomes the wake point) the moment the boss falls.
-- Floors: each region's tileset plus a second one per region (`art/world/<name>_tileset.png`,
-  room.gd `FLOOR_SHEETS`, rooms.gd `FLOORS`), made with PixelLab's sidescroller tileset tool
-  (32px, 4x4 corner layout as STONE_TILES; download the metadata's spritesheet_url) and
-  toned toward the region's colours.
-- `tools/check_map.py`: checks no two rooms overlap on the map (run after adding rooms).
-- `tools/smoke_test.gd`: builds every room and runs every boss and elite headless (the
-  centipede's first fight stays asleep: it wakes on the hilt). Saving and settings are off
-  in headless runs, so tests can't touch the player's files.
-- `tools/make_music.py` / `make_ambience.py` / `make_sfx.py`: regenerate the audio.
-- `tools/make_store_art.py`: the Steam capsules, library hero and logo into `press/steam/`.
-- `tools/extract_strings.py`: gathers the game's text into `translations/strings.csv`.
-- `tools/export.sh`: builds the game and the demo (needs Godot's export templates).
-- The font (`art/font/broken_blade.ttf`, made with PixelLab) had a short capital O; it was
-  fixed by hand (fontTools). Check new glyph sets for the same.
-- `tools/check_reach.py`: reachability check (jump, double jump, wall climb, shockline,
-  slide limits) for the fire and lightning regions' gates and secrets.
-- `tools/make_sfx.py`: synthesizes every sound effect into `audio/sfx/`.
-- `tools/capture.tscn` (+ `capture.gd`): portfolio screenshots. Runs the game windowed with an
-  invulnerable stand-in Storm through chosen rooms and boss fights (muted), saving bursts of
-  frames to `press/raw/` (git-ignored); it puts the save back as it found it. Storm asked for
-  this for the portfolio, so running it is fine. `tools/make_portfolio_shots.py` then turns
-  the picked frames into captioned 1920x1080 images in `press/portfolio/screenshots/`.
-- PixelLab (MCP) for art: about 320 generations left this cycle (resets 2026-10-29).
-  Bases for animating Storm are in `art/concepts/bases/` and are fetched from the raw
-  GitHub URL, so push a base before animating from it.
+## The game now
+- **Regions:** Foothills (forest, caves), Frozen village, the Crossroads (with the Refuge
+  below and the Last Stand on the summit), Fire slopes, Lightning peaks, the castle. Each has
+  two tilesets (`Rooms.FLOORS`), a painted backdrop, its own weather and ambient bed, music,
+  enemies, an elite, a hidden survivor room, a trial and pots.
+- **Bosses** (two fights per region, `Rooms.BOSSES`): Guardian Centipede, Frost Colossus,
+  Ashen Drake, Stormcaller, then the Hollow King (two phases: the King, then the evil unbound)
+  and Dark Storm (optional, behind a crack in the lift shaft's wall, no reward). Each fight
+  opens with a title card; bosses ring a warning before their biggest attacks.
+- **Elites** (`Rooms.ELITES`, "X"): Brood Mother, Frost Knight, Cinder Brute, Storm Herald,
+  Captain of the Guard: crawlers grown big, fought with the boss bar.
+- **Economy:** crowns from enemies, pots and bosses; dropped in a purse on death. Shops at the
+  refuge: Bram hones the blade, Maud sells flasks and a mask, Wren sells region maps.
+  Damage: a blow is 2 + hones; all health was doubled to match.
+- **Survivors** (`Rooms.SURVIVORS`): five, one in a hidden room above each region (each
+  behind a later ability); found, they move to the refuge and give a gift.
+- **Trials** (`Rooms.TRIALS`, "T"): one loop room per region off an existing room; chest of
+  crowns (a mask in the two hardest).
+- **Systems:** three save slots (safe writes with backups), fast travel between lit shrines,
+  the map (bosses, shops, survivors, pins, legend, Wren's map outlines), journal (bestiary and
+  lore), completion %, achievements (`Game.ACHIEVEMENTS`), hard mode and a boss rush after the
+  ending, credits, a demo build (`demo` feature: Foothills and Frozen village only).
+- **Settings:** volumes, video (window mode/size, vsync, frame cap, pixel-perfect scaling),
+  accessibility (game speed, gentle blows, fewer flashes, screen shake), play timer, key
+  rebinding. Prompts name the keys or controller buttons in use (`Game.fill_prompts`).
+- **Text:** all shown text goes through `tr()` (English as keys);
+  `translations/strings.csv` is generated by `tools/extract_strings.py`.
 
-## State
-- Playable: Foothills (forest; the Guardian Centipede twice), Frozen village (the Frost
-  Colossus twice), the Crossroads, the Fire slopes (their own art and weather, ash bats, the
-  Ashen Drake twice: grounded in the Forge, flying in the Drake's roost), and the Lightning
-  peaks (their own art and weather, spark wisps, the Stormcaller twice: bound in the Spire,
-  freed in the eyrie) up to the High pass, and the castle above it (the Hollow King, then
-  the ending).
-- Systems: saving (autosaves at shrines, pickups, bosses, new rooms), title screen with
-  intro, pause menu (volume, fullscreen), colour-coded map, flasks, sound effects, hit
-  effects, Silksong-style rings with region skins.
-- Debug keys (editor build): 1-4 abilities, 5 beat the current boss (the Hollow King takes
-  it twice, once per phase), 6-9, -, =, [, ], \ and ' warps (Village square, Frost arena,
-  Frost throne, Crossroads, Forge, Drake's roost, Spire, eyrie, castle gate, throne
-  approach), 0 reveal the map.
+## Where things live
+- `scripts/rooms.gd`: all game data (regions, bosses, elites, survivors, trials, props,
+  signs, NPCs and their changing lines, bestiary, region titles, music per room) plus the
+  generated LINKS / MAP / LAYOUTS. The layout legend is at the top of the file.
+- `scripts/room.gd`: builds a room from its layout; `scripts/main.gd`: the world, camera,
+  doors, deaths, travel, music, boss rush, ending; `scripts/game.gd`: the save, settings,
+  input bindings, achievements, prompts, font.
+- Enemies: `crawler.gd` (all walkers, elites, sentinels), `bat.gd` (ash/frost bat, crow),
+  `wisp.gd`, `shade.gd`. Bosses: `centipede.gd`, `colossus.gd`, `drake.gd`,
+  `stormcaller.gd`, `hollow_king.gd`, `dark_storm.gd`.
+- UI: `hud.gd`, `title.gd`, `pause_menu.gd` (+ `menu_list.gd`), `map_screen.gd`,
+  `journal.gd`, `shop.gd`, `travel.gd`, `intro.gd` (also the ending), `credits.gd`.
+
+## Tools (run from the project root)
+- `python tools/build_rooms.py`: every layout and door link (rewrites the generated part of
+  rooms.gd). Then always `python tools/check_reach.py` (ability gates; note it ignores walls
+  between jumps, so slide-only gaps can't be checked as gates) and `python tools/check_map.py`
+  (no overlaps on the map). New rooms: find free map space first (see how the trials and
+  hidden rooms were placed: a search over each parent's sides).
+- `godot --headless --path . -s tools/smoke_test.gd`: builds every room, runs every boss and
+  elite (the centipede's first fight stays asleep; it wakes on the hilt).
+- Audio: `tools/make_sfx.py` (deterministic; appending new sounds at the end of `main()`
+  leaves the old ones byte-identical), `tools/make_music.py` (synthesized placeholder music),
+  `tools/make_ambience.py`.
+- `tools/make_store_art.py` (Steam images into `press/steam/`), `tools/extract_strings.py`,
+  `tools/export.sh` (game and demo; needs Godot's export templates installed).
+- Art: PixelLab MCP. About 12 generations plus ~$10 of credits left this cycle (resets
+  2026-10-29). Tilesets: sidescroller tileset tool, 32px, download the metadata's
+  `spritesheet_url`; tone new art toward the region (see the tone script approach in git
+  history). The font (`art/font/broken_blade.ttf`, PixelLab) had a short capital O, fixed by
+  hand with fontTools.
+
+## Debug keys (editor builds)
+1-4 abilities, 5 beat the current boss (the Hollow King takes it twice), 6-9 / - / = / [ / ]
+/ \ / ' warps (Village square, Frost arena, Frost throne, Crossroads, Forge, Drake's roost,
+Spire, eyrie, castle gate, throne approach), 0 reveal the map.
 
 ## Open items
-- Storm switches sword hands when he turns (all art is right-facing and mirrored). Making
-  him stay right-handed needs left-facing versions of every animation (~80 generations);
-  offered, not yet decided.
-- The fire region has no music of its own yet (it plays `exploration`).
-- Frost Colossus reworked after feedback (fight 1 too easy, fight 2's chest out of reach);
-  Storm likes fight 2 now.
-- The lightning boss is the Stormcaller (Storm chose it over a Thunderbird, too like the
-  drake): the king's court sorcerer, taken by the evil. Needs a playtest.
-- The mountain was rebuilt to 45 rooms (3+ new per region) with each face switching back so
-  the fire and lightning roads meet at the Crossroads (bottom) and the High pass (top). The
-  Crossroads area (Storm's pick): the Refuge below (survivors' camp under the crossroads,
-  talking NPCs in `Rooms.NPCS`, "N" in layouts) and the Last Stand above (the summit
-  battlefield, hollow knights). Shops are a possible next step (needs a currency).
-- Props are drawn flat, straight-on (Storm disliked three-quarter views); keep new ones so.
-- The burned houses were removed from the fire rooms (Storm didn't like them, flat or not);
-  the fire village has no scenery props for now.
-- The drake is cut from one drawing (`art/bosses/drake_full.png`, and `drake_bare_full.png`
-  with its folded wings painted out) into parts on the same 256x144 canvas; recut from them
-  if a part needs changing. Its spread wing is `drake_wing.png`.
-- The castle has no music of its own (it plays `exploration`), and only the throne for
-  props. The castle opens with the double jump and shockline; it doesn't check the two
-  second fights were won.
-- The Dark Storm side boss (a dark copy of Storm) goes on a hidden path between the two
-  crossroads (off the lift shaft); its reward isn't decided yet.
-- Exporting: `export_presets.cfg` has a Windows preset (to `export/windows/`); Godot's
-  export templates need installing first (Editor > Manage Export Templates).
-- Achievements are tracked in the settings file (`Game.ACHIEVEMENTS`), ready to hand to
-  Steam once there's a Steamworks build.
+- **Never played:** the castle and Hollow King polish, elites, shops/crowns, survivors and
+  hidden rooms, trials, Dark Storm, the boss rush, fast travel, journal, menus and settings,
+  the new music and ambience, the sentinel. Balance (health doubling, prices, boss health) is
+  untuned.
+- Storm switches sword hands when he turns; right-handed art needs ~80 generations (after the
+  PixelLab reset). His missing animations (landing, turning, hurt, look up/down) too.
+- Music is synthesized placeholder; commission or license real music for release. Confirm
+  where `exploration.ogg` and `frozen_land.ogg` came from, and PixelLab's commercial terms.
+- HUD and menu art is drawn in code; painted frames would help.
+- Steam: GodotSteam integration (achievements are tracked, cloud saves), Steam Deck testing,
+  store screenshots and a trailer, the content survey.
+- The castle opens on the double jump and shockline alone; it doesn't require the second
+  fights of each face.
+- The credits (`scripts/credits.gd`) are a draft for Storm to check.
+- Props: the Foothills and caves have none; the fire village only wagons and crates.

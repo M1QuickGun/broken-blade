@@ -47,3 +47,17 @@ Checked off as each lands. Order is roughly the order of work.
 - [x] Speedrun timer option; a harder mode after the ending
 - [x] Clean up: remove `scripts/boss.gd` and the old playtest scene; an automated check
       that builds every room and boss
+
+## 6. Steam polish pass (2026-10-07)
+Done: the pixel font; safe saves with backups; video settings; fast travel; map icons, pins
+and legend; death fades and pickup bursts; boss warning cues; the royal sentinel; completion,
+boss rush and credits; Steam store art; a demo build and export script; accessibility
+options; translation-ready text; trials in every region.
+- [ ] Storm's playtest notes (next)
+- [ ] Balance: boss health, prices, health doubling, trial difficulty
+- [ ] Storm's missing animations and right-handed art (~80 generations, after 2026-10-29)
+- [ ] Painted HUD and menu frames
+- [ ] Real music (composer or licence); check the two original tracks' sources
+- [ ] GodotSteam: achievements, cloud saves; Steam Deck test; screenshots and trailer
+- [ ] Props for the Foothills, caves and fire village
+

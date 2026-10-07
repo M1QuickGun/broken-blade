@@ -12,6 +12,13 @@ extends RefCounted
 ##          a-z  door cells on the room's edge; LINKS says where each one leads.
 ##          =  a thin earth lid that gives way when the room's boss wakes (gone once beaten)
 ##          G  the frozen gate: solid ice until the room's boss is beaten
+##          E  in the summit and castle: hollow knights (and royal sentinels in the castle)
+##          Y  the region's second walker (toad / frost hound / cinder husk / conductor / archer)
+##          V  the region's flier (frost bat / ash bat / spark wisp / carrion crow / shade)
+##          X  the region's elite (ELITES)       N  a survivor at the refuge (NPCS)
+##          Q  a lost survivor hiding (SURVIVORS) Z  where a rescued survivor stands at the refuge
+##          S  a shrine that kindles when the room's boss falls
+##          K  a flask (+1 flask)  O  a clay pot (crowns)  T  a trial's chest (TRIALS)
 
 const TILE := 16
 

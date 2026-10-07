@@ -141,6 +141,10 @@ func _ready() -> void:
 	font.hinting = TextServer.HINTING_NONE
 	font.subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
 	font.fallbacks = [SystemFont.new()]
+	# Text in the HUD and its panels is laid out at half size and the whole layer drawn at 2x;
+	# rendering the letters at twice the size keeps every pixel of the font whole (at 1x
+	# they were rasterized at half its native size and came out unreadable).
+	font.oversampling = ART_SCALE
 	_setup_input()
 	_setup_audio_buses()
 	load_settings()
