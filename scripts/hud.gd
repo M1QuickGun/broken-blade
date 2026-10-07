@@ -111,7 +111,8 @@ func _process(_delta: float) -> void:
 	var boss = get_tree().get_first_node_in_group("boss")
 	if boss != _boss:
 		_boss = boss
-		_boss_label.text = boss.title if boss else ""
+	# (Read every frame: a boss can change its name mid-fight.)
+	_boss_label.text = boss.title if boss else ""
 	_boss_bar.queue_redraw()
 
 

@@ -109,7 +109,7 @@ def door_spots(room, letter):
     spots = set()
     for (x, y) in cells:
         for dx in (-1, 0, 1):
-            for dy in (0, 1):
+            for dy in (-1, 0, 1):
                 if room.stand(x + dx, y + dy) or room.stand(x + dx, y + dy, small=True):
                     spots.add((x + dx, y + dy))
     return spots
@@ -123,6 +123,16 @@ def can_reach(name, frm, to, abilities):
     room = Room(ROOMS[name])
     starts = door_spots(room, frm)
     goals = door_spots(room, to) if len(to) == 1 and to.islower() else set()
+    top = [(x, y) for (x, y) in marks(room, to) if y == 0] if to.islower() else []
+    if top:
+        # A door in the roof (or the sky): jumped up into from a spot close enough below it.
+        up, across = DOUBLE if abilities["double_jump"] else JUMP
+        for s in starts:
+            for (x, y) in reach(room, s, abilities):
+                feet = y + 0.7 if room.cell(x, y) == "*" else y
+                if feet <= up and min(abs(x - dx) for dx, _ in top) <= across:
+                    return True
+        return False
     if not goals:  # a pickup: stand on or by it
         for (x, y) in marks(room, to):
             for dy in range(0, 3):
@@ -141,6 +151,7 @@ SETS = {
     "base": {"wall_jump": True, "dash": True, "double_jump": False, "shockline": False},
     "fire": {"wall_jump": True, "dash": True, "double_jump": True, "shockline": False},
     "storm": {"wall_jump": True, "dash": True, "double_jump": False, "shockline": True},
+    "all": {"wall_jump": True, "dash": True, "double_jump": True, "shockline": True},
 }
 
 # (room, from, to, abilities that should make it, abilities that shouldn't)
@@ -188,6 +199,19 @@ EXPECT = [
     ("windward_pass", "y", "z", ["base"], []),
     ("summit_ledge", "z", "y", ["base"], []),
     ("summit_ledge", "y", "z", ["base"], []),
+    ("high_pass", "y", "c", ["all"], ["fire", "storm"]),
+    ("high_pass", "z", "c", ["all"], ["fire", "storm"]),
+    ("castle_gate", "c", "d", ["all"], []),
+    ("castle_gate", "d", "c", ["base"], []),
+    ("ramparts", "d", "e", ["base"], []),
+    ("ramparts", "e", "d", ["base"], []),
+    ("great_hall", "e", "g", ["base"], []),
+    ("great_hall", "g", "e", ["base"], []),
+    ("great_hall", "e", "f", ["all"], []),
+    ("chapel", "f", "H", ["all"], []),
+    ("library", "g", "h", ["all"], []),
+    ("bell_tower", "h", "i", ["all"], ["fire"]),
+    ("throne_approach", "i", "j", ["base"], []),
 ]
 
 

@@ -254,6 +254,8 @@ func _setup_input() -> void:
 	_bind("debug_warp_roost", [KEY_EQUAL], [], [])
 	_bind("debug_warp_spire", [KEY_BRACKETLEFT], [], [])
 	_bind("debug_warp_eyrie", [KEY_BRACKETRIGHT], [], [])
+	_bind("debug_warp_castle", [KEY_BACKSLASH], [], [])
+	_bind("debug_warp_throne", [KEY_APOSTROPHE], [], [])
 	_bind("debug_reveal_map", [KEY_0], [], [])
 
 

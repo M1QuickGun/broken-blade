@@ -23,10 +23,11 @@ const REGION_COLORS := {
 	"fire": [Color("2e2019"), Color("d0875a")],
 	"storm": [Color("26213a"), Color("b9a4ec")],
 	"cross": [Color("2a2720"), Color("d6c58c")],
+	"castle": [Color("241f2c"), Color("c9b6d8")],
 	"other": [Color("1d2330"), Color("6f7a90")],
 }
 const REGION_NAMES := [["foothills", "Foothills"], ["ice", "Frozen village"], ["cross", "Crossroads"],
-	["fire", "Fire slopes"], ["storm", "Lightning peaks"]]
+	["fire", "Fire slopes"], ["storm", "Lightning peaks"], ["castle", "Castle"]]
 
 ## Set by Main: the room Storm is in and where he is in it (world units).
 var current_room := ""
@@ -84,6 +85,8 @@ func _process(delta: float) -> void:
 
 
 func _region(room: String) -> String:
+	if room in Rooms.CASTLE_ROOMS:
+		return "castle"
 	if room in Rooms.CROSS_ROOMS or room in Rooms.SUMMIT_ROOMS:
 		return "cross"
 	if room in Rooms.FIRE_ROOMS:

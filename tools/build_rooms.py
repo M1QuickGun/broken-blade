@@ -712,7 +712,7 @@ r.fill(0, 6, 0, 8, "z")
 
 # ---------------------------------------------------------------- High pass
 # The pass joining the tops of both faces. The castle gate above it needs the double jump
-# and the shockline together (still to come).
+# and the shockline together.
 
 r = Room("high_pass", 80, 20)
 r.open_sky()
@@ -728,6 +728,11 @@ r.put(40, 16, "?")
 r.box(18, 15, 22, 16)
 r.box(57, 15, 61, 16)
 r.put(28, 16, "E")
+# The way up to the castle gate: a fallen slab of the old road hanging in the air (the double
+# jump), a ring above it (the shockline), and from the ring up into the gate.
+r.box(35, 12, 39, 12)
+r.put(47, 5, "*")
+r.fill(45, 0, 49, 0, "c")
 
 # The windward pass and the summit ledge: the high pass runs on east along the top of the
 # mountain, stepping down toward the head of the storm tower (wall jump back up the steps).
@@ -752,6 +757,109 @@ r.put(56, 14, "E")
 r = Room("lift_shaft", 10, 85)
 r.fill(4, 0, 6, 0, "k")
 r.fill(4, 84, 6, 84, "l")
+
+# ---------------------------------------------------------------- The castle
+# The king's castle at the summit, where the evil sits on the throne. Up through the broken
+# gatehouse from the high pass, along the ramparts, through the great hall (the chapel above
+# it), the library and the bell tower to the throne.
+
+# The gatehouse: in through a breach in its floor, a climb up the inside of the broken gate:
+# ledges, then rings, then the double jump, to the shrine at the top and the ramparts.
+r = Room("castle_gate", 30, 44)
+r.air(13, 43, 15, 43)
+r.fill(13, 43, 15, 43, "c")
+for x0, x1, y in [(1, 14, 40), (15, 28, 37), (1, 14, 34), (15, 28, 31), (1, 14, 28)]:
+    r.box(x0, y, x1, y)
+r.put(20, 22, "*")
+r.put(12, 18, "*")
+r.box(15, 14, 28, 14)
+r.box(1, 10, 12, 10)
+r.box(14, 7, 28, 7)
+r.fill(29, 4, 29, 6, "d")
+r.put(6, 42, "?")
+r.put(22, 36, "E")
+
+# The ramparts: the wall walk along the castle's west face, open to the storm, merlons to
+# jump and collapsed stretches over spikes; hollow archers on the walk.
+r = Room("ramparts", 72, 20)
+r.open_sky()
+r.floor(16)
+r.fill(0, 13, 0, 15, "d")
+r.fill(71, 13, 71, 15, "e")
+for x in range(8, 66, 9):
+    r.box(x, 14, x + 1, 15)
+for x0 in (20, 44):
+    r.air(x0, 16, x0 + 3, 18)
+    r.fill(x0, 18, x0 + 3, 18, "^")
+r.put(4, 15, "?")
+
+# The great hall: the fallen court. Long tables, the old chandeliers (rings) under the roof,
+# a gap in the roof up to the chapel, and the way on east at the far end.
+r = Room("great_hall", 64, 22)
+r.floor(20)
+r.fill(0, 17, 0, 19, "e")
+r.fill(63, 17, 63, 19, "g")
+r.box(12, 18, 19, 18)
+r.box(42, 18, 49, 18)
+r.box(27, 14, 36, 14)
+for x, y in [(23, 9), (31, 5), (39, 9)]:
+    r.put(x, y, "*")
+r.fill(30, 0, 32, 0, "f")
+r.put(6, 19, "?")
+
+# The royal chapel, above the great hall: where the blade first sealed the evil. Nothing
+# lives here. A mask shard on the high sill of its broken window.
+r = Room("chapel", 40, 18)
+r.floor(16)
+r.air(14, 16, 16, 17)
+r.fill(14, 17, 16, 17, "f")
+r.box(24, 13, 30, 15)
+r.put(27, 12, "?")
+r.put(8, 15, "?")
+r.box(28, 6, 33, 6)
+r.put(31, 5, "H")
+r.put(24, 7, "*")
+
+# The library: the Stormcaller's study, shelves stacked up to the ceiling. Up the shelves to
+# the way out at the top.
+r = Room("library", 44, 30)
+r.floor(28)
+r.fill(0, 25, 0, 27, "g")
+r.fill(43, 3, 43, 5, "h")
+for x0, x1, y in [(6, 15, 24), (20, 29, 21), (32, 40, 17), (18, 27, 13), (6, 14, 10), (22, 42, 6)]:
+    r.box(x0, y, x1, y)
+r.put(10, 27, "?")
+
+# The bell tower: the long climb. Its walls are thorned with iron spikes, so it's rings and
+# ledges all the way up, the bell hanging at the top.
+r = Room("bell_tower", 28, 56)
+r.floor(54)
+r.fill(0, 51, 0, 53, "h")
+r.fill(27, 2, 27, 4, "i")
+r.fill(1, 8, 1, 46, "^")
+r.fill(26, 8, 26, 50, "^")
+r.box(14, 50, 22, 50)
+for i, y in enumerate(range(46, 13, -4)):
+    r.put(9 if i % 2 == 0 else 18, y, "*")
+r.box(4, 11, 11, 11)
+r.box(17, 5, 26, 5)
+
+# The throne approach: a long quiet corridor, the doors to the throne room at its end.
+r = Room("throne_approach", 50, 16)
+r.floor(14)
+r.fill(0, 11, 0, 13, "i")
+r.fill(49, 11, 49, 13, "j")
+r.put(30, 13, "?")
+
+# The throne room: the Hollow King on his throne. Rings hang under the vaulted roof for when
+# the evil tears out of him and fills the room.
+r = Room("throne_room", 56, 22)
+r.floor(20)
+r.fill(0, 17, 0, 19, "j")
+r.box(46, 18, 54, 19)
+r.put(48, 17, "B")
+for x, y in [(10, 10), (22, 8), (34, 8), (46, 10)]:
+    r.put(x, y, "*")
 
 LINKS = {
     "landing": {"a": ("thicket", "a")},
@@ -801,7 +909,16 @@ LINKS = {
     "aqueduct": {"a": ("gale_ledges", "b"), "b": ("thunder_eyrie", "v")},
     "thunder_eyrie": {"v": ("aqueduct", "b"), "w": ("storm_tower", "w")},
     "storm_tower": {"w": ("thunder_eyrie", "w"), "z": ("summit_ledge", "y")},
-    "high_pass": {"y": ("fire_shaft", "y"), "z": ("windward_pass", "z"), "k": ("lift_shaft", "k")},
+    "high_pass": {"y": ("fire_shaft", "y"), "z": ("windward_pass", "z"), "k": ("lift_shaft", "k"),
+                  "c": ("castle_gate", "c")},
+    "castle_gate": {"c": ("high_pass", "c"), "d": ("ramparts", "d")},
+    "ramparts": {"d": ("castle_gate", "d"), "e": ("great_hall", "e")},
+    "great_hall": {"e": ("ramparts", "e"), "f": ("chapel", "f"), "g": ("library", "g")},
+    "chapel": {"f": ("great_hall", "f")},
+    "library": {"g": ("great_hall", "g"), "h": ("bell_tower", "h")},
+    "bell_tower": {"h": ("library", "h"), "i": ("throne_approach", "i")},
+    "throne_approach": {"i": ("bell_tower", "i"), "j": ("throne_room", "j")},
+    "throne_room": {"j": ("throne_approach", "j")},
     "windward_pass": {"z": ("high_pass", "z"), "y": ("summit_ledge", "z")},
     "summit_ledge": {"z": ("windward_pass", "y"), "y": ("storm_tower", "z")},
 }
@@ -836,6 +953,9 @@ EXTRA = {
     "high_pass": [(66, 16, "Y"), (14, 16, "V")],
     "windward_pass": [(36, 10, "Y"), (60, 16, "V")],
     "summit_ledge": [(42, 11, "Y"), (34, 8, "V")],
+    "ramparts": [(30, 15, "Y"), (56, 15, "Y")],
+    "great_hall": [(24, 19, "E"), (40, 10, "V")],
+    "library": [(25, 20, "V"), (12, 23, "Y")],
 }
 
 
@@ -844,11 +964,11 @@ EXTRA = {
 # a few tiles in from it and clear of enemies.
 SHRINES = {
     "fern_gully": "e", "ice_caverns": "k", "frozen_depths": "m", "slag_works": "u",
-    "cinder_ridge": "b", "rod_field": "u", "aqueduct": "b",
+    "cinder_ridge": "b", "rod_field": "u", "aqueduct": "b", "throne_approach": "j",
 }
 AFTER_SHRINES = {
     "gate_cavern": "g", "frost_arena": "l", "frost_throne": "n", "forge": "v",
-    "drake_roost": "x", "spire": "u", "thunder_eyrie": "w",
+    "drake_roost": "x", "spire": "u", "thunder_eyrie": "w", "throne_room": "j",
 }
 
 

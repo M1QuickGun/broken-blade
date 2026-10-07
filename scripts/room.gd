@@ -21,6 +21,8 @@ const Bat := preload("res://scripts/bat.gd")
 const Drake := preload("res://scripts/drake.gd")
 const Wisp := preload("res://scripts/wisp.gd")
 const Stormcaller := preload("res://scripts/stormcaller.gd")
+const HollowKing := preload("res://scripts/hollow_king.gd")
+const Shade := preload("res://scripts/shade.gd")
 const Npc := preload("res://scripts/npc.gd")
 
 const PIECE_ABILITIES := {"I": "dash", "F": "double_jump", "L": "shockline", "W": "wall_jump"}
@@ -31,6 +33,8 @@ const VIEW := Vector2(480, 270)
 ## Props painted on a mound of their own earth sink into the floor (they're drawn behind the
 ## tiles) until only the mound's top shows, so they stand in the ground, not on an island.
 const PROP_SINK := {"banner": 6.0, "grave": 6.0, "armor_pile": 6.0, "catapult": 6.0}
+## Props drawn bigger than the usual half size of their art.
+const PROP_SCALE := {"throne": 1.0}
 const LAYER_WORLD := 1
 const LAYER_PLAYER := 2
 const LAYER_HAZARD := 8
@@ -61,6 +65,10 @@ const FIRE_SHEET := preload("res://art/world/fire_tileset.png")
 const CROSS_SHEET := preload("res://art/world/cross_tileset.png")
 ## The Lightning peaks' storm-worn slate; same corner layout as STONE_SHEET.
 const STORM_SHEET := preload("res://art/world/storm_tileset.png")
+## The castle's grey marble, dust and old carpet; same corner layout as STONE_SHEET.
+const CASTLE_SHEET := preload("res://art/world/castle_tileset.png")
+## The castle's knights and archers, pale in the moonlight.
+const CASTLE_TINT := Color(0.78, 0.84, 1.0)
 ## Each region's second floor (Rooms.FLOORS says which rooms use it); same corner layout.
 const FLOOR_SHEETS := {
 	"roots": preload("res://art/world/roots_tileset.png"),
@@ -119,6 +127,8 @@ var _storm := false
 ## The Crossroads area: the refuge around the crossroads, and the Last Stand on the summit.
 var _cross := false
 var _summit := false
+## The king's castle at the summit.
+var _castle := false
 var _npc_count := 0
 ## The breakable earth lid ("=") and the frozen gate ("G"), while they stand.
 var _lid: StaticBody2D
@@ -137,7 +147,8 @@ func build(name_: String) -> void:
 	_storm = room_name in Rooms.STORM_ROOMS
 	_summit = room_name in Rooms.SUMMIT_ROOMS
 	_cross = room_name in Rooms.CROSS_ROOMS or _summit
-	_woods = _woods or _fire or _storm or _cross
+	_castle = room_name in Rooms.CASTLE_ROOMS
+	_woods = _woods or _fire or _storm or _cross or _castle
 	_grid = PackedStringArray(Rooms.LAYOUTS[name_])
 	# Once the room's boss is beaten, its lid has fallen in and its frozen gate is broken.
 	if Rooms.BOSSES.has(room_name) and Game.defeated.has(Rooms.BOSSES[room_name].id):
@@ -170,7 +181,10 @@ func build(name_: String) -> void:
 			woods.size_px = size_px
 			woods.solid = _grid
 			woods.seed_text = room_name
-			if _cross:
+			if _castle:
+				# The ramparts look out over the battlefield; inside, the hall painting, dimmed.
+				woods.backdrop_tint = Color(0.6, 0.6, 0.68) if roof_px == 0.0 else Color(0.62, 0.64, 0.72)
+			elif _cross:
 				woods.backdrop_tint = Color(0.66, 0.66, 0.7) if roof_px == 0.0 else Color(0.5, 0.48, 0.5)
 			elif _storm:
 				# Dimmed and cooled to sit behind the slate; the spire's inside darker still.
@@ -252,16 +266,18 @@ func _add_props() -> void:
 	var layer := Node2D.new()
 	layer.z_index = -1
 	# Lit like the painted backdrop behind them, a touch brighter as they stand nearer.
-	layer.modulate = Color(0.78, 0.82, 0.88) if _ice else (Color(0.9, 0.82, 0.76) if _fire
+	layer.modulate = Color(0.72, 0.75, 0.84) if _castle else Color(0.78, 0.82, 0.88) if _ice else (Color(0.9, 0.82, 0.76) if _fire
 		else (Color(0.74, 0.74, 0.84) if _storm else (Color(0.82, 0.8, 0.82) if _cross else Color(0.85, 0.88, 0.86))))
 	add_child(layer)
+	move_child(layer, 0)  # behind a boss standing in front of it
 	for prop: Array in list:
 		var tex: Texture2D = load("res://art/world/props/%s.png" % prop[0])
 		var sprite := Sprite2D.new()
 		sprite.texture = tex
 		sprite.centered = false
-		sprite.scale = Vector2(0.5, 0.5)  # drawn at 2x detail
-		var size := Vector2(tex.get_size()) / 2.0
+		var prop_scale: float = PROP_SCALE.get(prop[0], 0.5)  # (most are drawn at 2x detail)
+		sprite.scale = Vector2(prop_scale, prop_scale)
+		var size := Vector2(tex.get_size()) * prop_scale
 		var foot := Vector2((prop[1] + 0.5) * TILE, prop[2] * TILE + PROP_SINK.get(prop[0], 0.0))
 		sprite.position = foot - Vector2(size.x / 2.0, size.y)
 		layer.add_child(sprite)
@@ -286,6 +302,8 @@ func _atmosphere_style() -> String:
 		return "ash" if roof_px == 0.0 else "forge"
 	if _storm:
 		return "rain" if roof_px == 0.0 else "static"
+	if _castle:
+		return "battlefield" if roof_px == 0.0 else "castle"
 	if _cross:
 		return "battlefield" if _summit else "refuge"
 	if not _ice:
@@ -403,9 +421,11 @@ func _scan_cells() -> void:
 			match c:
 				"P":
 					spawn_point = feet
-				"E" when _summit:
+				"E" when _summit or _castle:
 					var knight := Crawler.new()
 					knight.kind = "knight"
+					if _castle:
+						knight.region_tint = CASTLE_TINT
 					knight.min_x = DOOR_CLEARANCE
 					knight.max_x = size_px.x - DOOR_CLEARANCE
 					knight.position = feet
@@ -495,7 +515,10 @@ func _scan_cells() -> void:
 func _spawn_extra(mark: String, feet: Vector2) -> void:
 	var walker := ""
 	var flier := ""
-	if _summit:
+	if _castle:
+		walker = "archer"
+		flier = "shade"
+	elif _summit:
 		walker = "archer"
 		flier = "crow"
 	elif _fire:
@@ -512,10 +535,16 @@ func _spawn_extra(mark: String, feet: Vector2) -> void:
 	if mark == "Y" and walker != "":
 		var crawler := Crawler.new()
 		crawler.kind = walker
+		if _castle:
+			crawler.region_tint = CASTLE_TINT
 		crawler.min_x = DOOR_CLEARANCE
 		crawler.max_x = size_px.x - DOOR_CLEARANCE
 		crawler.position = feet
 		add_child(crawler)
+	elif mark == "V" and flier == "shade":
+		var shade := Shade.new()
+		shade.position = feet
+		add_child(shade)
 	elif mark == "V" and flier == "wisp":
 		var wisp := Wisp.new()
 		wisp.position = feet
@@ -649,6 +678,8 @@ func _setup_boss() -> void:
 			boss = Drake.new()
 		"stormcaller":
 			boss = Stormcaller.new()
+		"hollow_king":
+			boss = HollowKing.new()
 		_:
 			boss = Boss.new()
 	boss.boss_id = info.id
@@ -716,7 +747,7 @@ func _draw_backdrop() -> void:
 
 
 func _draw() -> void:
-	var sheet: Texture2D = ICE_SHEET if _ice else FIRE_SHEET if _fire else STORM_SHEET if _storm \
+	var sheet: Texture2D = CASTLE_SHEET if _castle else ICE_SHEET if _ice else FIRE_SHEET if _fire else STORM_SHEET if _storm \
 		else CROSS_SHEET if _cross else (FOREST_SHEET if _forest or _cave else STONE_SHEET)
 	if Rooms.FLOORS.has(room_name):
 		sheet = FLOOR_SHEETS[Rooms.FLOORS[room_name]]

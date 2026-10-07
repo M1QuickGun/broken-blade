@@ -334,6 +334,36 @@ rods; the shockline reaches it there. Touching it doesn't hurt; its spells do:
   bolt after bolt strikes it, faster and faster, as it sinks slowly to the ground, until a
   last great one blasts it apart, leaving a mask shard.
 
+### Fight plan: the Hollow King (the throne room)
+The evil sitting on the throne in the dead king's armor, Storm's father, a phantom blade of
+smoke and violet light in his hand. The castle climbs to it: the gatehouse (in through a
+breach above the High pass: the double jump and the shockline together), the ramparts, the
+great hall (the chapel above it, where the blade first sealed the evil, and the lore of
+the seal: it holds only while a life is bound to it), the library (the Stormcaller's last
+notes), the bell tower, and the throne approach with its shrine.
+
+**Phase 1, the King.** He sits slumped on the throne until Storm comes near, then steps
+down and turns each piece's evil against him: a great slash of the phantom blade (slow to
+recover: the opening), frost run along the floor both ways (the Colossus), embers flung
+around Storm and fire along the floor (the Drake), bolts striking where Storm stands (the
+Stormcaller), and a low thrust of the blade across the room (a line on the floor shows its
+reach: jump it). Faster below half health.
+
+**Phase 2, the evil unbound.** The King falls to his knees and the evil tears out of him,
+towering over the room; his empty armor stays kneeling below. Touching it doesn't hurt;
+its head is the target, from the rings under the roof or with the shockline. A claw of
+shadow hangs over Storm and slams down (strike it while it rests on the floor), a claw
+sweeps the floor end to end (jump, or hang from a ring), ice, fire and lightning rain all
+over the room (each marked on the floor first), and it breathes orbs of dark. Faster below
+40%. Beaten, light breaks out of it in cracks and it comes apart.
+
+**The ending.** The blade's pieces come together in Storm's hand; but the seal needs a life
+bound to it, as the first king gave his. Storm drives the blade into the stone before the
+throne and binds himself to it, and the evil sinks back under the mountain. Spring comes;
+the survivors climb to the castle and find him kneeling there, hands on the blade. His
+watch has only begun. (Painted panels like the intro's; then the title. Continuing wakes
+Storm at the throne room's shrine.)
+
 ### Enemies
 - **Mossback beetle** (Foothills): as big as Storm. Patrols; spotting him ahead, it braces
   and charges, and running into a wall stuns it.
@@ -368,6 +398,10 @@ rods; the shockline reaches it there. Touching it doesn't hurt; its spells do:
 - **Hollow archer** (the Last Stand): an archer of the royal army, empty like the knights. It
   backs away, draws, and looses arrows at Storm (the blade cuts them down).
 - **Carrion crow** (the Last Stand): a crow off the battlefield; it hunts like the bats.
+- **Shade** (the castle): a scrap of the evil, a wraith of smoke. It drifts after Storm
+  through rock and all, fades out of sight, wells up again just behind him (its eyes show
+  first) and lunges; spent after, it's open. The castle's knights and archers are pale in
+  the moonlight.
 - **Hatchlings**: the centipede's young, dropped into its second fight.
 
 ### Death
@@ -417,7 +451,8 @@ The goal is a commercial release on **Steam** someday.
 - Are the fire and lightning regions villages too, or wilder terrain (volcano, storm peaks)?
 - Should the survivors at the refuge become shops (a currency to collect)?
 - Does Storm wake right where the tutorial starts, or wander a little first?
-- How does the game end? Reforge the blade and reseal the evil, or something darker?
+- How does the game end? Bittersweet: Storm reforges the blade and binds himself to it to
+  reseal the evil (see the Hollow King).
 - Engine, art style, and scope of the first playable build.
 
 ---

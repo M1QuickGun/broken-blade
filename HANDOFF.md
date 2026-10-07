@@ -47,13 +47,15 @@ controls are in `README.md`.
   Colossus twice), the Crossroads, the Fire slopes (their own art and weather, ash bats, the
   Ashen Drake twice: grounded in the Forge, flying in the Drake's roost), and the Lightning
   peaks (their own art and weather, spark wisps, the Stormcaller twice: bound in the Spire,
-  freed in the eyrie) up to the High pass.
+  freed in the eyrie) up to the High pass, and the castle above it (the Hollow King, then
+  the ending).
 - Systems: saving (autosaves at shrines, pickups, bosses, new rooms), title screen with
   intro, pause menu (volume, fullscreen), colour-coded map, flasks, sound effects, hit
   effects, Silksong-style rings with region skins.
-- Debug keys (editor build): 1-4 abilities, 5 beat the current boss, 6-9, -, =, [ and ]
-  warps (Village square, Frost arena, Frost throne, Crossroads, Forge, Drake's roost, Spire,
-  eyrie), 0 reveal the map.
+- Debug keys (editor build): 1-4 abilities, 5 beat the current boss (the Hollow King takes
+  it twice, once per phase), 6-9, -, =, [, ], \ and ' warps (Village square, Frost arena,
+  Frost throne, Crossroads, Forge, Drake's roost, Spire, eyrie, castle gate, throne
+  approach), 0 reveal the map.
 
 ## Open items
 - Storm switches sword hands when he turns (all art is right-facing and mirrored). Making
@@ -75,6 +77,10 @@ controls are in `README.md`.
 - The drake is cut from one drawing (`art/bosses/drake_full.png`, and `drake_bare_full.png`
   with its folded wings painted out) into parts on the same 256x144 canvas; recut from them
   if a part needs changing. Its spread wing is `drake_wing.png`.
-- The castle gate above the High pass, and the castle.
+- The castle has no music of its own (it plays `exploration`), and only the throne for
+  props. The castle opens with the double jump and shockline; it doesn't check the two
+  second fights were won.
+- The Dark Storm side boss (a dark copy of Storm) goes on a hidden path between the two
+  crossroads (off the lift shaft); its reward isn't decided yet.
 - `scripts/boss.gd` (Gate Warden / Frost Warden) is no longer used by any room;
   `tools/playtest.*` uses old room names.

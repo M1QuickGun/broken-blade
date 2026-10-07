@@ -1,7 +1,8 @@
 extends CanvasLayer
 ## The opening, played on a new game: four painted panels (art/story/intro_*.png), each
 ## drifting slowly while a line of the story types out beneath it. Jump / enter moves on;
-## Esc / pause skips the lot.
+## Esc / pause skips the lot. The ending plays the same way with its own panels (ENDING);
+## a panel with no painting is just its words on black.
 
 signal finished
 
@@ -12,11 +13,24 @@ const PANELS := [
 	["res://art/story/intro_3.png", "With the last of his power, the King cast his son from the summit."],
 	["res://art/story/intro_4.png", "Storm woke at the foot of the mountain, with only a shard of the blade in his hand."],
 ]
+## The end, after the Hollow King falls.
+const ENDING := [
+	["res://art/story/ending_1.png", "The evil came apart into smoke, and the pieces of the blade rang as they came together in Storm's hand."],
+	["res://art/story/ending_1.png", "But a blade alone had never held it. The seal needed a life bound to it, as the first king had given his."],
+	["res://art/story/ending_2.png", "So Storm drove the blade into the stone before the throne, and bound himself to it. The evil sank back into the dark beneath the mountain."],
+	["res://art/story/intro_1.png", "Spring came to the mountain at last. The survivors climbed to the castle, and found him there, kneeling, his hands on the blade."],
+	["", "His watch had only begun.
+
+Broken Blade
+Thank you for playing."],
+]
 const PANEL_TIME := 7.0
 const FADE := 1.0
 const TYPE_SPEED := 38.0
 const COLOR_TEXT := Color("e8ecf4")
 
+## Which panels to play (the opening, unless set to ENDING before it's added).
+var panels: Array = PANELS
 var _canvas: Control
 var _panel := 0
 var _time := 0.0
@@ -27,8 +41,8 @@ var _done := false
 func _ready() -> void:
 	layer = 45
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	for panel in PANELS:
-		_textures.append(load(panel[0]) if ResourceLoader.exists(panel[0]) else null)
+	for panel in panels:
+		_textures.append(load(panel[0]) if panel[0] != "" and ResourceLoader.exists(panel[0]) else null)
 	_canvas = Control.new()
 	_canvas.size = SIZE
 	_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -53,7 +67,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		_finish()
 	elif event.is_action_pressed("jump") or event.is_action_pressed("ui_accept") or event.is_action_pressed("attack"):
 		get_viewport().set_input_as_handled()
-		var text: String = PANELS[_panel][1]
+		var text: String = panels[_panel][1]
 		if _time < FADE + text.length() / TYPE_SPEED:
 			_time = FADE + text.length() / TYPE_SPEED  # show the whole line first
 		else:
@@ -63,7 +77,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _next() -> void:
 	_panel += 1
 	_time = 0.0
-	if _panel >= PANELS.size():
+	if _panel >= panels.size():
 		_finish()
 
 
@@ -77,7 +91,7 @@ func _finish() -> void:
 
 func _draw_panel() -> void:
 	_canvas.draw_rect(Rect2(Vector2.ZERO, SIZE), Color.BLACK)
-	if _panel >= PANELS.size():
+	if _panel >= panels.size():
 		return
 	var fade := clampf(minf(_time / FADE, (PANEL_TIME - _time) / FADE), 0.0, 1.0)
 	var tex := _textures[_panel]
@@ -90,7 +104,7 @@ func _draw_panel() -> void:
 		_canvas.draw_texture_rect(tex, Rect2((SIZE - tex_size) / 2.0 + drift, tex_size), false, Color(1, 1, 1, fade))
 	# The story, typed out over a dark band at the bottom.
 	_canvas.draw_rect(Rect2(0, SIZE.y - 96, SIZE.x, 96), Color(0, 0, 0, 0.55 * fade))
-	var text: String = PANELS[_panel][1]
+	var text: String = panels[_panel][1]
 	var shown := text.left(int(maxf(0.0, _time - FADE * 0.6) * TYPE_SPEED))
 	var font := ThemeDB.fallback_font
 	var at := Vector2(80, SIZE.y - 62)

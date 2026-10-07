@@ -74,6 +74,8 @@ var min_x := -INF
 var max_x := INF
 var hp := 3
 var dir := -1
+## Coloured to its region where a kind turns up in more than one (the castle's are pale).
+var region_tint := Color.WHITE
 
 var _state := St.WALK
 var _timer := 0.0
@@ -538,7 +540,7 @@ func _draw() -> void:
 		draw_colored_polygon(pts, COLOR_DIRT)
 		if _state == St.RUMBLE:
 			return
-	var tint := Color(3, 3, 3) if _flash > 0.0 else Color.WHITE
+	var tint := Color(3, 3, 3) if _flash > 0.0 else region_tint
 	if _state == St.WINDUP and fmod(_anim, 0.16) < 0.08:
 		tint = Color(1.5, 1.1, 0.9)
 	var tex: Texture2D = _info.tex

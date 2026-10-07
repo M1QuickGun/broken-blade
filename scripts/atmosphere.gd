@@ -20,6 +20,9 @@ extends Node2D
 ##   firelight low in the room, embers drifting up from the campfires.
 ## - "battlefield" (the Last Stand, on the summit): mist rolling low over the ground, ash and
 ##   snow blowing across, and now and then a distant flash, fire or lightning, over the pass.
+## - "castle" (inside the king's castle): pale moonlight slanting in through the broken
+##   windows, dust hanging in it, and now and then the evil's violet breathing through the
+##   walls.
 ## The room adds one of each (front = false / true) and hands over its size and cells.
 
 const TILE := 16
@@ -33,6 +36,7 @@ const BACKDROPS := {
 	"static": preload("res://art/world/spire_bg.png"),
 	"refuge": preload("res://art/world/refuge_bg.png"),
 	"battlefield": preload("res://art/world/last_stand_bg.png"),
+	"castle": preload("res://art/world/castle_bg.png"),
 }
 ## How much the backdrop follows the camera's movement across the room: 0 would pin it
 ## to the screen, 1 to the room.
@@ -62,6 +66,8 @@ const COLOR_RAIN := Color(0.7, 0.78, 0.92)
 const COLOR_FLASH := Color(0.9, 0.9, 1.0)
 const COLOR_SPARK := Color(0.78, 0.66, 1.0)
 const COLOR_ARC := Color(0.92, 0.88, 1.0)
+const COLOR_MOON := Color(0.72, 0.82, 1.0)
+const COLOR_EVIL := Color(0.45, 0.25, 0.7)
 ## Seconds between lightning flashes outdoors (at random within this range).
 const FLASH_EVERY := Vector2(5.0, 11.0)
 
@@ -125,7 +131,7 @@ func _ready() -> void:
 	if style == "rain" or style == "static":
 		_setup_storm(rng, cols)
 		return
-	if style == "refuge" or style == "battlefield":
+	if style == "refuge" or style == "battlefield" or style == "castle":
 		_setup_pass(rng)
 		return
 	if style != "forest":
@@ -228,10 +234,17 @@ func _setup_fire(rng: RandomNumberGenerator, cols: int) -> void:
 func _setup_pass(rng: RandomNumberGenerator) -> void:
 	_rng.seed = rng.randi()
 	var area := size_px.x * size_px.y
-	for i in int(area / (2400.0 if style == "refuge" else 1600.0)):
+	for i in int(area / (2400.0 if style == "refuge" else 3000.0 if style == "castle" else 1600.0)):
 		_flakes.append({"x": rng.randf() * size_px.x, "y": rng.randf() * size_px.y,
 			"speed": rng.randf_range(8.0, 18.0), "sway": rng.randf_range(4.0, 12.0),
 			"phase": rng.randf() * TAU, "depth": rng.randf()})
+	if style == "castle":
+		# Moonbeams through the windows, every dozen tiles or so, all slanting the same way.
+		var x := rng.randf_range(3.0, 10.0) * TILE
+		while x < size_px.x:
+			_shafts.append({"x": x, "w": rng.randf_range(14.0, 30.0), "phase": rng.randf() * TAU})
+			x += rng.randf_range(10.0, 16.0) * TILE
+		return
 	if style == "refuge":
 		for i in int(area / 9000.0):
 			_embers.append({"x": rng.randf() * size_px.x, "y": rng.randf() * size_px.y,
@@ -369,6 +382,9 @@ func _draw_back() -> void:
 
 
 func _draw_front() -> void:
+	if style == "castle":
+		_draw_castle()
+		return
 	if style == "refuge" or style == "battlefield":
 		_draw_pass()
 		return
@@ -526,6 +542,34 @@ func _draw_pass() -> void:
 		var x: float = e.x + sin(_time * 1.1 + e.phase) * e.sway
 		var flicker := 0.4 + 0.6 * maxf(0.0, sin(_time * 4.0 + e.phase * 5.0))
 		draw_circle(Vector2(x, y), 0.8, Color(COLOR_EMBER, flicker * clampf(y / (size_px.y * 0.4), 0.0, 1.0)))
+
+
+func _draw_castle() -> void:
+	# The evil breathing through the walls: a slow violet swell over the whole room.
+	var breath := maxf(0.0, sin(_time * 0.5)) ** 3
+	draw_rect(Rect2(Vector2.ZERO, size_px), Color(COLOR_EVIL, 0.05 * breath))
+	var slant := size_px.y * 0.35
+	for s in _shafts:
+		var pulse: float = 0.8 + 0.2 * sin(_time * 0.6 + s.phase)
+		var x: float = s.x
+		var w: float = s.w
+		draw_colored_polygon(PackedVector2Array([
+			Vector2(x, 0), Vector2(x + w, 0), Vector2(x + w + slant, size_px.y), Vector2(x + slant, size_px.y),
+		]), Color(COLOR_MOON, 0.05 * pulse))
+		draw_colored_polygon(PackedVector2Array([
+			Vector2(x + w * 0.3, 0), Vector2(x + w * 0.7, 0), Vector2(x + w * 0.7 + slant, size_px.y),
+			Vector2(x + w * 0.3 + slant, size_px.y),
+		]), Color(COLOR_MOON, 0.04 * pulse))
+	for f in _flakes:
+		# Dust hanging in the air, barely drifting, brighter where the moonlight catches it.
+		var y: float = fmod(f.y + _time * f.speed * 0.15, size_px.y)
+		var x: float = fmod(f.x + sin(_time * 0.3 + f.phase) * f.sway + size_px.x, size_px.x)
+		var lit := 0.0
+		for s in _shafts:
+			var along: float = s.x + slant * y / size_px.y
+			if x > along and x < along + s.w:
+				lit = 1.0
+		draw_circle(Vector2(x, y), lerpf(0.4, 0.8, f.depth), Color(COLOR_MOON, lerpf(0.08, 0.2, f.depth) + 0.35 * lit))
 
 
 func _draw_storm() -> void:

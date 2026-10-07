@@ -12,7 +12,7 @@ const MapScreen := preload("res://scripts/map_screen.gd")
 const Intro := preload("res://scripts/intro.gd")
 
 const START_ROOM := "landing"
-## Debug warps (keys 6-9, -, =, [ and ]): action -> [room, the door to arrive by].
+## Debug warps (keys 6-9, -, =, [, ], \ and '): action -> [room, the door to arrive by].
 const DEBUG_WARPS := {
 	"debug_warp_village": ["village_square", "g"],
 	"debug_warp_frost_arena": ["frost_arena", "k"],
@@ -22,6 +22,8 @@ const DEBUG_WARPS := {
 	"debug_warp_roost": ["drake_roost", "w"],
 	"debug_warp_spire": ["spire", "t"],
 	"debug_warp_eyrie": ["thunder_eyrie", "v"],
+	"debug_warp_castle": ["castle_gate", "c"],
+	"debug_warp_throne": ["throne_approach", "i"],
 }
 const DOOR_FADE := 0.15
 ## The view in world units (see Game.ART_SCALE).
@@ -121,6 +123,19 @@ func _on_hp_changed(hp: int, _max_hp: int) -> void:
 	_last_hp = hp
 
 
+## The end: a moment in the quiet throne room, then the ending's panels, then the title.
+## (Continuing afterwards wakes Storm at the shrine in the throne room.)
+func _play_ending() -> void:
+	player.controls_locked = true
+	await get_tree().create_timer(2.5).timeout
+	await hud.fade_out(1.5)
+	var ending := Intro.new()
+	ending.panels = Intro.ENDING
+	add_child(ending)
+	await ending.finished
+	_quit_to_title()
+
+
 func _quit_to_title() -> void:
 	Game.save_game()
 	get_tree().paused = false
@@ -183,7 +198,9 @@ func _load_room(room_name: String, door: String, at := Vector2.INF) -> void:
 	room.sign_read.connect(hud.show_message)
 	room.boss_defeated.connect(func(title: String) -> void:
 		hud.show_message("%s falls." % title)
-		Game.save_game())
+		Game.save_game()
+		if Game.defeated.has("hollow_king") and room.room_name == "throne_room":
+			_play_ending())
 	Music.play(Rooms.MUSIC.get(room_name, Rooms.DEFAULT_MUSIC))
 	if not Game.visited.has(room_name):
 		Game.visited[room_name] = true
