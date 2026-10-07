@@ -362,6 +362,8 @@ func _physics_process(delta: float) -> void:
 
 
 func _enter(state: St, time := 0.0) -> void:
+	if state in [St.LASH_CHARGE, St.BEAM_AIM, St.SURGE_CHARGE]:
+		Sfx.play("warn", -6.0, 0.0)  # its biggest blows ring a warning first
 	_state = state
 	if state not in [St.WAKE, St.ARRIVE, St.BLINK, St.BOLT_WAIT, St.SLUMP, St.SWELL, St.ESCAPE, St.UNRAVEL]:
 		time *= TEMPO

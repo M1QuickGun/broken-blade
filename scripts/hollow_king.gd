@@ -304,6 +304,8 @@ func _physics_process(delta: float) -> void:
 
 
 func _enter(state: St, time := 0.0) -> void:
+	if state in [St.THRUST_WINDUP, St.SWEEP_WARN, St.RUIN]:
+		Sfx.play("warn", -6.0, 0.0)  # its biggest blows ring a warning first
 	_state = state
 	if state not in [St.RISE, St.KNEEL, St.TEAR, St.DYING, St.WALK, St.BOLT_WAIT, St.RUIN]:
 		time *= _pace

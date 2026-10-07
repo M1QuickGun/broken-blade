@@ -431,6 +431,8 @@ func _warn_time() -> float:
 
 
 func _enter(state: St, time := 0.0) -> void:
+	if state in [St.WALL_RUMBLE, St.CHARGE_GATE]:
+		Sfx.play("warn", -6.0, 0.0)  # its biggest blows ring a warning first
 	_state = state
 	_timer = time
 	match state:

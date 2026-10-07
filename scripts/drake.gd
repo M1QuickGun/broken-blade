@@ -479,6 +479,8 @@ func _physics_process(delta: float) -> void:
 
 
 func _enter(state: St, time := 0.0) -> void:
+	if state in [St.BREATH_WINDUP, St.CHARGE_WINDUP, St.AIR_BREATH_WINDUP, St.DIVE_WINDUP, St.FINAL_AIM]:
+		Sfx.play("warn", -6.0, 0.0)  # its biggest blows ring a warning first
 	_state = state
 	if _hot and state not in [St.FINAL_RISE, St.FINAL_AIM, St.FINAL_DIVE, St.EXPLODE]:
 		time *= HOT_PACE

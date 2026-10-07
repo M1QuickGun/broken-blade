@@ -241,6 +241,11 @@ def main():
     ticks = highpass(noise(d), 3000) * (rng.uniform(0, 1, int(RATE * d)) > 0.92)
     save("crackle", ticks * env(d, 0.01, 1.0), 0.5)
 
+    # The warning before a boss's biggest blows: a rising ring that the ear learns to dread.
+    d = 0.5
+    rise = tone(sweep(330, 990, d, 1.5), d, "tri") * env(d, 0.05, 1.2)
+    save("warn", mix(rise, tone(sweep(660, 1980, d, 1.5), d) * env(d, 0.05, 1.2) * 0.3), 0.45)
+
     # Footsteps, one for each kind of ground.
     d = 0.07
     save("step_stone", mix(highpass(noise(d), 2500) * env(d, 0.001, 6.0) * 0.6,

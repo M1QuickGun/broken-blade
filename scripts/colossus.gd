@@ -431,6 +431,8 @@ func _physics_process(delta: float) -> void:
 
 
 func _enter(state: St, time := 0.0) -> void:
+	if state in [St.CROUCH, St.SWEEP_CHARGE, St.BURST_WARN, St.GREED_WARN]:
+		Sfx.play("warn", -6.0, 0.0)  # its biggest blows ring a warning first
 	_state = state
 	_timer = time
 	match state:

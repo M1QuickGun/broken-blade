@@ -147,6 +147,8 @@ func take_hit(damage: int, from_dir: Vector2) -> void:
 
 
 func _enter(state: St, time := 0.0) -> void:
+	if state in [St.DASH_WINDUP, St.AIM]:
+		Sfx.play("warn", -6.0, 0.0)  # its biggest blows ring a warning first
 	_state = state
 	if state not in [St.WAKE, St.SHATTER]:
 		time *= _pace
