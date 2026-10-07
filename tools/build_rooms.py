@@ -1006,6 +1006,13 @@ EXTRA = {
     "great_hall": [(24, 19, "E"), (40, 10, "V")],
     "library": [(25, 20, "V"), (12, 23, "Y")],
 }
+# Each region's elite ("X": Rooms.ELITES), somewhere with floor to fight on.
+EXTRA_ELITES = {
+    "thicket": (38, 14), "village_square": (30, 16), "burning_homes": (40, 18),
+    "storm_bridges": (32, 18), "great_hall": (34, 19),
+}
+for _room, (_x, _y) in EXTRA_ELITES.items():
+    EXTRA.setdefault(_room, []).append((_x, _y, "X"))
 
 
 # Shrines by the way into every boss ("R", in the room before it) and in every boss room
@@ -1033,7 +1040,7 @@ def place_pots():
             continue
         g = room.g
         doors = [(x, y) for y, row in enumerate(g) for x, c in enumerate(row) if "a" <= c <= "z"]
-        busy = [(x, y) for y, row in enumerate(g) for x, c in enumerate(row) if c in "EUYVRS?BNHIFLW*O"]
+        busy = [(x, y) for y, row in enumerate(g) for x, c in enumerate(row) if c in "EUYVXQZKRS?BNHIFLW*O"]
         spots = []
         for y in range(2, room.h - 1):
             for x in range(2, room.w - 2):
@@ -1097,7 +1104,7 @@ def place_extra():
             if any(abs(dx - x) < 8 and abs(dy - y) < 6 for dx, dy in doors):
                 return False
             # Floor to walk (or air to hover in), and not on top of another creature.
-            if ch == "Y" and not all(g[y + 1][x + k] == "#" and g[y][x + k] in ".EYV" for k in (-2, -1, 1, 2)):
+            if ch in "YX" and not all(g[y + 1][x + k] == "#" and g[y][x + k] in ".EYV" for k in (-2, -1, 1, 2)):
                 return False
             if ch == "V" and not all(g[y - k][x] == "." for k in range(1, 5)):
                 return False
@@ -1123,7 +1130,7 @@ def check():
         doors = [(x, y) for y, row in enumerate(rows) for x, c in enumerate(row) if "a" <= c <= "z"]
         for y, row in enumerate(rows):
             for x, c in enumerate(row):
-                if c in "EUYV":
+                if c in "EUYVX":
                     for dx, dy in doors:
                         assert not (abs(dx - x) < 8 and abs(dy - y) < 6),                             "%s: enemy at %d,%d is right by a door" % (name, x, y)
         assert all(len(row) == room.w for row in rows), name

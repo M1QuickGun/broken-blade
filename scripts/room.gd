@@ -463,6 +463,19 @@ func _scan_cells() -> void:
 					_spawn_extra(c, feet)
 				"Q":
 					_add_lost_survivor(feet)
+				"X":
+					var info: Dictionary = Rooms.ELITES.get(room_name, {})
+					if not info.is_empty() and not Game.defeated.has(info.id):
+						var boss := Crawler.new()
+						boss.kind = info.kind
+						boss.elite = info.id
+						boss.title = info.title
+						boss.subtitle = info.subtitle
+						boss.region_tint = info.tint
+						boss.min_x = DOOR_CLEARANCE
+						boss.max_x = size_px.x - DOOR_CLEARANCE
+						boss.position = feet
+						add_child(boss)
 				"Z":
 					_add_rescued_survivor(feet)
 				"K":

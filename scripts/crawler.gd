@@ -20,6 +20,14 @@ extends CharacterBody2D
 ##   charges up, crackling, and sends shockwaves both ways along the floor: jump them.
 ## - "archer" (the Last Stand): a hollow archer. It keeps its distance, draws, and looses
 ##   arrows at him (the blade can cut them down).
+## Each region also has one elite (`elite` set: Rooms.ELITES), a bigger, tougher one with a
+## trick of its own, fought like a small boss (its name and health across the screen):
+## - the Brood Mother (a beetle): ramming the wall shakes rocks down from the roof;
+## - the Frost Knight: frost runs out along the floor from every swing;
+## - the Cinder Brute (a husk): it slams the floor, fire running both ways, instead of bursting;
+## - the Storm Herald (a conductor): two rounds of shockwaves, one after the other;
+## - the Captain of the Guard (a knight): swings twice.
+## Beaten, it stays beaten, and leaves a pile of crowns.
 ## The node's origin is at its feet.
 
 const Effects := preload("res://scripts/effects.gd")
@@ -77,6 +85,16 @@ var hp := 3
 var dir := -1
 ## Coloured to its region where a kind turns up in more than one (the castle's are pale).
 var region_tint := Color.WHITE
+## An elite: its id (Rooms.ELITES), name and line under it, read by the HUD while it fights.
+var elite := ""
+var title := ""
+var subtitle := ""
+var boss_id := ""
+var max_hp := 0
+var _engaged := false
+var _combo := 0
+## How much bigger an elite is drawn.
+var _scale := 1.0
 
 var _state := St.WALK
 var _timer := 0.0
@@ -97,7 +115,16 @@ class Blade extends Area2D:
 
 func _ready() -> void:
 	_info = KINDS[kind]
+	if elite != "":
+		_info = _info.duplicate()
+		_scale = 1.6
+		_info.size = _info.size * 1.45
+		_info.draw = _info.draw * _scale
+		_info.speed = _info.speed * 1.3
+		_info.hp = _info.hp * 6
+		boss_id = elite
 	hp = _info.hp
+	max_hp = hp
 	collision_layer = LAYER_ENEMY
 	collision_mask = LAYER_WORLD
 	var shape := RectangleShape2D.new()
@@ -116,7 +143,7 @@ func _ready() -> void:
 		_blade.collision_mask = 0
 		_blade.monitoring = false
 		var blade_shape := RectangleShape2D.new()
-		blade_shape.size = KNIGHT_REACH
+		blade_shape.size = KNIGHT_REACH * _scale
 		var blade_col := CollisionShape2D.new()
 		blade_col.shape = blade_shape
 		_blade.add_child(blade_col)
@@ -142,7 +169,12 @@ func _physics_process(delta: float) -> void:
 		velocity.y = minf(velocity.y + GRAVITY * delta, MAX_FALL)
 	var player := _player()
 	var to := player.global_position - global_position if player else Vector2(9999, 0)
-	if _knockback > 0.0 and _state != St.CHARGE:
+	if elite != "" and not _engaged and absf(to.x) < 170.0 and absf(to.y) < 80.0:
+		# The elite sees him: its name across the screen, its health along the bottom.
+		_engaged = true
+		add_to_group("boss")
+		Sfx.play("roar", -6.0, 0.1)
+	if _knockback > 0.0 and _state != St.CHARGE and elite == "":
 		velocity.x = move_toward(velocity.x, 0.0, 800.0 * delta)
 	else:
 		match kind:
@@ -192,6 +224,8 @@ func _beetle(to: Vector2) -> void:
 		St.CHARGE:
 			velocity.x = dir * 165.0
 			if _facing_wall() or (is_on_floor() and not _ground_ahead()) or _at_limit() or _timer <= 0.0:
+				if elite != "" and _facing_wall():
+					_rockfall(to)
 				_state = St.STUN
 				_timer = 0.8 if _facing_wall() else 0.4
 				velocity.x = 0.0
@@ -250,9 +284,17 @@ func _knight(to: Vector2) -> void:
 				_timer = KNIGHT_SWING
 				velocity.x = dir * 60.0
 				Sfx.play("swing", -2.0)
+				if elite == "frost_knight":
+					_wave("frost_wave", dir, 200.0)
 		St.CHARGE:
 			velocity.x = move_toward(velocity.x, 0.0, 600.0 * get_physics_process_delta_time())
-			if _timer <= 0.0:
+			if _timer <= 0.0 and elite == "guard_captain" and _combo == 0:
+				# And again, at once.
+				_combo = 1
+				_state = St.WINDUP
+				_timer = KNIGHT_WINDUP * 0.4
+			elif _timer <= 0.0:
+				_combo = 0
 				_state = St.STUN
 				_timer = KNIGHT_RECOVER
 				Sfx.play("slam", -12.0)
@@ -264,7 +306,7 @@ func _knight(to: Vector2) -> void:
 	if _blade:
 		var swinging := _state == St.CHARGE
 		_blade.collision_layer = LAYER_ENEMY if swinging else 0
-		_blade.position = Vector2(dir * (_info.size.x / 2.0 + KNIGHT_REACH.x / 2.0 - 4.0), -_info.size.y / 2.0)
+		_blade.position = Vector2(dir * (_info.size.x / 2.0 + KNIGHT_REACH.x * _scale / 2.0 - 4.0), -_info.size.y / 2.0)
 
 
 ## Sits; now and then hops at Storm in an arc.
@@ -318,7 +360,7 @@ func _husk(to: Vector2) -> void:
 				dir = 1 if to.x > 0.0 else -1
 				var blocked := is_on_floor() and (_facing_wall() or not _ground_ahead() or _at_limit())
 				velocity.x = 0.0 if blocked else dir * 34.0
-				if absf(to.x) < 30.0:
+				if absf(to.x) < (60.0 if elite != "" else 30.0):
 					_state = St.WINDUP
 					_timer = 0.9
 					Sfx.play("crackle", -6.0)
@@ -328,8 +370,53 @@ func _husk(to: Vector2) -> void:
 			velocity.x = 0.0
 			if fmod(_anim, 0.1) < get_physics_process_delta_time():
 				Effects.sparks(get_parent(), global_position + Vector2(randf_range(-6, 6), -18), Color(1, 0.55, 0.2), 2, 60.0)
-			if _timer <= 0.0:
+			if _timer <= 0.0 and elite != "":
+				# The brute slams the floor: fire runs out both ways.
+				for side in [-1, 1]:
+					_wave("fire_wave", side, 190.0)
+				Sfx.play("slam", -2.0)
+				_state = St.STUN
+				_timer = 1.0
+			elif _timer <= 0.0:
 				_burst()
+
+
+## A wave running along the floor from its feet.
+func _wave(wave_kind: String, side: int, speed: float) -> void:
+	var wave := Projectile.new()
+	wave.kind = wave_kind
+	wave.velocity = Vector2(side * speed, 0)
+	wave.life = 2.5
+	wave.position = position + Vector2(side * (_info.size.x / 2.0 + 4.0), 0)
+	get_parent().add_child(wave)
+
+
+## Rocks shaken loose from the roof around Storm: dust first where each will fall.
+func _rockfall(to: Vector2) -> void:
+	_shake_room()
+	var room := get_parent()
+	for k in 3:
+		var x := global_position.x + to.x + (k - 1) * 40.0 + randf_range(-10, 10)
+		var top := global_position.y + to.y - 150.0
+		var rock := Projectile.new()
+		rock.kind = "clod"
+		rock.velocity = Vector2(0, 20.0 + k * 30.0)
+		rock.fall_accel = 500.0
+		rock.life = 3.0
+		rock.position = room.to_local(Vector2(x, top))
+		room.add_child(rock)
+		if room.has_method("_spawn_debris"):
+			room._spawn_debris(rock.position, COLOR_DIRT)
+	Sfx.play("rumble", -4.0)
+
+
+func _shake_room() -> void:
+	var cam := get_viewport().get_camera_2d()
+	if cam:
+		var tween := cam.create_tween()
+		for i in 6:
+			tween.tween_property(cam, "offset", Vector2(randf_range(-3, 3), randf_range(-3, 3)), 0.04)
+		tween.tween_property(cam, "offset", Vector2.ZERO, 0.04)
 
 
 ## Bursting in a ball of fire that hurts all around it, and gone.
@@ -368,8 +455,14 @@ func _conductor(to: Vector2) -> void:
 					wave.life = 2.5
 					wave.position = global_position + Vector2(side * 14.0, 0)
 					get_parent().add_child(wave)
-				_state = St.STUN
-				_timer = 0.9
+				if elite != "" and _combo == 0:
+					_combo = 1
+					_state = St.WINDUP
+					_timer = 0.45
+				else:
+					_combo = 0
+					_state = St.STUN
+					_timer = 0.9
 		St.STUN:
 			velocity.x = 0.0
 			if _timer <= 0.0:
@@ -506,11 +599,17 @@ func take_hit(damage: int, from_dir: Vector2) -> void:
 		elif kind == "hound":
 			dust = Color(0.75, 0.9, 1.0)
 		Effects.puff(get_parent(), middle, dust)
+		if elite != "":
+			remove_from_group("boss")
+			Game.defeated[elite] = true
+			Game.save_game()
+			Effects.puff(get_parent(), middle, dust, 30, 120.0)
+			Coin.drop(get_parent(), position + Vector2(0, -12), 60)
 		if kind != "hatchling":
 			Coin.drop(get_parent(), position + Vector2(0, -8), randi_range(3, 6) + (4 if kind == "knight" else 0))
 		queue_free()
 		return
-	if from_dir.x != 0.0 and _state != St.CHARGE:
+	if from_dir.x != 0.0 and _state != St.CHARGE and elite == "":
 		velocity.x = from_dir.x * KNOCKBACK_SPEED
 		_knockback = KNOCKBACK_TIME
 
