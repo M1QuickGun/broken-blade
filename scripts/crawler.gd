@@ -20,6 +20,9 @@ extends CharacterBody2D
 ##   charges up, crackling, and sends shockwaves both ways along the floor: jump them.
 ## - "archer" (the Last Stand): a hollow archer. It keeps its distance, draws, and looses
 ##   arrows at him (the blade can cut them down).
+## - "sentinel" (the castle): a royal guard with a halberd. It keeps its distance, a line on
+##   the floor showing how far its thrust reaches, then drives the halberd out low along it:
+##   jump it. No shield; slow to recover after.
 ## Each region also has one elite (`elite` set: Rooms.ELITES), a bigger, tougher one with a
 ## trick of its own, fought like a small boss (its name and health across the screen):
 ## - the Brood Mother (a beetle): ramming the wall shakes rocks down from the roof;
@@ -66,6 +69,9 @@ const KINDS := {
 	"archer": {"size": Vector2(14, 30), "draw": 46.0, "hp": 6, "speed": 20.0,
 		"tex": preload("res://art/enemies/archer.png"), "frame": 64, "fps": 6.0,
 		"attack": preload("res://art/enemies/archer_attack.png")},
+	"sentinel": {"size": Vector2(16, 30), "draw": 46.0, "hp": 10, "speed": 22.0,
+		"tex": preload("res://art/enemies/knight.png"), "frame": 64, "fps": 6.0,
+		"attack": preload("res://art/enemies/knight_attack.png")},
 	"knight": {"size": Vector2(16, 30), "draw": 46.0, "hp": 10, "speed": 24.0,
 		"tex": preload("res://art/enemies/knight.png"), "frame": 64, "fps": 6.0,
 		"attack": preload("res://art/enemies/knight_attack.png")},
@@ -75,6 +81,10 @@ const KNIGHT_REACH := Vector2(34, 30)
 const KNIGHT_WINDUP := 0.6
 const KNIGHT_SWING := 0.2
 const KNIGHT_RECOVER := 0.8
+## The sentinel's halberd: how far the thrust reaches, and its timing.
+const SENTINEL_REACH := Vector2(92, 10)
+const SENTINEL_WINDUP := 0.75
+const SENTINEL_THRUST := 0.25
 
 enum St { WALK, WINDUP, CHARGE, STUN, BURIED, RUMBLE, LEAP, DIG }
 
@@ -143,13 +153,13 @@ func _ready() -> void:
 		_bury()
 	else:
 		add_to_group("shock_target")
-	if kind == "knight":
+	if kind == "knight" or kind == "sentinel":
 		_blade = Blade.new()
 		_blade.collision_layer = 0
 		_blade.collision_mask = 0
 		_blade.monitoring = false
 		var blade_shape := RectangleShape2D.new()
-		blade_shape.size = KNIGHT_REACH * _scale
+		blade_shape.size = SENTINEL_REACH if kind == "sentinel" else KNIGHT_REACH * _scale
 		var blade_col := CollisionShape2D.new()
 		blade_col.shape = blade_shape
 		_blade.add_child(blade_col)
@@ -192,6 +202,8 @@ func _physics_process(delta: float) -> void:
 				_grub(to)
 			"knight":
 				_knight(to)
+			"sentinel":
+				_sentinel(to)
 			"toad":
 				_toad(to)
 			"hound":
@@ -531,6 +543,48 @@ func _ground_at(d: int) -> bool:
 	return not get_world_2d().direct_space_state.intersect_point(q, 1).is_empty()
 
 
+## Keeps its distance from Storm; then the long low thrust of the halberd.
+func _sentinel(to: Vector2) -> void:
+	var near := absf(to.x) < 200.0 and absf(to.y) < 60.0
+	match _state:
+		St.WALK:
+			if near:
+				dir = 1 if to.x > 0.0 else -1
+				var gap := absf(to.x)
+				var step := 0
+				if gap > 95.0:
+					step = dir
+				elif gap < 55.0:
+					step = -dir
+				var blocked := is_on_floor() and step != 0 and (_at_limit_dir(step) or not _ground_at(step))
+				velocity.x = 0.0 if blocked else step * _info.speed * 1.2
+				if _cooldown <= 0.0 and gap < SENTINEL_REACH.x + 10.0:
+					_state = St.WINDUP
+					_timer = SENTINEL_WINDUP
+					Sfx.play("swing", -12.0, 0.0)
+			else:
+				_patrol(_info.speed)
+		St.WINDUP:
+			velocity.x = 0.0
+			if _timer <= 0.0:
+				_state = St.CHARGE
+				_timer = SENTINEL_THRUST
+				Sfx.play("swing", -1.0)
+		St.CHARGE:
+			velocity.x = 0.0
+			if _timer <= 0.0:
+				_state = St.STUN
+				_timer = 0.7
+		St.STUN:
+			velocity.x = 0.0
+			if _timer <= 0.0:
+				_state = St.WALK
+				_cooldown = 1.4
+	if _blade:
+		_blade.collision_layer = LAYER_ENEMY if _state == St.CHARGE else 0
+		_blade.position = Vector2(dir * (_info.size.x / 2.0 + SENTINEL_REACH.x / 2.0), -12.0)
+
+
 ## Waits buried; rumbles when Storm comes near, bursts out at him, crawls, burrows again.
 func _grub(to: Vector2) -> void:
 	match _state:
@@ -603,7 +657,7 @@ func take_hit(damage: int, from_dir: Vector2) -> void:
 		var dust := Color(0.45, 0.5, 0.4)
 		if kind == "thrall":
 			dust = Color(0.75, 0.9, 1.0)
-		elif kind == "knight" or kind == "archer" or kind == "conductor":
+		elif kind in ["knight", "sentinel", "archer", "conductor"]:
 			dust = Color(0.5, 0.5, 0.55)
 		elif kind == "husk":
 			dust = Color(0.3, 0.25, 0.22)
@@ -677,7 +731,16 @@ func _draw() -> void:
 		tex = _info.attack
 		frames = tex.get_width() / frame_px
 		frame = mini(int((1.0 - _timer / 0.8) * (frames - 1)), frames - 2) if _state == St.WINDUP else frames - 1
-	if kind == "knight" and _state in [St.WINDUP, St.CHARGE, St.STUN]:
+	if kind == "sentinel" and _state == St.WINDUP:
+		# How far the thrust will reach: a line along the floor, flickering, then steady.
+		var g := clampf(1.0 - _timer / SENTINEL_WINDUP, 0.0, 1.0)
+		if fmod(_anim, 0.1) < 0.06 or g > 0.7:
+			draw_line(Vector2(dir * 8.0, -12.0), Vector2(dir * (_info.size.x / 2.0 + SENTINEL_REACH.x), -12.0),
+				Color(1.0, 0.55, 0.5, 0.25 + 0.5 * g), 1.0)
+	if kind == "sentinel" and _state == St.CHARGE:
+		draw_line(Vector2(dir * 8.0, -12.0), Vector2(dir * (_info.size.x / 2.0 + SENTINEL_REACH.x), -12.0),
+			Color(0.85, 0.85, 0.9), 3.0)
+	if (kind == "knight" or kind == "sentinel") and _state in [St.WINDUP, St.CHARGE, St.STUN]:
 		# Raising the sword through the wind-up, bringing it down, then holding there.
 		tex = _info.attack
 		frames = tex.get_width() / frame_px

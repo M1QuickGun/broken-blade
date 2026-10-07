@@ -139,6 +139,7 @@ var _summit := false
 var _castle := false
 var _npc_count := 0
 var _rescued_spot := 0
+var _guards := 0
 ## The breakable earth lid ("=") and the frozen gate ("G"), while they stand.
 var _lid: StaticBody2D
 var _backdrop: Node2D
@@ -466,6 +467,11 @@ func _scan_cells() -> void:
 					knight.kind = "knight"
 					if _castle:
 						knight.region_tint = CASTLE_TINT
+						_guards += 1
+						if _guards % 2 == 1:
+							# Every other one in the castle: a sentinel of the royal guard.
+							knight.kind = "sentinel"
+							knight.region_tint = Color(0.95, 0.72, 0.78)
 					knight.min_x = DOOR_CLEARANCE
 					knight.max_x = size_px.x - DOOR_CLEARANCE
 					knight.position = feet
