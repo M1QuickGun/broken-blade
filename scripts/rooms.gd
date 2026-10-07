@@ -351,6 +351,22 @@ const REGION_TITLES := {
 }
 
 
+## The track a room plays: its own (MUSIC), else its region's.
+static func music_for(room: String) -> String:
+	if MUSIC.has(room):
+		return MUSIC[room]
+	if room in ["refuge", "old_barracks", "storehouse"]:
+		return "refuge"
+	match region_of(room):
+		"fire":
+			return "fire_slopes"
+		"storm":
+			return "lightning_peaks"
+		"castle":
+			return "castle"
+	return DEFAULT_MUSIC
+
+
 static func region_of(room: String) -> String:
 	if room in CASTLE_ROOMS:
 		return "castle"

@@ -211,7 +211,7 @@ func _load_room(room_name: String, door: String, at := Vector2.INF) -> void:
 		Game.save_game()
 		if Game.defeated.has("hollow_king") and room.room_name == "throne_room":
 			_play_ending())
-	Music.play(Rooms.MUSIC.get(room_name, Rooms.DEFAULT_MUSIC))
+	Music.play(Rooms.music_for(room_name))
 	var region := Rooms.region_of(room_name)
 	if region != _region and room_name not in Rooms.SECRET_ROOMS:
 		if _region != "":
@@ -299,6 +299,18 @@ const PEEK_AFTER := 0.4
 var _peek_time := 0.0
 
 
+## A boss fight has its own music; once it's over, the room's comes back.
+func _update_music() -> void:
+	if room == null or _transitioning:
+		return
+	var boss = get_tree().get_first_node_in_group("boss")
+	if boss:
+		var big: bool = boss.get("boss_id") in ["hollow_king", "dark_storm"]
+		Music.play("final_boss" if big else "boss")
+	else:
+		Music.play(Rooms.music_for(room.room_name))
+
+
 func _update_camera(delta: float) -> void:
 	if camera == null or player == null:
 		return
@@ -321,6 +333,7 @@ func _update_camera(delta: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	_update_camera(delta)
+	_update_music()
 	# Safety net: if Storm ever leaves the room's bounds (a gap in the walls, a missed
 	# door), put him back on the last solid ground instead of letting him fall forever.
 	if _transitioning or not room:
