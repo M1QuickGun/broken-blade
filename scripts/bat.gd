@@ -8,6 +8,7 @@ extends CharacterBody2D
 
 const Effects := preload("res://scripts/effects.gd")
 const Coin := preload("res://scripts/coin.gd")
+const FadeSprite := preload("res://scripts/fade_sprite.gd")
 const LAYER_WORLD := 1
 const LAYER_ENEMY := 4
 
@@ -45,6 +46,9 @@ var hp := 4
 ## "ash" (the Fire slopes), "frost" (its frostbitten kin in the Frozen village's colours) or
 ## "crow" (the Last Stand).
 var kind := "ash"
+## The last frame drawn: [texture, source rect, where, flip], left to fade when it dies.
+var _ghost: Array = []
+
 var dir := -1
 
 var _state := St.HOVER
@@ -166,6 +170,8 @@ func take_hit(damage: int, from_dir: Vector2) -> void:
 				Effects.puff(get_parent(), global_position, Color(0.4, 0.36, 0.34))
 				Effects.sparks(get_parent(), global_position, COLOR_EMBER, 12, 90.0)
 		Coin.drop(get_parent(), position, randi_range(3, 5))
+		if not _ghost.is_empty():
+			FadeSprite.leave(get_parent(), position, _ghost[0], _ghost[1], _ghost[2], _ghost[3], Color.WHITE)
 		Game.note("bat_" + kind)
 		queue_free()
 		return
@@ -197,4 +203,5 @@ func _draw() -> void:
 	draw_set_transform(shake, angle, Vector2(flip, 1))
 	draw_texture_rect_region(tex, Rect2(-DRAW / 2.0, -DRAW / 2.0, DRAW, DRAW),
 		Rect2(frame * FRAME, 0, FRAME, FRAME), tint)
+	_ghost = [tex, Rect2(frame * FRAME, 0, FRAME, FRAME), Rect2(-DRAW / 2.0, -DRAW / 2.0, DRAW, DRAW), flip]
 	draw_set_transform(Vector2.ZERO)

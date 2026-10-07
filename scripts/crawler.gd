@@ -33,6 +33,7 @@ extends CharacterBody2D
 const Effects := preload("res://scripts/effects.gd")
 const Projectile := preload("res://scripts/projectile.gd")
 const Coin := preload("res://scripts/coin.gd")
+const FadeSprite := preload("res://scripts/fade_sprite.gd")
 const LAYER_WORLD := 1
 const LAYER_ENEMY := 4
 
@@ -95,6 +96,9 @@ var _engaged := false
 var _combo := 0
 ## How much bigger an elite is drawn.
 var _scale := 1.0
+## The last frame drawn: [texture, source rect, where, flip], left to fade when it dies.
+var _ghost: Array = []
+
 
 var _state := St.WALK
 var _timer := 0.0
@@ -383,6 +387,11 @@ func _husk(to: Vector2) -> void:
 				_burst()
 
 
+func _leave_ghost() -> void:
+	if not _ghost.is_empty():
+		FadeSprite.leave(get_parent(), position, _ghost[0], _ghost[1], _ghost[2], _ghost[3], region_tint)
+
+
 ## A wave running along the floor from its feet.
 func _wave(wave_kind: String, side: int, speed: float) -> void:
 	var wave := Projectile.new()
@@ -610,6 +619,7 @@ func take_hit(damage: int, from_dir: Vector2) -> void:
 			Coin.drop(get_parent(), position + Vector2(0, -12), 60)
 		if kind != "hatchling":
 			Coin.drop(get_parent(), position + Vector2(0, -8), randi_range(3, 6) + (4 if kind == "knight" else 0))
+		_leave_ghost()
 		queue_free()
 		return
 	if from_dir.x != 0.0 and _state != St.CHARGE and elite == "":
@@ -684,4 +694,6 @@ func _draw() -> void:
 	draw_set_transform(shake, 0.0, Vector2(1 if dir > 0 else -1, 1) * stretch)
 	draw_texture_rect_region(tex, Rect2(-side / 2.0, -side, side, side),
 		Rect2(frame * frame_px, 0, frame_px, frame_px), tint)
+	_ghost = [tex, Rect2(frame * frame_px, 0, frame_px, frame_px), Rect2(Vector2(-side / 2.0, -side) + shake, Vector2(side, side)),
+		1.0 if dir > 0 else -1.0]
 	draw_set_transform(Vector2.ZERO)

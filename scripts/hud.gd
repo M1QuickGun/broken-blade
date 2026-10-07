@@ -58,6 +58,7 @@ var _boss = null
 var _message_tween: Tween
 ## The boss's name across the screen as its fight begins (and when it changes, mid-fight).
 var _crowns: Control
+var _danger: Control
 var _timer: Control
 var _card: Control
 var _card_title := ""
@@ -103,6 +104,13 @@ func _ready() -> void:
 	_boss_label = _make_label(BOSS_BAR_POS + Vector2(0, -14))
 	_boss_label.size = Vector2(BOSS_BAR_SIZE.x, 12)
 	_boss_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+
+	_danger = Control.new()
+	_danger.size = Vector2(480, 270)
+	_danger.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_danger.draw.connect(_draw_danger)
+	add_child(_danger)
+	move_child(_danger, 0)
 
 	_timer = Control.new()
 	_timer.position = Vector2(400, 6)
@@ -168,6 +176,8 @@ func _process(delta: float) -> void:
 	_boss_label.text = boss.title if boss else ""
 	_boss_bar.queue_redraw()
 	_timer.queue_redraw()
+	if _hp == 1:
+		_danger.queue_redraw()
 
 
 ## An area's name, fading in and out across the top of the screen.
@@ -210,6 +220,21 @@ func set_hp(hp: int, max_hp: int) -> void:
 	_hp = hp
 	_max_hp = max_hp
 	_masks.queue_redraw()
+	_danger.queue_redraw()
+
+
+## On the last mask, the edges of the screen breathe red.
+func _draw_danger() -> void:
+	if _hp != 1 or _max_hp <= 1:
+		return
+	var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 260.0)
+	var c := Color(0.6, 0.04, 0.06, 0.1 + 0.12 * pulse)
+	for i in 4:
+		var w := 6.0 + i * 6.0
+		_danger.draw_rect(Rect2(0, 0, 480, w), Color(c, c.a * (1.0 - i * 0.22)))
+		_danger.draw_rect(Rect2(0, 270 - w, 480, w), Color(c, c.a * (1.0 - i * 0.22)))
+		_danger.draw_rect(Rect2(0, 0, w, 270), Color(c, c.a * (1.0 - i * 0.22)))
+		_danger.draw_rect(Rect2(480 - w, 0, w, 270), Color(c, c.a * (1.0 - i * 0.22)))
 
 
 func show_message(text: String) -> void:

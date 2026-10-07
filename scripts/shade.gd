@@ -8,6 +8,7 @@ extends Node2D
 
 const Effects := preload("res://scripts/effects.gd")
 const Coin := preload("res://scripts/coin.gd")
+const FadeSprite := preload("res://scripts/fade_sprite.gd")
 const LAYER_ENEMY := 4
 
 const TEX := preload("res://art/enemies/shade.png")
@@ -46,6 +47,9 @@ var _velocity := Vector2.ZERO
 var _facing := -1
 var _alpha := 1.0
 var _hurt: Hurt
+## The last frame drawn: [texture, source rect, where, flip], left to fade when it dies.
+var _ghost: Array = []
+
 
 
 ## Its body: struck, it hurts the shade; touched, it hurts Storm.
@@ -158,6 +162,8 @@ func take_hit(damage: int, from_dir: Vector2) -> void:
 		Effects.puff(get_parent(), position, COLOR_SHADOW)
 		Effects.sparks(get_parent(), position, COLOR_EYE, 10, 80.0)
 		Coin.drop(get_parent(), position, randi_range(5, 8))
+		if not _ghost.is_empty():
+			FadeSprite.leave(get_parent(), position, _ghost[0], _ghost[1], _ghost[2], _ghost[3], Color.WHITE)
 		Game.note("shade")
 		queue_free()
 		return
@@ -185,4 +191,5 @@ func _draw() -> void:
 	draw_set_transform(bob, 0.0, Vector2(_facing, 1))
 	draw_texture_rect_region(TEX, Rect2(-Vector2(DRAW, DRAW) / 2.0, Vector2(DRAW, DRAW)),
 		Rect2(frame * FRAME, 0, FRAME, FRAME), Color(tint, tint.a * _alpha))
+	_ghost = [TEX, Rect2(frame * FRAME, 0, FRAME, FRAME), Rect2(-Vector2(DRAW, DRAW) / 2.0 + bob, Vector2(DRAW, DRAW)), float(_facing)]
 	draw_set_transform(Vector2.ZERO)

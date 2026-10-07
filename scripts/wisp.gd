@@ -8,6 +8,7 @@ extends Node2D
 
 const Effects := preload("res://scripts/effects.gd")
 const Coin := preload("res://scripts/coin.gd")
+const FadeSprite := preload("res://scripts/fade_sprite.gd")
 const LAYER_WORLD := 1
 const LAYER_ENEMY := 4
 
@@ -46,6 +47,9 @@ var _velocity := Vector2.ZERO
 var _aim := Vector2.RIGHT
 var _beam_end := Vector2.ZERO
 var _beam: Beam
+## The last frame drawn: [texture, source rect, where, flip], left to fade when it dies.
+var _ghost: Array = []
+
 
 
 ## Its beam: hurts to touch, but there's nothing in it to strike.
@@ -173,6 +177,8 @@ func take_hit(damage: int, from_dir: Vector2) -> void:
 		Sfx.play("crackle", -6.0)
 		Effects.sparks(get_parent(), position, COLOR_CORE, 14, 110.0)
 		Coin.drop(get_parent(), position, randi_range(3, 6))
+		if not _ghost.is_empty():
+			FadeSprite.leave(get_parent(), position, _ghost[0], _ghost[1], _ghost[2], _ghost[3], Color.WHITE)
 		Game.note("wisp")
 		queue_free()
 		return
@@ -212,3 +218,4 @@ func _draw() -> void:
 	var bob := Vector2(0, sin(_anim * 3.0) * 1.5)
 	draw_texture_rect_region(TEX, Rect2(bob - Vector2(DRAW, DRAW) / 2.0, Vector2(DRAW, DRAW)),
 		Rect2(frame * FRAME, 0, FRAME, FRAME), tint)
+	_ghost = [TEX, Rect2(frame * FRAME, 0, FRAME, FRAME), Rect2(bob - Vector2(DRAW, DRAW) / 2.0, Vector2(DRAW, DRAW)), 1.0]

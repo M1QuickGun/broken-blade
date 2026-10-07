@@ -47,6 +47,7 @@ func _physics_process(delta: float) -> void:
 			if to.length() < 8.0:
 				Game.add_crowns(value)
 				Sfx.play("pickup", -16.0, 0.3)
+				load("res://scripts/effects.gd").sparks(get_parent(), global_position, COLOR_GOLD_SHINE, 3, 50.0)
 				queue_free()
 				return
 			global_position += to.normalized() * minf(FLY * delta, to.length())

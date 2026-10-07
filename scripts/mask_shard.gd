@@ -28,6 +28,9 @@ func _process(delta: float) -> void:
 
 func _on_body_entered(_body: Node2D) -> void:
 	Sfx.play("mask", 0.0, 0.0)
+	var effects: Script = load("res://scripts/effects.gd")
+	effects.sparks(get_parent(), global_position, COLOR_GLOW, 16, 120.0)
+	effects.sparks(get_parent(), global_position, COLOR_MASK, 8, 80.0)
 	Game.add_mask(id)
 	queue_free()
 

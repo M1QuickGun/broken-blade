@@ -30,6 +30,7 @@ func _process(delta: float) -> void:
 
 func _on_body_entered(_body: Node2D) -> void:
 	Sfx.play("flask", 0.0, 0.0)
+	load("res://scripts/effects.gd").sparks(get_parent(), global_position, COLOR_FLAME, 16, 110.0)
 	Game.add_flask(id)
 	queue_free()
 
