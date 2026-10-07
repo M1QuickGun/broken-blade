@@ -1,7 +1,10 @@
 extends CanvasLayer
 ## The map (M / Tab / Back, or from the pause menu): every room Storm has been in, laid out
 ## as Rooms.MAP places them, with the one he's in highlighted, where he stands in it, and the
-## rest shrines. It opens centred on him; move to pan around. Pauses the game while open.
+## rest shrines, bosses and elites (struck through once beaten), the refuge's trades, a
+## survivor waiting to be found, and Storm's own pins (jump to drop one where the view is
+## centred, attack to lift the nearest). It opens centred on him; move to pan around. Pauses
+## the game while open.
 
 const Rooms := preload("res://scripts/rooms.gd")
 const SIZE := Vector2(960, 540)
@@ -16,6 +19,11 @@ const COLOR_HERE_EDGE := Color("c9d6ee")
 const COLOR_SHRINE := Color("9fe6ff")
 const COLOR_STORM := Color("f3e6b0")
 const COLOR_TEXT := Color("9aa3b5")
+const COLOR_BOSS := Color("e05a4a")
+const COLOR_BEATEN := Color("6a6e78")
+const COLOR_SHOP := Color(0.95, 0.78, 0.36)
+const COLOR_SURVIVOR := Color("f0e2c8")
+const COLOR_PIN := Color("f2d04a")
 ## Each region's colour on the map: [fill, edge].
 const REGION_COLORS := {
 	"foothills": [Color("1c2a20"), Color("6f9a72")],
@@ -60,6 +68,25 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif _open and (event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel")):
 		get_viewport().set_input_as_handled()
 		close()
+	elif _open and event.is_action_pressed("jump"):
+		get_viewport().set_input_as_handled()
+		Game.pins.append(_view_center())
+		Sfx.play("menu_pick", -6.0, 0.0)
+	elif _open and event.is_action_pressed("attack") and not Game.pins.is_empty():
+		get_viewport().set_input_as_handled()
+		var at := _view_center()
+		var nearest := 0
+		for i in Game.pins.size():
+			if (Game.pins[i] as Vector2).distance_to(at) < (Game.pins[nearest] as Vector2).distance_to(at):
+				nearest = i
+		if (Game.pins[nearest] as Vector2).distance_to(at) < 12.0:
+			Game.pins.remove_at(nearest)
+			Sfx.play("menu_move", -6.0, 0.0)
+
+
+## The map tile at the middle of the screen.
+func _view_center() -> Vector2:
+	return Vector2(Rooms.MAP[current_room]) + storm_at / Rooms.TILE - _pan / ZOOM
 
 
 func open() -> void:
@@ -136,6 +163,22 @@ func _draw_map() -> void:
 			if x != -1:
 				var p := r.position + (Vector2(x, y) + Vector2(0.5, 0.5)) * ZOOM
 				_canvas.draw_circle(p, 3.5, COLOR_SHRINE)
+		# A boss or an elite: a red mark, crossed out grey once beaten.
+		var foe: Dictionary = Rooms.BOSSES.get(room, Rooms.ELITES.get(room, {}))
+		if not foe.is_empty():
+			_draw_foe(r.get_center() + Vector2(0, -r.size.y * 0.2), Game.defeated.has(foe.id))
+		if room == "refuge":
+			_canvas.draw_circle(r.get_center() + Vector2(10, 0), 4.0, COLOR_SHOP)
+			_canvas.draw_circle(r.get_center() + Vector2(10, 0), 2.0, Color(0.6, 0.45, 0.2))
+		var who: Dictionary = Rooms.SURVIVORS.get(room, {})
+		if not who.is_empty() and not Game.rescued.has(who.id):
+			_draw_survivor(r.get_center())
+	for pin: Vector2 in Game.pins:
+		_draw_pin((pin - center) * ZOOM + SIZE / 2.0 + _pan)
+	# Where a pin would go: the middle of the view.
+	var mid := SIZE / 2.0
+	_canvas.draw_line(mid + Vector2(-5, 0), mid + Vector2(5, 0), Color(1, 1, 1, 0.25), 1.0)
+	_canvas.draw_line(mid + Vector2(0, -5), mid + Vector2(0, 5), Color(1, 1, 1, 0.25), 1.0)
 	# Storm, blinking.
 	if fmod(_time, 0.8) < 0.55:
 		var p := SIZE / 2.0 + _pan
@@ -143,7 +186,8 @@ func _draw_map() -> void:
 		_canvas.draw_circle(p, 3.5, COLOR_STORM)
 	var font := Game.font
 	_canvas.draw_string(font, Vector2(24, 36), "Map", HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Color("e8ecf4"))
-	_canvas.draw_string(font, Vector2(24, SIZE.y - 24), "Move to look around.   M / Esc to close.",
+	_canvas.draw_string(font, Vector2(24, SIZE.y - 24),
+		Game.fill_prompts("Move to look around.   {jump}: drop a pin   {attack}: lift a pin   {map} / {pause}: close"),
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 16, COLOR_TEXT)
 	for i in REGION_NAMES.size():
 		var key: String = REGION_NAMES[i][0]
@@ -151,6 +195,39 @@ func _draw_map() -> void:
 		_canvas.draw_rect(Rect2(at, Vector2(12, 10)), REGION_COLORS[key][0])
 		_canvas.draw_rect(Rect2(at, Vector2(12, 10)), REGION_COLORS[key][1], false, 1.0)
 		_canvas.draw_string(font, at + Vector2(18, 10), REGION_NAMES[i][1], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, COLOR_TEXT)
-	_canvas.draw_circle(Vector2(SIZE.x - 150, SIZE.y - 30), 3.5, COLOR_SHRINE)
-	_canvas.draw_string(font, Vector2(SIZE.x - 140, SIZE.y - 24), "Rest shrine", HORIZONTAL_ALIGNMENT_LEFT, -1, 16,
-		COLOR_TEXT)
+	# The legend, down the right side.
+	var key_at := Vector2(SIZE.x - 170, SIZE.y - 150)
+	var keys := [["Rest shrine", 0], ["Boss or elite", 1], ["Beaten", 2], ["Trades", 3], ["Someone lost", 4], ["Your pin", 5]]
+	for i in keys.size():
+		var p: Vector2 = key_at + Vector2(0, i * 20)
+		match keys[i][1]:
+			0:
+				_canvas.draw_circle(p, 3.5, COLOR_SHRINE)
+			1:
+				_draw_foe(p, false)
+			2:
+				_draw_foe(p, true)
+			3:
+				_canvas.draw_circle(p, 4.0, COLOR_SHOP)
+			4:
+				_draw_survivor(p)
+			5:
+				_draw_pin(p + Vector2(0, 5))
+		_canvas.draw_string(font, p + Vector2(14, 6), keys[i][0], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, COLOR_TEXT)
+
+
+func _draw_foe(at: Vector2, beaten: bool) -> void:
+	var c := COLOR_BEATEN if beaten else COLOR_BOSS
+	_canvas.draw_colored_polygon(PackedVector2Array([at + Vector2(0, -5), at + Vector2(5, 0), at + Vector2(0, 5), at + Vector2(-5, 0)]), c)
+	if beaten:
+		_canvas.draw_line(at + Vector2(-5, -5), at + Vector2(5, 5), Color(0.9, 0.9, 0.9, 0.7), 1.5)
+
+
+func _draw_survivor(at: Vector2) -> void:
+	_canvas.draw_circle(at + Vector2(0, -4), 2.5, COLOR_SURVIVOR)
+	_canvas.draw_rect(Rect2(at + Vector2(-2.5, -1.5), Vector2(5, 6)), COLOR_SURVIVOR)
+
+
+func _draw_pin(at: Vector2) -> void:
+	_canvas.draw_line(at, at + Vector2(0, -12), Color(0.85, 0.85, 0.85), 1.5)
+	_canvas.draw_colored_polygon(PackedVector2Array([at + Vector2(0, -12), at + Vector2(8, -9), at + Vector2(0, -6)]), COLOR_PIN)

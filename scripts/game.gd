@@ -54,6 +54,8 @@ var journal := {}
 var lore: Array = []
 ## Shrines Storm has rested at, to travel between: "room:x,y" -> [room, x, y].
 var shrines := {}
+## Pins Storm has put on the map (in map tiles).
+var pins: Array = []
 
 ## A blow of the blade: two, and one more for each time Bram has honed it.
 const BASE_DAMAGE := 2
@@ -217,6 +219,7 @@ func new_game() -> void:
 	journal = {}
 	lore = []
 	shrines = {}
+	pins = []
 
 
 func has_save() -> bool:
@@ -266,7 +269,7 @@ func save_game() -> void:
 		"defeated": defeated.keys(), "collected": collected.keys(), "visited": visited.keys(),
 		"crowns": crowns, "lost_crowns": lost_crowns, "lost_room": lost_room,
 		"lost_point": [lost_point.x, lost_point.y], "hone": hone, "maps": maps.keys(),
-		"rescued": rescued.keys(), "play_time": play_time, "journal": journal.keys(), "lore": lore, "hard": hard, "shrines": shrines.values(),
+		"rescued": rescued.keys(), "play_time": play_time, "journal": journal.keys(), "lore": lore, "hard": hard, "shrines": shrines.values(), "pins": pins.map(func(p: Vector2) -> Array: return [p.x, p.y]),
 	}
 	data["version"] = SAVE_VERSION
 	check_achievements()
@@ -338,6 +341,8 @@ func load_game() -> bool:
 	for id in data.get("journal", []):
 		journal[id] = true
 	hard = bool(data.get("hard", false))
+	for p in data.get("pins", []):
+		pins.append(Vector2(p[0], p[1]))
 	for entry in data.get("shrines", []):
 		shrines["%s:%d,%d" % [entry[0], entry[1], entry[2]]] = [str(entry[0]), float(entry[1]), float(entry[2])]
 	if rest_room != "" and shrines.is_empty():
