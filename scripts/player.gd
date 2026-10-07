@@ -522,6 +522,10 @@ func _physics_process(delta: float) -> void:
 	velocity.x -= wind
 	if is_on_floor() and not was_on_floor and falling > 180.0:
 		Sfx.play("land", -8.0)
+		if falling > 380.0:
+			# A long fall: dust kicked up both ways from his feet.
+			for side in [-1, 1]:
+				Effects.puff(get_parent(), global_position + Vector2(side * 5.0, -2.0), Color(0.6, 0.6, 0.62, 0.8), 4, 50.0)
 	if _shock == Shock.PULLING:
 		_check_shock_arrival()
 	_check_damage()

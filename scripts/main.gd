@@ -41,6 +41,8 @@ var pause_menu: CanvasLayer
 var map_screen: CanvasLayer
 
 var _transitioning := false
+## The region Storm is in, to name a new one as he steps into it.
+var _region := ""
 
 
 func _ready() -> void:
@@ -208,6 +210,11 @@ func _load_room(room_name: String, door: String, at := Vector2.INF) -> void:
 		if Game.defeated.has("hollow_king") and room.room_name == "throne_room":
 			_play_ending())
 	Music.play(Rooms.MUSIC.get(room_name, Rooms.DEFAULT_MUSIC))
+	var region := Rooms.region_of(room_name)
+	if region != _region and room_name not in Rooms.SECRET_ROOMS:
+		if _region != "":
+			hud.show_area(Rooms.REGION_TITLES[region])
+		_region = region
 	if not Game.visited.has(room_name):
 		Game.visited[room_name] = true
 		Game.save_game()
@@ -241,6 +248,9 @@ func _on_door_entered(door: String) -> void:
 	await hud.fade_out(DOOR_FADE)
 	_load_room(link[0], link[1])
 	await get_tree().physics_frame
+	# The view slides on in the way he's going as the new room fades in.
+	var came_from_left: bool = room.door_spawn(link[1]).x < room.size_px.x / 2.0
+	camera.position = Vector2(-40.0 if came_from_left else 40.0, 0.0)
 	camera.reset_smoothing()
 	# Hand control back only once doors work again, or turning straight around
 	# walks Storm through a dead door and off the edge of the room.
@@ -279,7 +289,36 @@ func _on_player_died() -> void:
 	_transitioning = false
 
 
-func _physics_process(_delta: float) -> void:
+## The camera leads Storm a little the way he's going, and holding up or down while he
+## stands still lets him peek above or below. In a boss fight it stays centred on him.
+const LOOK_AHEAD := 34.0
+const PEEK := 72.0
+const PEEK_AFTER := 0.4
+var _peek_time := 0.0
+
+
+func _update_camera(delta: float) -> void:
+	if camera == null or player == null:
+		return
+	var target := Vector2.ZERO
+	var fighting := get_tree().get_first_node_in_group("boss") != null
+	if not fighting:
+		var moving := absf(player.velocity.x) > 40.0
+		target.x = player.facing * (LOOK_AHEAD if moving else LOOK_AHEAD * 0.4)
+	var still: bool = player.is_on_floor() and absf(player.velocity.x) < 5.0 and not player.controls_locked
+	var peek := 0.0
+	if still and Input.is_action_pressed("look_up"):
+		peek = -1.0
+	elif still and Input.is_action_pressed("look_down"):
+		peek = 1.0
+	_peek_time = _peek_time + delta if peek != 0.0 else 0.0
+	if _peek_time > PEEK_AFTER:
+		target.y = peek * PEEK
+	camera.position = camera.position.lerp(target, clampf(2.5 * delta, 0.0, 1.0))
+
+
+func _physics_process(delta: float) -> void:
+	_update_camera(delta)
 	# Safety net: if Storm ever leaves the room's bounds (a gap in the walls, a missed
 	# door), put him back on the last solid ground instead of letting him fall forever.
 	if _transitioning or not room:

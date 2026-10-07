@@ -63,6 +63,8 @@ var _card_title := ""
 var _card_sub := ""
 var _card_time := -1.0
 var _shown_title := ""
+var _area_title := ""
+var _area_time := -1.0
 var _hurt: ColorRect
 
 
@@ -145,6 +147,11 @@ func _process(delta: float) -> void:
 		_card_time = 0.0
 	elif not boss:
 		_shown_title = ""
+	if _area_time >= 0.0:
+		_area_time += delta
+		if _area_time > CARD_TIME:
+			_area_time = -1.0
+		_card.queue_redraw()
 	if _card_time >= 0.0:
 		_card_time += delta
 		if _card_time > CARD_TIME:
@@ -155,8 +162,20 @@ func _process(delta: float) -> void:
 	_boss_bar.queue_redraw()
 
 
+## An area's name, fading in and out across the top of the screen.
+func show_area(text: String) -> void:
+	_area_title = text
+	_area_time = 0.0
+
+
 ## The boss's name, large, with a line under it and a smaller line of who it is.
 func _draw_card() -> void:
+	if _area_time >= 0.0:
+		var a := clampf(minf(_area_time / 0.8, (CARD_TIME - _area_time) / 0.8), 0.0, 1.0)
+		var f := ThemeDB.fallback_font
+		_card.draw_string(f, Vector2(0, 47), _area_title, HORIZONTAL_ALIGNMENT_CENTER, 480, 16, Color(0, 0, 0, a * 0.8))
+		_card.draw_string(f, Vector2(0, 46), _area_title, HORIZONTAL_ALIGNMENT_CENTER, 480, 16, Color(0.88, 0.86, 0.8, a))
+		_card.draw_line(Vector2(190, 52), Vector2(290, 52), Color(0.75, 0.62, 0.45, a * 0.8), 1.0)
 	if _card_time < 0.0:
 		return
 	var alpha := clampf(minf(_card_time / 0.5, (CARD_TIME - _card_time) / 0.8), 0.0, 1.0)

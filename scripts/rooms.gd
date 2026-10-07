@@ -293,6 +293,27 @@ const ELITES := {
 		"subtitle": "Still at his post", "tint": Color(1.2, 1.05, 0.75)},
 }
 
+## Each region's name, shown across the screen on first stepping into it (and on the map).
+const REGION_TITLES := {
+	"foothills": "The Foothills", "ice": "The Frozen Village", "cross": "The Crossroads",
+	"fire": "The Fire Slopes", "storm": "The Lightning Peaks", "castle": "The King's Castle",
+}
+
+
+static func region_of(room: String) -> String:
+	if room in CASTLE_ROOMS:
+		return "castle"
+	if room in CROSS_ROOMS or room in SUMMIT_ROOMS:
+		return "cross"
+	if room in FIRE_ROOMS:
+		return "fire"
+	if room in STORM_ROOMS:
+		return "storm"
+	if room in ICE_ROOMS:
+		return "ice"
+	return "foothills"
+
+
 ## The lost survivors, one hidden in each region ("Q" in the room named), in the order they
 ## stand at the refuge ("Z" cells there). Found, they make for the refuge; met there, they
 ## give Storm something: crowns, a mask, a flask, or a honing of the blade.
