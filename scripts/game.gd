@@ -52,6 +52,8 @@ var rescued := {}
 ## The journal: foes put down (Rooms.BESTIARY ids), and the signs and notes read, in order.
 var journal := {}
 var lore: Array = []
+## Shrines Storm has rested at, to travel between: "room:x,y" -> [room, x, y].
+var shrines := {}
 
 ## A blow of the blade: two, and one more for each time Bram has honed it.
 const BASE_DAMAGE := 2
@@ -214,6 +216,7 @@ func new_game() -> void:
 	hard = false
 	journal = {}
 	lore = []
+	shrines = {}
 
 
 func has_save() -> bool:
@@ -263,7 +266,7 @@ func save_game() -> void:
 		"defeated": defeated.keys(), "collected": collected.keys(), "visited": visited.keys(),
 		"crowns": crowns, "lost_crowns": lost_crowns, "lost_room": lost_room,
 		"lost_point": [lost_point.x, lost_point.y], "hone": hone, "maps": maps.keys(),
-		"rescued": rescued.keys(), "play_time": play_time, "journal": journal.keys(), "lore": lore, "hard": hard,
+		"rescued": rescued.keys(), "play_time": play_time, "journal": journal.keys(), "lore": lore, "hard": hard, "shrines": shrines.values(),
 	}
 	data["version"] = SAVE_VERSION
 	check_achievements()
@@ -335,6 +338,11 @@ func load_game() -> bool:
 	for id in data.get("journal", []):
 		journal[id] = true
 	hard = bool(data.get("hard", false))
+	for entry in data.get("shrines", []):
+		shrines["%s:%d,%d" % [entry[0], entry[1], entry[2]]] = [str(entry[0]), float(entry[1]), float(entry[2])]
+	if rest_room != "" and shrines.is_empty():
+		# (An older save: at least the shrine it wakes at.)
+		shrines["%s:%d,%d" % [rest_room, rest_point.x, rest_point.y]] = [rest_room, rest_point.x, rest_point.y]
 	lore = Array(data.get("lore", []))
 	return true
 
@@ -541,6 +549,7 @@ func blade_stage() -> String:
 func rest_at(room: String, point: Vector2) -> void:
 	rest_room = room
 	rest_point = point
+	shrines["%s:%d,%d" % [room, point.x, point.y]] = [room, point.x, point.y]
 	refill_flasks()
 	rested.emit()
 	save_game()

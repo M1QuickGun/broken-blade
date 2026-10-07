@@ -6,6 +6,8 @@ signal door_entered(door: String)
 signal sign_read(text: String)
 ## A survivor at the refuge was asked to trade.
 signal shop_opened(shop: String, title: String)
+## Storm asked a shrine to take him elsewhere.
+signal travel_requested
 signal boss_defeated(title: String)
 
 const Rooms := preload("res://scripts/rooms.gd")
@@ -559,6 +561,7 @@ func _scan_cells() -> void:
 					var shrine := Shrine.new()
 					shrine.room_name = room_name
 					shrine.position = feet
+					shrine.travel.connect(func() -> void: travel_requested.emit())
 					add_child(shrine)
 				"H":
 					_add_mask_shard("%s:%d,%d" % [room_name, x, y], Vector2((x + 0.5) * TILE, (y + 0.5) * TILE))
@@ -858,11 +861,13 @@ func _on_boss_defeated(info: Dictionary, where: Vector2, exact := false) -> void
 		# A shrine kindles where the fight ended, and Storm will wake here from now on.
 		var shrine := Shrine.new()
 		shrine.room_name = room_name
+		shrine.travel.connect(func() -> void: travel_requested.emit())
 		shrine.position = _after_shrine
 		shrine.kindle = true
 		add_child(shrine)
 		Game.rest_room = room_name
 		Game.rest_point = shrine.global_position
+		Game.shrines["%s:%d,%d" % [room_name, shrine.global_position.x, shrine.global_position.y]] = 			[room_name, shrine.global_position.x, shrine.global_position.y]
 		Effects.sparks(self, _after_shrine + Vector2(0, -14), Color("9fe6ff"), 14, 90.0)
 		Sfx.play("rest", -4.0, 0.0)
 	boss_defeated.emit(info.title)

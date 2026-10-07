@@ -11,6 +11,7 @@ const PauseMenu := preload("res://scripts/pause_menu.gd")
 const MapScreen := preload("res://scripts/map_screen.gd")
 const Intro := preload("res://scripts/intro.gd")
 const Shop := preload("res://scripts/shop.gd")
+const Travel := preload("res://scripts/travel.gd")
 
 const START_ROOM := "landing"
 ## Debug warps (keys 6-9, -, =, [, ], \ and '): action -> [room, the door to arrive by].
@@ -142,6 +143,30 @@ func _play_ending() -> void:
 	_quit_to_title()
 
 
+func _open_travel() -> void:
+	if _transitioning:
+		return
+	var menu := Travel.new()
+	menu.here = room.room_name
+	menu.chosen.connect(_travel_to)
+	add_child(menu)
+
+
+## Off to another shrine: a fade, and Storm wakes there as if he'd rested.
+func _travel_to(room_name: String, point: Vector2) -> void:
+	_transitioning = true
+	player.controls_locked = true
+	await hud.fade_out(0.5)
+	_load_room(room_name, "", point)
+	Game.rest_at(room_name, point)
+	await get_tree().physics_frame
+	camera.position = Vector2.ZERO
+	camera.reset_smoothing()
+	await hud.fade_in(0.5)
+	player.controls_locked = false
+	_transitioning = false
+
+
 func _quit_to_title() -> void:
 	Game.save_game()
 	Game.playing = false
@@ -203,6 +228,7 @@ func _load_room(room_name: String, door: String, at := Vector2.INF) -> void:
 	move_child(room, 0)
 	room.door_entered.connect(_on_door_entered)
 	room.sign_read.connect(hud.show_message)
+	room.travel_requested.connect(_open_travel)
 	room.shop_opened.connect(func(shop: String, title: String) -> void:
 		var trading := Shop.new()
 		trading.shop = shop
