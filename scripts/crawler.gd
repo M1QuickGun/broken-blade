@@ -412,7 +412,7 @@ func _rockfall(to: Vector2) -> void:
 
 func _shake_room() -> void:
 	var cam := get_viewport().get_camera_2d()
-	if cam:
+	if cam and Game.screen_shake:
 		var tween := cam.create_tween()
 		for i in 6:
 			tween.tween_property(cam, "offset", Vector2(randf_range(-3, 3), randf_range(-3, 3)), 0.04)

@@ -1,12 +1,13 @@
 extends CanvasLayer
-## The title screen: the painted forest at the mountain's foot, the name over the reforged
-## blade, motes of light drifting down, and the menu: Continue (if there's a save),
-## New game, Quit.
+## The title screen: the kingdom on its mountain (the intro's first painting), the name over
+## the reforged blade, motes of light drifting down, and the three save slots: pick an empty
+## one to begin, a full one to carry on. "Erase a save" then a slot (twice) clears it.
 
 signal chosen(choice: String)
 
 const MenuList := preload("res://scripts/menu_list.gd")
-const BACKDROP := preload("res://art/world/forest_bg.png")
+const BACKDROP := preload("res://art/story/intro_1.png")
+const Rooms := preload("res://scripts/rooms.gd")
 const BLADE := preload("res://art/blade/blade_3_full.png")
 const SIZE := Vector2(960, 540)
 const COLOR_TITLE := Color("e8ecf4")
@@ -35,12 +36,17 @@ func _ready() -> void:
 	_menu = MenuList.new()
 	_menu.position = Vector2(0, 340)
 	_menu.size = Vector2(SIZE.x, 160)
-	_menu.options = [
-		{"text": "Continue", "pick": func() -> void: _choose("continue"),
-			"visible": func() -> bool: return Game.has_save()},
-		{"text": "New game", "pick": func() -> void: _choose("new")},
-		{"text": "Quit", "pick": func() -> void: get_tree().quit()},
-	]
+	_menu.options = []
+	for n in range(1, Game.SLOTS + 1):
+		_menu.options.append({"text": func() -> String: return _slot_text(n), "pick": func() -> void: _pick_slot(n)})
+	_menu.options.append({"text": func() -> String: return "Cancel erasing" if _erasing else "Erase a save",
+		"pick": func() -> void:
+			_erasing = not _erasing
+			_confirm = 0})
+	_menu.options.append({"text": "Quit", "pick": func() -> void: get_tree().quit()})
+	_menu.font_size = 16
+	_menu.moved.connect(func() -> void: _confirm = 0)
+	Game.playing = false
 	add_child(_menu)
 	Music.play("exploration")
 
@@ -55,6 +61,34 @@ func _process(delta: float) -> void:
 
 
 var _choice := ""
+var _erasing := false
+var _confirm := 0
+
+
+func _slot_text(n: int) -> String:
+	var info := Game.slot_summary(n)
+	if _erasing and _confirm == n:
+		return "Erase slot %d? Pick it again" % n
+	if info.is_empty():
+		return "Slot %d   -   %s" % [n, "empty" if _erasing else "New game"]
+	var where: String = Rooms.REGION_TITLES[Rooms.region_of(info.room)] if info.room != "" else "The Foothills"
+	return "Slot %d   %s   %d/3   %s%s" % [n, where, info.pieces, Game.clock(info.time), "   (the end)" if info.done else ""]
+
+
+func _pick_slot(n: int) -> void:
+	var filled := not Game.slot_summary(n).is_empty()
+	if _erasing:
+		if not filled:
+			return
+		if _confirm == n:
+			Game.erase_slot(n)
+			_erasing = false
+			_confirm = 0
+		else:
+			_confirm = n
+		return
+	Game.slot = n
+	_choose("continue" if filled else "new")
 
 
 func _choose(choice: String) -> void:
@@ -71,7 +105,7 @@ func _draw_title() -> void:
 	var scale := maxf(SIZE.x / BACKDROP.get_width(), SIZE.y / BACKDROP.get_height()) * 1.06
 	var drift := Vector2(sin(_time * 0.05) * 12.0, cos(_time * 0.04) * 6.0)
 	var tex_size := Vector2(BACKDROP.get_size()) * scale
-	_canvas.draw_texture_rect(BACKDROP, Rect2((SIZE - tex_size) / 2.0 + drift, tex_size), false, Color(0.55, 0.6, 0.6))
+	_canvas.draw_texture_rect(BACKDROP, Rect2((SIZE - tex_size) / 2.0 + drift, tex_size), false, Color(0.62, 0.64, 0.7))
 	_canvas.draw_rect(Rect2(Vector2.ZERO, SIZE), Color(0.02, 0.03, 0.04, 0.35))
 	for m in _motes:
 		var y := fmod(m.y + _time * m.speed, SIZE.y)

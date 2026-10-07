@@ -880,6 +880,8 @@ func _spawn(p_kind: String, pos: Vector2, vel: Vector2, p_life: float) -> void:
 
 
 func _update_shake(delta: float) -> void:
+	if not Game.screen_shake:
+		_shake = 0.0
 	var cam := get_viewport().get_camera_2d()
 	if cam == null:
 		return

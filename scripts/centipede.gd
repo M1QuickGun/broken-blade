@@ -761,6 +761,8 @@ func _place_boxes() -> void:
 # --- Screen shake ---
 
 func _update_shake(delta: float) -> void:
+	if not Game.screen_shake:
+		_shake = 0.0
 	var cam := get_viewport().get_camera_2d()
 	if cam == null:
 		return

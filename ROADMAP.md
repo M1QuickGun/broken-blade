@@ -24,14 +24,14 @@ Checked off as each lands. Order is roughly the order of work.
 - [x] Dark Storm, a side boss on a hidden path off the lift shaft (no reward)
 
 ## 3. Feel
-- [ ] Juice: death particles, landing dust on big falls, hit feedback tuned
-- [ ] Camera: look-ahead, holding still for boss arenas, peeking up and down
-- [ ] Room transitions: fade and slide
-- [ ] Menus: painted title, settings (rebinding, screen shake, volumes), three save slots,
+- [x] Juice: death particles, landing dust on big falls, hit feedback tuned
+- [x] Camera: look-ahead, holding still for boss arenas, peeking up and down
+- [x] Room transitions: fade and slide
+- [x] Menus: painted title, settings (rebinding, screen shake, volumes), three save slots,
       quit confirm
 - [ ] Journal: bestiary and lore pages
-- [ ] Map: outlines of unvisited rooms once an area's map is bought, pins, area names on
-      entering
+- [x] Map: outlines of unvisited rooms once an area's map is bought, area names on entering
+      (pins left out)
 - [ ] Storm: the animations he's missing; staying right-handed (needs ~80 generations)
 - [ ] Set dressing: props in the castle, the fire village and the caves
 - [ ] Survivors' dialogue changing with each boss beaten
@@ -44,6 +44,6 @@ Checked off as each lands. Order is roughly the order of work.
 - [ ] Controller prompts; full controller support
 - [ ] Export settings, icon, splash
 - [ ] Achievements hooks
-- [ ] Speedrun timer option; a harder mode after the ending
+- [~] Speedrun timer option (done); a harder mode after the ending
 - [ ] Clean up: remove `scripts/boss.gd` and the old playtest scene; an automated check
       that builds every room and boss

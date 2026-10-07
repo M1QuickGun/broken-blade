@@ -76,6 +76,7 @@ func _on_title_chosen(choice: String) -> void:
 
 ## Builds everything that lasts from room to room: Storm, the camera, the HUD and menus.
 func _start_world() -> void:
+	Game.playing = true
 	player = Player.new()
 	add_child(player)
 
@@ -141,6 +142,7 @@ func _play_ending() -> void:
 
 func _quit_to_title() -> void:
 	Game.save_game()
+	Game.playing = false
 	get_tree().paused = false
 	get_tree().reload_current_scene()
 

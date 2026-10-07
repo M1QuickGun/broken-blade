@@ -52,8 +52,24 @@ var rescued := {}
 ## A blow of the blade: two, and one more for each time Bram has honed it.
 const BASE_DAMAGE := 2
 
-## The save (progress) and the settings live in the user's data folder.
-const SAVE_PATH := "user://save.json"
+## The saves (three slots of progress) and the settings live in the user's data folder.
+const SAVE_PATH := "user://save_%d.json"
+## The single save from before there were slots; moved into slot 1 the first time.
+const OLD_SAVE_PATH := "user://save.json"
+const SLOTS := 3
+## Which slot is being played.
+var slot := 1
+## Time played on this save, in seconds (counted while a game is running and unpaused).
+var play_time := 0.0
+var playing := false
+## Settings: the camera shaking on big blows, the play timer on screen, and keys chosen in
+## place of the defaults (action -> physical keycode).
+var screen_shake := true
+var show_timer := false
+var bindings := {}
+## The actions that can be rebound, with their names on the controls screen.
+const REBINDABLE := [["jump", "Jump"], ["attack", "Attack"], ["dash", "Dash / slide"],
+	["shockline", "Shockline"], ["heal", "Drink a flask"], ["interact", "Talk / trade"], ["map", "Map"]]
 const SETTINGS_PATH := "user://settings.json"
 ## Settings: volumes from 0 to 1 for the "Music" and "SFX" audio buses, and fullscreen.
 var music_volume := 0.8
@@ -65,6 +81,13 @@ func _ready() -> void:
 	_setup_input()
 	_setup_audio_buses()
 	load_settings()
+	if DisplayServer.get_name() != "headless" and FileAccess.file_exists(OLD_SAVE_PATH) 			and not FileAccess.file_exists(SAVE_PATH % 1):
+		DirAccess.rename_absolute(OLD_SAVE_PATH, SAVE_PATH % 1)
+
+
+func _process(delta: float) -> void:
+	if playing and not get_tree().paused:
+		play_time += delta
 
 
 # --- Saving ---
@@ -88,10 +111,37 @@ func new_game() -> void:
 	hone = 0
 	maps = {}
 	rescued = {}
+	play_time = 0.0
 
 
 func has_save() -> bool:
-	return FileAccess.file_exists(SAVE_PATH)
+	return FileAccess.file_exists(SAVE_PATH % slot)
+
+
+## What a slot holds, for the title screen: {} if it's empty.
+func slot_summary(n: int) -> Dictionary:
+	var path := SAVE_PATH % n
+	if not FileAccess.file_exists(path):
+		return {}
+	var data = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if typeof(data) != TYPE_DICTIONARY:
+		return {}
+	var count := 0
+	for ability in data.get("abilities", []):
+		if ability in BLADE_ABILITIES:
+			count += 1
+	return {"pieces": count, "time": float(data.get("play_time", 0.0)), "room": str(data.get("rest_room", "")),
+		"done": "hollow_king" in data.get("defeated", [])}
+
+
+func erase_slot(n: int) -> void:
+	if FileAccess.file_exists(SAVE_PATH % n):
+		DirAccess.remove_absolute(SAVE_PATH % n)
+
+
+static func clock(seconds: float) -> String:
+	var t := int(seconds)
+	return "%d:%02d:%02d" % [t / 3600, (t / 60) % 60, t % 60]
 
 
 ## Writes progress. Called whenever something worth keeping happens: resting at a shrine,
@@ -105,9 +155,9 @@ func save_game() -> void:
 		"defeated": defeated.keys(), "collected": collected.keys(), "visited": visited.keys(),
 		"crowns": crowns, "lost_crowns": lost_crowns, "lost_room": lost_room,
 		"lost_point": [lost_point.x, lost_point.y], "hone": hone, "maps": maps.keys(),
-		"rescued": rescued.keys(),
+		"rescued": rescued.keys(), "play_time": play_time,
 	}
-	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	var file := FileAccess.open(SAVE_PATH % slot, FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify(data, "\t"))
 
@@ -116,10 +166,11 @@ func save_game() -> void:
 func load_game() -> bool:
 	if not has_save():
 		return false
-	var data = JSON.parse_string(FileAccess.get_file_as_string(SAVE_PATH))
+	var data = JSON.parse_string(FileAccess.get_file_as_string(SAVE_PATH % slot))
 	if typeof(data) != TYPE_DICTIONARY:
 		return false
 	new_game()
+	play_time = float(data.get("play_time", 0.0))
 	for ability in data.get("abilities", []):
 		abilities[ability] = true
 		if ability in BLADE_ABILITIES:
@@ -213,6 +264,7 @@ func save_settings() -> void:
 	if file:
 		file.store_string(JSON.stringify({
 			"music_volume": music_volume, "sfx_volume": sfx_volume, "fullscreen": fullscreen,
+			"screen_shake": screen_shake, "show_timer": show_timer, "bindings": bindings,
 		}, "\t"))
 
 
@@ -223,7 +275,40 @@ func load_settings() -> void:
 			music_volume = clampf(float(data.get("music_volume", music_volume)), 0.0, 1.0)
 			sfx_volume = clampf(float(data.get("sfx_volume", sfx_volume)), 0.0, 1.0)
 			fullscreen = bool(data.get("fullscreen", fullscreen))
+			screen_shake = bool(data.get("screen_shake", screen_shake))
+			show_timer = bool(data.get("show_timer", show_timer))
+			var keys = data.get("bindings", {})
+			if typeof(keys) == TYPE_DICTIONARY:
+				for action in keys:
+					rebind(action, int(keys[action]), false)
 	apply_settings()
+
+
+## Puts `keycode` in place of an action's keyboard keys (its mouse and controller buttons
+## stay).
+func rebind(action: String, keycode: int, save := true) -> void:
+	if not InputMap.has_action(action):
+		return
+	for e in InputMap.action_get_events(action):
+		if e is InputEventKey:
+			InputMap.action_erase_event(action, e)
+	var key := InputEventKey.new()
+	key.physical_keycode = keycode as Key
+	InputMap.action_add_event(action, key)
+	bindings[action] = keycode
+	if save:
+		save_settings()
+
+
+## The keyboard key(s) on an action, for showing.
+func key_names(action: String) -> String:
+	var names := []
+	for e in InputMap.action_get_events(action):
+		if e is InputEventKey:
+			names.append(OS.get_keycode_string(e.physical_keycode))
+		elif e is InputEventMouseButton:
+			names.append("Left mouse" if e.button_index == MOUSE_BUTTON_LEFT else "Right mouse")
+	return ", ".join(names) if not names.is_empty() else "-"
 
 
 func blade_reach() -> float:
