@@ -8,7 +8,7 @@ Checked off as each lands. Order is roughly the order of work.
       proper death (it splits apart)
 - [x] A title card as the fight starts, and a beat before he stands
 - [x] A second stage under 40%: the King's armor cracks with light, a new attack
-- [ ] Its own music
+- [x] Its own music
 
 ## 2. More game
 - [x] Currency (shards: dropped by enemies, found in pots), left where Storm falls and
@@ -29,16 +29,16 @@ Checked off as each lands. Order is roughly the order of work.
 - [x] Room transitions: fade and slide
 - [x] Menus: painted title, settings (rebinding, screen shake, volumes), three save slots,
       quit confirm
-- [ ] Journal: bestiary and lore pages
+- [x] Journal: bestiary and lore pages
 - [x] Map: outlines of unvisited rooms once an area's map is bought, area names on entering
       (pins left out)
 - [ ] Storm: the animations he's missing; staying right-handed (needs ~80 generations)
-- [ ] Set dressing: props in the castle, the fire village and the caves
-- [ ] Survivors' dialogue changing with each boss beaten
+- [x] Set dressing: props in the castle, the fire village and the caves
+- [x] Survivors' dialogue changing with each boss beaten
 
 ## 4. Audio
-- [ ] Music for the fire slopes, lightning peaks, castle and bosses (synthesized for now)
-- [ ] Ambient loops per region; footsteps per floor; more enemy and boss sounds
+- [x] Music for the fire slopes, lightning peaks, castle and bosses (synthesized for now)
+- [x] Ambient loops per region; footsteps per floor; more enemy and boss sounds
 
 ## 5. Release
 - [ ] Controller prompts; full controller support

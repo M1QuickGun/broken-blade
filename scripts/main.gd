@@ -212,6 +212,8 @@ func _load_room(room_name: String, door: String, at := Vector2.INF) -> void:
 		if Game.defeated.has("hollow_king") and room.room_name == "throne_room":
 			_play_ending())
 	Music.play(Rooms.music_for(room_name))
+	Music.ambience(room.ambience())
+	player.step_sound = room.step_sound()
 	var region := Rooms.region_of(room_name)
 	if region != _region and room_name not in Rooms.SECRET_ROOMS:
 		if _region != "":

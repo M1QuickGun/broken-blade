@@ -323,6 +323,33 @@ func _atmosphere_style() -> String:
 	return "snow" if roof_px == 0.0 else "cave"
 
 
+## The ambient bed under this room (Music.ambience), from its weather.
+func ambience() -> String:
+	if not _woods and not _cave:
+		return "cave"
+	var style := _atmosphere_style()
+	match style:
+		"forest", "snow", "cave", "rain", "castle", "battlefield":
+			return style
+		"ash", "forge", "refuge":
+			return "fire"
+		"static":
+			return "cave"
+	return ""
+
+
+## What Storm's feet sound like on this room's ground.
+func step_sound() -> String:
+	var floor_kind: String = Rooms.FLOORS.get(room_name, "")
+	if floor_kind == "timber":
+		return "step_wood"
+	if _ice or floor_kind == "glacier":
+		return "step_snow"
+	if _forest:
+		return "step_grass"
+	return "step_stone"
+
+
 ## A separate solid body for every cell of one kind, so it can be taken away whole.
 func _cells_body(kind: String) -> StaticBody2D:
 	var body: StaticBody2D = null

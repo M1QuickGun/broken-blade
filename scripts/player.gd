@@ -194,6 +194,10 @@ var hp := 0
 var controls_locked := false
 ## Last spot Storm stood on solid ground; spikes send him back here.
 var safe_position := Vector2.ZERO
+## The footstep for the ground he's on (set by Main for each room), and how far he's run
+## since the last one.
+var step_sound := "step_stone"
+var _step_distance := 0.0
 
 var _coyote := 0.0
 var _jump_buffer := 0.0
@@ -520,6 +524,11 @@ func _physics_process(delta: float) -> void:
 	velocity.x += wind
 	move_and_slide()
 	velocity.x -= wind
+	if is_on_floor() and absf(velocity.x) > 40.0 and _dash_time <= 0.0:
+		_step_distance += absf(velocity.x) * get_physics_process_delta_time()
+		if _step_distance > 26.0:
+			_step_distance = 0.0
+			Sfx.play(step_sound, -14.0, 0.15)
 	if is_on_floor() and not was_on_floor and falling > 180.0:
 		Sfx.play("land", -8.0)
 		if falling > 380.0:

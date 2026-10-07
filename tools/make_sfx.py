@@ -241,6 +241,19 @@ def main():
     ticks = highpass(noise(d), 3000) * (rng.uniform(0, 1, int(RATE * d)) > 0.92)
     save("crackle", ticks * env(d, 0.01, 1.0), 0.5)
 
+    # Footsteps, one for each kind of ground.
+    d = 0.07
+    save("step_stone", mix(highpass(noise(d), 2500) * env(d, 0.001, 6.0) * 0.6,
+                           tone(sweep(220, 120, d), d) * env(d, 0.001, 4.0) * 0.5), 0.35)
+    d = 0.13
+    grains = bandpass(noise(d), 1500, 6000) * (rng.uniform(0, 1, int(RATE * d)) > 0.55)
+    save("step_snow", grains * env(d, 0.01, 1.5), 0.32)
+    d = 0.09
+    save("step_grass", bandpass(noise(d), 800, 4000) * env(d, 0.01, 2.0), 0.25)
+    d = 0.1
+    save("step_wood", mix(tone(sweep(190, 130, d), d) * env(d, 0.001, 3.0),
+                          bandpass(noise(d), 600, 2500) * env(d, 0.001, 5.0) * 0.4), 0.35)
+
 
 if __name__ == "__main__":
     main()
