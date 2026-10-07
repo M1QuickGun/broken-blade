@@ -89,7 +89,7 @@ def reach(room, start, abilities):
         if abilities["wall_jump"] and not hanging:
             for side in (-1, 1):
                 cy = y
-                while room.solid(x + side, cy - 1) and room.open(x, cy - 1) and room.open(x, cy - 2):
+                while cy > 1 and room.solid(x + side, cy - 1) and room.open(x, cy - 1) and room.open(x, cy - 2):
                     cy -= 1
                     for (sx, sy) in stands:
                         if cy - sy <= JUMP[0] and abs(sx - x) <= JUMP[1]:
@@ -108,9 +108,17 @@ def door_spots(room, letter):
     cells = [(x, y) for y in range(room.h) for x in range(room.w) if room.cell(x, y) == letter]
     spots = set()
     for (x, y) in cells:
+        if y == 0:
+            # In through the roof: he drops to whatever is below.
+            fall = 1
+            while fall < room.h and not room.stand(x, fall):
+                fall += 1
+            if fall < room.h:
+                spots.add((x, fall))
+    for (x, y) in cells:
         for dx in (-1, 0, 1):
             for dy in (-1, 0, 1):
-                if room.stand(x + dx, y + dy) or room.stand(x + dx, y + dy, small=True):
+                if y + dy >= 0 and (room.stand(x + dx, y + dy) or room.stand(x + dx, y + dy, small=True)):
                     spots.add((x + dx, y + dy))
     return spots
 
@@ -222,6 +230,14 @@ EXPECT = [
     ("charcoal_loft", "u", "H", ["base"], []),
     ("bell_hut", "u", "K", ["base"], []),
     ("watch_post", "w", "H", ["base"], []),
+    ("great_hall", "e", "k", ["base"], []),
+    ("crypt", "k", "H", ["base"], []),
+    ("crypt", "k", "k", ["fire"], []),
+    ("ramparts", "d", "k", ["all"], []),
+    ("armory", "k", "K", ["all"], []),
+    ("bell_tower", "h", "k", ["all"], ["fire"]),
+    ("kings_quarters", "k", "H", ["all"], []),
+    ("mirror_hall", "m", "m", ["base"], []),
 ]
 
 

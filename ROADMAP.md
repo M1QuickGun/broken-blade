@@ -16,12 +16,12 @@ Checked off as each lands. Order is roughly the order of work.
 - [x] Shops at the refuge: Bram (blade damage), Maud (flasks), Wren (area maps, pins)
 - [x] A lost survivor hidden in each region; found, they move to the refuge and give
       something
-- [ ] A mini-boss or elite per region
-- [~] Secrets to come back for (a hidden room per region, each behind a later ability): in each early region, one or two places a later ability
+- [x] A mini-boss or elite per region
+- [x] Secrets to come back for (a hidden room per region, each behind a later ability): in each early region, one or two places a later ability
       opens (mask shards, flask upgrades, lore)
-- [ ] More castle: the crypt, the armory, the king's quarters
-- [ ] More mask shards and flask upgrades; four shards make a mask
-- [ ] Dark Storm, a side boss on a hidden path off the lift shaft (no reward)
+- [x] More castle: the crypt, the armory, the king's quarters
+- [x] More mask shards and flask upgrades (kept at one shard per mask)
+- [x] Dark Storm, a side boss on a hidden path off the lift shaft (no reward)
 
 ## 3. Feel
 - [ ] Juice: death particles, landing dust on big falls, hit feedback tuned

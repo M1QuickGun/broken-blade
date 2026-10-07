@@ -24,6 +24,7 @@ const Drake := preload("res://scripts/drake.gd")
 const Wisp := preload("res://scripts/wisp.gd")
 const Stormcaller := preload("res://scripts/stormcaller.gd")
 const HollowKing := preload("res://scripts/hollow_king.gd")
+const DarkStorm := preload("res://scripts/dark_storm.gd")
 const Shade := preload("res://scripts/shade.gd")
 const Pot := preload("res://scripts/pot.gd")
 const Purse := preload("res://scripts/purse.gd")
@@ -773,6 +774,8 @@ func _setup_boss() -> void:
 			boss = Stormcaller.new()
 		"hollow_king":
 			boss = HollowKing.new()
+		"dark_storm":
+			boss = DarkStorm.new()
 		_:
 			boss = Boss.new()
 	boss.boss_id = info.id

@@ -779,6 +779,8 @@ r.put(56, 14, "E")
 r = Room("lift_shaft", 10, 85)
 r.fill(4, 0, 6, 0, "k")
 r.fill(4, 84, 6, 84, "l")
+# Partway down, a crack in the shaft's wall: the way into the hall of mirrors.
+r.fill(0, 40, 0, 42, "m")
 
 # ---------------------------------------------------------------- Hidden rooms
 # A small room hidden above each region, its way in only open to an ability found later;
@@ -836,6 +838,10 @@ for x0 in (20, 44):
     r.air(x0, 16, x0 + 3, 18)
     r.fill(x0, 18, x0 + 3, 18, "^")
 r.put(4, 15, "?")
+# Up off a merlon to a ring, a broken hoarding, and the armory in the tower above.
+r.put(44, 7, "*")
+r.box(40, 3, 44, 3)
+r.fill(46, 0, 48, 0, "k")
 
 # The great hall: the fallen court. Long tables, the old chandeliers (rings) under the roof,
 # a gap in the roof up to the chapel, and the way on east at the far end.
@@ -850,6 +856,9 @@ for x, y in [(23, 9), (31, 5), (39, 9)]:
     r.put(x, y, "*")
 r.fill(30, 0, 32, 0, "f")
 r.put(6, 19, "?")
+# A gap in the floor at the hall's far end, down into the crypt.
+r.air(54, 20, 56, 20)
+r.fill(54, 21, 56, 21, "k")
 
 # The royal chapel, above the great hall: where the blade first sealed the evil. Nothing
 # lives here. A mask shard on the high sill of its broken window.
@@ -887,6 +896,10 @@ for i, y in enumerate(range(46, 13, -4)):
     r.put(9 if i % 2 == 0 else 18, y, "*")
 r.box(4, 11, 11, 11)
 r.box(17, 5, 26, 5)
+# Partway up, a gap in the thorns and a sill: the king's quarters.
+r.air(26, 28, 26, 32)
+r.box(24, 32, 26, 32)
+r.fill(27, 29, 27, 31, "k")
 
 # The throne approach: a long quiet corridor, the doors to the throne room at its end.
 r = Room("throne_approach", 50, 16)
@@ -904,6 +917,47 @@ r.box(46, 18, 54, 19)
 r.put(48, 17, "B")
 for x, y in [(10, 10), (22, 8), (34, 8), (46, 10)]:
     r.put(x, y, "*")
+
+# The royal crypt, under the great hall: the tombs of the royal family. Back up by the
+# ledges to the hall.
+r = Room("crypt", 40, 18)
+r.floor(16)
+r.fill(18, 0, 20, 0, "k")
+for x0, x1, y in [(12, 16, 12), (22, 26, 8), (14, 18, 4)]:
+    r.box(x0, y, x1, y)
+r.put(6, 15, "?")
+r.put(35, 15, "H")
+r.put(30, 15, "?")
+
+# The armory, in the tower over the ramparts: emptied the night the army marched; what's
+# left of it still on guard.
+r = Room("armory", 40, 18)
+r.floor(16)
+r.air(20, 16, 22, 16)
+r.fill(20, 17, 22, 17, "k")
+r.box(26, 10, 36, 10)
+r.box(2, 6, 8, 6)
+r.put(5, 5, "K")
+r.put(14, 15, "?")
+
+# The king's quarters, off the bell tower: his journal still open on the desk.
+r = Room("kings_quarters", 40, 18)
+r.floor(16)
+r.fill(0, 13, 0, 15, "k")
+r.put(14, 15, "?")
+r.put(26, 15, "?")
+r.box(30, 11, 37, 11)
+r.put(34, 10, "H")
+
+# The hall of mirrors, off the lift shaft: black glass all round, and in it something
+# wearing Storm's face. Dark Storm.
+r = Room("mirror_hall", 44, 20)
+r.floor(18)
+r.fill(43, 15, 43, 17, "m")
+r.box(8, 13, 13, 13)
+r.box(30, 13, 35, 13)
+r.put(22, 17, "B")
+r.put(38, 17, "?")
 
 LINKS = {
     "landing": {"a": ("thicket", "a")},
@@ -929,7 +983,8 @@ LINKS = {
     "frozen_bridge": {"o": ("ice_climb", "o"), "p": ("crossroads", "p")},
     "crossroads": {"p": ("frozen_bridge", "p"), "q": ("ashen_road", "q"), "r": ("cliff_road", "r"),
                    "e": ("refuge", "e"), "k": ("lift_shaft", "l")},
-    "lift_shaft": {"k": ("high_pass", "k"), "l": ("crossroads", "k")},
+    "lift_shaft": {"k": ("high_pass", "k"), "l": ("crossroads", "k"), "m": ("mirror_hall", "m")},
+    "mirror_hall": {"m": ("lift_shaft", "m")},
     "refuge": {"e": ("crossroads", "e"), "f": ("old_barracks", "f"), "g": ("storehouse", "g")},
     "old_barracks": {"f": ("refuge", "f")},
     "storehouse": {"g": ("refuge", "g")},
@@ -960,11 +1015,14 @@ LINKS = {
     "high_pass": {"y": ("fire_shaft", "y"), "z": ("windward_pass", "z"), "k": ("lift_shaft", "k"),
                   "c": ("castle_gate", "c")},
     "castle_gate": {"c": ("high_pass", "c"), "d": ("ramparts", "d")},
-    "ramparts": {"d": ("castle_gate", "d"), "e": ("great_hall", "e")},
-    "great_hall": {"e": ("ramparts", "e"), "f": ("chapel", "f"), "g": ("library", "g")},
+    "ramparts": {"d": ("castle_gate", "d"), "e": ("great_hall", "e"), "k": ("armory", "k")},
+    "armory": {"k": ("ramparts", "k")},
+    "great_hall": {"e": ("ramparts", "e"), "f": ("chapel", "f"), "g": ("library", "g"), "k": ("crypt", "k")},
+    "crypt": {"k": ("great_hall", "k")},
     "chapel": {"f": ("great_hall", "f")},
     "library": {"g": ("great_hall", "g"), "h": ("bell_tower", "h")},
-    "bell_tower": {"h": ("library", "h"), "i": ("throne_approach", "i")},
+    "bell_tower": {"h": ("library", "h"), "i": ("throne_approach", "i"), "k": ("kings_quarters", "k")},
+    "kings_quarters": {"k": ("bell_tower", "k")},
     "throne_approach": {"i": ("bell_tower", "i"), "j": ("throne_room", "j")},
     "throne_room": {"j": ("throne_approach", "j")},
     "windward_pass": {"z": ("high_pass", "z"), "y": ("summit_ledge", "z"), "w": ("watch_post", "w")},
@@ -1005,6 +1063,8 @@ EXTRA = {
     "ramparts": [(30, 15, "Y"), (56, 15, "Y")],
     "great_hall": [(24, 19, "E"), (40, 10, "V")],
     "library": [(25, 20, "V"), (12, 23, "Y")],
+    "crypt": [(26, 15, "V"), (10, 15, "V")],
+    "armory": [(10, 15, "E"), (31, 9, "Y"), (30, 15, "E")],
 }
 # Each region's elite ("X": Rooms.ELITES), somewhere with floor to fight on.
 EXTRA_ELITES = {
@@ -1030,7 +1090,7 @@ AFTER_SHRINES = {
 
 # Clay pots ("O", a few crowns each) on open floor in every room but the boss arenas, the
 # refuge and the shafts: one, or two in a wide room, a third and two thirds of the way along.
-NO_POTS = {"ring", "gate_cavern", "frost_arena", "frost_throne", "forge", "drake_roost", "spire",
+NO_POTS = {"mirror_hall", "ring", "gate_cavern", "frost_arena", "frost_throne", "forge", "drake_roost", "spire",
            "thunder_eyrie", "throne_room", "refuge", "lift_shaft", "landing"}
 
 
