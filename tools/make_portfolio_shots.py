@@ -1,16 +1,17 @@
 """Finished portfolio screenshots from the frames tools/capture.tscn saved in press/raw/.
 
-Run from the project folder:  python tools/make_portfolio_shots.py
+Run from the project folder:  python tools/make_portfolio_shots.py [out_dir]
 Each pick is a raw 960x540 frame, scaled 2x (pixels kept sharp) to 1920x1080 with a title
-in the corner, written to press/portfolio/screenshots/. Change PICKS to choose other frames.
+in the corner, written to press/portfolio/screenshots/ (or out_dir). Change PICKS to choose other frames.
 """
 import os
+import sys
 
 from PIL import Image, ImageDraw, ImageFont
 
 R = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..") + "/"
 RAW = R + "press/raw/"
-OUT = R + "press/portfolio/screenshots/"
+OUT = os.path.join(sys.argv[1], "") if len(sys.argv) > 1 else R + "press/portfolio/screenshots/"
 os.makedirs(OUT, exist_ok=True)
 
 TEXT = (232, 236, 244)
