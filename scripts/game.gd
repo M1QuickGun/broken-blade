@@ -7,6 +7,7 @@ signal rested
 signal max_hp_changed(max_hp: int)
 signal flasks_changed(count: int, max_count: int)
 signal crowns_changed(count: int)
+signal achieved(title: String)
 
 ## Art is drawn at 2x the world's pixel density: the world uses 16 px tiles, sprites use 32.
 ## Sprites are placed at 1 / ART_SCALE and the camera zooms by ART_SCALE.
@@ -70,6 +71,23 @@ var playing := false
 var screen_shake := true
 var show_timer := false
 var bindings := {}
+## Achievements earned on any save (kept with the settings); ready to hand to Steam.
+var achievements := {}
+## Hard mode (for this save): every foe a half again as tough, every blow on Storm doubled.
+var hard := false
+const ACHIEVEMENTS := {
+	"hilt": ["Hilt in Hand", "Take the hilt back from the Guardian Centipede."],
+	"ice": ["Cold Steel", "Free the ice piece."],
+	"fire": ["Forged Again", "Free the fire piece."],
+	"lightning": ["Point of the Storm", "Free the lightning tip."],
+	"unbound": ["All Unbound", "Beat every boss's second fight."],
+	"elites": ["Champion of the Mountain", "Put down every region's elite."],
+	"survivors": ["No One Left Behind", "Bring every lost survivor to the refuge."],
+	"dark_storm": ["Know Thyself", "Shatter Dark Storm."],
+	"ransom": ["A King's Ransom", "Carry a thousand crowns."],
+	"ending": ["The Keeper", "Reseal the evil."],
+	"hard_ending": ["The Long Watch", "Reseal the evil in hard mode."],
+}
 ## The actions that can be rebound, with their names on the controls screen.
 const REBINDABLE := [["jump", "Jump"], ["attack", "Attack"], ["dash", "Dash / slide"],
 	["shockline", "Shockline"], ["heal", "Drink a flask"], ["interact", "Talk / trade"], ["map", "Map"]]
@@ -91,6 +109,58 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if playing and not get_tree().paused:
 		play_time += delta
+
+
+## Whether the last thing pressed was on a controller (prompts name its buttons then).
+var using_pad := false
+const PAD_NAMES := {
+	JOY_BUTTON_A: "A", JOY_BUTTON_B: "B", JOY_BUTTON_X: "X", JOY_BUTTON_Y: "Y",
+	JOY_BUTTON_LEFT_SHOULDER: "LB", JOY_BUTTON_RIGHT_SHOULDER: "RB", JOY_BUTTON_START: "Start",
+	JOY_BUTTON_BACK: "View", JOY_BUTTON_DPAD_UP: "D-pad up", JOY_BUTTON_DPAD_DOWN: "D-pad down",
+}
+
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventJoypadButton or (event is InputEventJoypadMotion and absf(event.axis_value) > 0.5):
+		using_pad = true
+	elif event is InputEventKey or event is InputEventMouseButton:
+		using_pad = false
+
+
+## How to press an action, for the device in use: "Space", "Left mouse", "A", "RB"...
+## "move", "up" and "down" name the stick or the keys.
+func prompt(action: String) -> String:
+	match action:
+		"move":
+			return "Left stick" if using_pad else "%s / %s" % [_first_key("move_left"), _first_key("move_right")]
+		"up":
+			return "Up on the stick" if using_pad else _first_key("look_up")
+		"down":
+			return "Down on the stick" if using_pad else _first_key("look_down")
+	if using_pad:
+		for e in InputMap.action_get_events(action) if InputMap.has_action(action) else []:
+			if e is InputEventJoypadButton:
+				return PAD_NAMES.get(e.button_index, "Button %d" % e.button_index)
+	return _first_key(action)
+
+
+func _first_key(action: String) -> String:
+	if not InputMap.has_action(action):
+		return action
+	for e in InputMap.action_get_events(action):
+		if e is InputEventKey:
+			return OS.get_keycode_string(e.physical_keycode)
+		if e is InputEventMouseButton:
+			return "Left click" if e.button_index == MOUSE_BUTTON_LEFT else "Right click"
+	return action
+
+
+## Fills {action} in a line of text with how to press it.
+func fill_prompts(text: String) -> String:
+	var regex := RegEx.create_from_string(r"\{(\w+)\}")
+	for m in regex.search_all(text):
+		text = text.replace(m.get_string(), prompt(m.get_string(1)))
+	return text
 
 
 # --- Saving ---
@@ -115,6 +185,7 @@ func new_game() -> void:
 	maps = {}
 	rescued = {}
 	play_time = 0.0
+	hard = false
 	journal = {}
 	lore = []
 
@@ -136,7 +207,15 @@ func slot_summary(n: int) -> Dictionary:
 		if ability in BLADE_ABILITIES:
 			count += 1
 	return {"pieces": count, "time": float(data.get("play_time", 0.0)), "room": str(data.get("rest_room", "")),
-		"done": "hollow_king" in data.get("defeated", [])}
+		"done": "hollow_king" in data.get("defeated", []), "hard": bool(data.get("hard", false))}
+
+
+## Whether any save has seen the end (hard mode opens then).
+func any_finished() -> bool:
+	for n in range(1, SLOTS + 1):
+		if slot_summary(n).get("done", false):
+			return true
+	return false
 
 
 func erase_slot(n: int) -> void:
@@ -160,8 +239,9 @@ func save_game() -> void:
 		"defeated": defeated.keys(), "collected": collected.keys(), "visited": visited.keys(),
 		"crowns": crowns, "lost_crowns": lost_crowns, "lost_room": lost_room,
 		"lost_point": [lost_point.x, lost_point.y], "hone": hone, "maps": maps.keys(),
-		"rescued": rescued.keys(), "play_time": play_time, "journal": journal.keys(), "lore": lore,
+		"rescued": rescued.keys(), "play_time": play_time, "journal": journal.keys(), "lore": lore, "hard": hard,
 	}
+	check_achievements()
 	var file := FileAccess.open(SAVE_PATH % slot, FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify(data, "\t"))
@@ -204,11 +284,30 @@ func load_game() -> bool:
 		rescued[id] = true
 	for id in data.get("journal", []):
 		journal[id] = true
+	hard = bool(data.get("hard", false))
 	lore = Array(data.get("lore", []))
 	return true
 
 
 # --- Crowns ---
+
+## Earns whatever achievements this save now qualifies for (checked at every save).
+func check_achievements() -> void:
+	var has := func(ids: Array) -> bool: return ids.all(func(id: String) -> bool: return defeated.has(id))
+	var earned := {
+		"hilt": defeated.has("centipede_1"), "ice": defeated.has("colossus_1"), "fire": defeated.has("drake_1"),
+		"lightning": defeated.has("stormcaller_1"),
+		"unbound": has.call(["centipede_2", "colossus_2", "drake_2", "stormcaller_2"]),
+		"elites": has.call(["brood_mother", "frost_knight", "cinder_brute", "storm_herald", "guard_captain"]),
+		"survivors": rescued.size() >= 5, "dark_storm": defeated.has("dark_storm"), "ransom": crowns >= 1000,
+		"ending": defeated.has("hollow_king"), "hard_ending": hard and defeated.has("hollow_king"),
+	}
+	for id in earned:
+		if earned[id] and not achievements.has(id):
+			achievements[id] = true
+			achieved.emit(ACHIEVEMENTS[id][0])
+			save_settings()
+
 
 ## A foe put down, for the bestiary.
 func note(id: String) -> void:
@@ -278,11 +377,14 @@ func apply_settings() -> void:
 
 
 func save_settings() -> void:
+	if DisplayServer.get_name() == "headless":
+		return  # a headless test run: never touch the player's settings
 	var file := FileAccess.open(SETTINGS_PATH, FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify({
 			"music_volume": music_volume, "sfx_volume": sfx_volume, "fullscreen": fullscreen,
 			"screen_shake": screen_shake, "show_timer": show_timer, "bindings": bindings,
+			"achievements": achievements.keys(),
 		}, "\t"))
 
 
@@ -295,6 +397,8 @@ func load_settings() -> void:
 			fullscreen = bool(data.get("fullscreen", fullscreen))
 			screen_shake = bool(data.get("screen_shake", screen_shake))
 			show_timer = bool(data.get("show_timer", show_timer))
+			for id in data.get("achievements", []):
+				achievements[id] = true
 			var keys = data.get("bindings", {})
 			if typeof(keys) == TYPE_DICTIONARY:
 				for action in keys:

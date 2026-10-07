@@ -124,6 +124,8 @@ func _ready() -> void:
 		_info.hp = _info.hp * 6
 		boss_id = elite
 	hp = _info.hp
+	if Game.hard:
+		hp = ceili(hp * 1.5)
 	max_hp = hp
 	collision_layer = LAYER_ENEMY
 	collision_mask = LAYER_WORLD

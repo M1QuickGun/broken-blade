@@ -182,12 +182,12 @@ const SIGNS := {
 	],
 	"mirror_hall": ["A hall of black glass. In every pane, you. In one of them, you're smiling."],
 	"landing": [
-		"A / D to move. Space to jump; hold it to jump higher.",
+		"{move} to move. {jump} to jump; hold it to jump higher.",
 		"The castle waits at the top of the mountain, and so does what killed your family.",
 	],
 	"rockfall": [
-		"Left click to swing the shard. Hold W while attacking to strike upward.",
-		"Spikes ahead. In the air, hold S and attack to strike down and bounce off them.",
+		"{attack} to swing the shard. Hold {up} while attacking to strike upward.",
+		"Spikes ahead. In the air, hold {down} and attack to strike down and bounce off them.",
 	],
 	"ring": [
 		"An old ring of standing stones. Something golden glints in the earth at its heart.",
@@ -198,11 +198,11 @@ const SIGNS := {
 		"Beyond the cave: the gate of the frozen village.",
 	],
 	"village_square": [
-		"Rest at a shrine to mend your wounds. You'll wake at the last one if you fall.",
+		"Rest at a shrine to mend your wounds. You'll wake at the last one if you fall. {heal} drinks a flask.",
 		"The Frost Warden carried the ice shard into the caverns to the east.",
 	],
 	"ice_caverns": ["West, across the spikes, an old cellar lies sealed. A shockline could reach it."],
-	"frozen_depths": ["Shift to slide, on the ground only. Slide under low gaps, or into enemies."],
+	"frozen_depths": ["{dash} to slide, on the ground only. Slide under low gaps, or into enemies."],
 	"ice_climb": ["Up the mountain. The way out at the top is a crawlspace."],
 	"frozen_cellar": ["Frozen stores and old armor. Among them, a mask of the royal guard."],
 	"frozen_bridge": ["The old bridge to the high mountain. The ice has taken most of it: jump the gaps, slide under the fallen walls."],

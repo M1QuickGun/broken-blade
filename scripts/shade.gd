@@ -58,6 +58,8 @@ class Hurt extends Area2D:
 
 func _ready() -> void:
 	position.y -= HOVER_HEIGHT
+	if Game.hard:
+		hp = ceili(hp * 1.5)
 	_home = position
 	_hurt = Hurt.new()
 	_hurt.shade = self

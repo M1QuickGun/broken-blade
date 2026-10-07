@@ -41,9 +41,9 @@ Checked off as each lands. Order is roughly the order of work.
 - [x] Ambient loops per region; footsteps per floor; more enemy and boss sounds
 
 ## 5. Release
-- [ ] Controller prompts; full controller support
-- [ ] Export settings, icon, splash
-- [ ] Achievements hooks
-- [~] Speedrun timer option (done); a harder mode after the ending
-- [ ] Clean up: remove `scripts/boss.gd` and the old playtest scene; an automated check
+- [x] Controller prompts; full controller support
+- [x] Export settings, icon, splash
+- [x] Achievements hooks
+- [x] Speedrun timer option; a harder mode after the ending
+- [x] Clean up: remove `scripts/boss.gd` and the old playtest scene; an automated check
       that builds every room and boss

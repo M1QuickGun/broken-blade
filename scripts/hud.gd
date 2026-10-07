@@ -37,9 +37,9 @@ const COLOR_BOSS_BAR := Color("b33a3a")
 const COLOR_BOSS_BAR_BACK := Color("2a1a1e")
 
 const UNLOCK_MESSAGES := {
-	"dash": "Ice shard recovered. Press Shift or L to dash.",
+	"dash": "Ice shard recovered. {dash} to dash.",
 	"double_jump": "Fire shard recovered. Jump again in midair.",
-	"shockline": "Lightning shard recovered. Right click to cast the shockline.",
+	"shockline": "Lightning shard recovered. {shockline} to cast the shockline.",
 	"wall_jump": "The hilt is yours again. Its sword catcher bites stone: hold toward a wall to cling, then jump.",
 }
 
@@ -53,7 +53,7 @@ var _message: Label
 var _fade: ColorRect
 var _boss_bar: Control
 var _boss_label: Label
-## The boss being fought (a boss.gd node), or null. Untyped: read for its title and hp.
+## The boss being fought (any boss, or an elite), or null. Untyped: read for its title and hp.
 var _boss = null
 var _message_tween: Tween
 ## The boss's name across the screen as its fight begins (and when it changes, mid-fight).
@@ -114,6 +114,7 @@ func _ready() -> void:
 	_crowns.draw.connect(_draw_crowns)
 	add_child(_crowns)
 	Game.crowns_changed.connect(func(_count: int) -> void: _crowns.queue_redraw())
+	Game.achieved.connect(func(title: String) -> void: show_area("Achievement:  " + title))
 
 	_card = Control.new()
 	_card.size = Vector2(480, 270)
@@ -212,7 +213,7 @@ func set_hp(hp: int, max_hp: int) -> void:
 
 
 func show_message(text: String) -> void:
-	_message.text = text
+	_message.text = Game.fill_prompts(text)
 	if _message_tween:
 		_message_tween.kill()
 	_message_tween = create_tween()

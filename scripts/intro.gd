@@ -112,5 +112,5 @@ func _draw_panel() -> void:
 		-1, Color(0, 0, 0, fade))
 	_canvas.draw_multiline_string(font, at, shown, HORIZONTAL_ALIGNMENT_CENTER, SIZE.x - 160, 20, -1,
 		Color(COLOR_TEXT, fade))
-	_canvas.draw_string(font, Vector2(SIZE.x - 210, 30), "Jump: next     Esc: skip", HORIZONTAL_ALIGNMENT_LEFT, -1, 13,
+	_canvas.draw_string(font, Vector2(SIZE.x - 210, 30), Game.fill_prompts("{jump}: next     {pause}: skip"), HORIZONTAL_ALIGNMENT_LEFT, -1, 13,
 		Color(0.6, 0.65, 0.75, 0.6 * fade))

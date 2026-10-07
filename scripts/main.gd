@@ -56,7 +56,9 @@ func _ready() -> void:
 
 func _on_title_chosen(choice: String) -> void:
 	if choice == "new":
+		var hard := Game.hard
 		Game.new_game()
+		Game.hard = hard
 		Game.save_game()
 		var intro := Intro.new()
 		add_child(intro)

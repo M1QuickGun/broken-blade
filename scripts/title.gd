@@ -39,6 +39,9 @@ func _ready() -> void:
 	_menu.options = []
 	for n in range(1, Game.SLOTS + 1):
 		_menu.options.append({"text": func() -> String: return _slot_text(n), "pick": func() -> void: _pick_slot(n)})
+	_menu.options.append({"text": func() -> String: return "New games: %s" % ("Hard mode" if _hard else "Normal"),
+		"visible": func() -> bool: return Game.any_finished(),
+		"adjust": func(_step: int) -> void: _hard = not _hard, "pick": func() -> void: _hard = not _hard})
 	_menu.options.append({"text": func() -> String: return "Cancel erasing" if _erasing else "Erase a save",
 		"pick": func() -> void:
 			_erasing = not _erasing
@@ -62,6 +65,7 @@ func _process(delta: float) -> void:
 
 var _choice := ""
 var _erasing := false
+var _hard := false
 var _confirm := 0
 
 
@@ -72,7 +76,8 @@ func _slot_text(n: int) -> String:
 	if info.is_empty():
 		return "Slot %d   -   %s" % [n, "empty" if _erasing else "New game"]
 	var where: String = Rooms.REGION_TITLES[Rooms.region_of(info.room)] if info.room != "" else "The Foothills"
-	return "Slot %d   %s   %d/3   %s%s" % [n, where, info.pieces, Game.clock(info.time), "   (the end)" if info.done else ""]
+	return "Slot %d   %s   %d/3   %s%s%s" % [n, where, info.pieces, Game.clock(info.time),
+		"   (hard)" if info.hard else "", "   (the end)" if info.done else ""]
 
 
 func _pick_slot(n: int) -> void:
@@ -88,6 +93,7 @@ func _pick_slot(n: int) -> void:
 			_confirm = n
 		return
 	Game.slot = n
+	Game.hard = _hard and not filled
 	_choose("continue" if filled else "new")
 
 

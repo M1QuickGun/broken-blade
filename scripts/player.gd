@@ -1222,6 +1222,8 @@ func _hurt_by_hazard() -> void:
 
 
 func _take_damage(amount := 1) -> void:
+	if Game.hard:
+		amount *= 2
 	Sfx.play("hurt", -2.0)
 	hp = maxi(0, hp - amount)
 	hp_changed.emit(hp, Game.max_hp)

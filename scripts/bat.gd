@@ -60,6 +60,8 @@ var _phase := randf() * TAU
 
 func _ready() -> void:
 	position.y -= HOVER_HEIGHT
+	if Game.hard:
+		hp = ceili(hp * 1.5)
 	_home = position
 	collision_layer = LAYER_ENEMY
 	collision_mask = LAYER_WORLD

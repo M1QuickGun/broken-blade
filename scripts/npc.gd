@@ -78,4 +78,4 @@ func _draw() -> void:
 	if _near:
 		var font := ThemeDB.fallback_font
 		var bob := sin(_time * 3.0)
-		draw_string(font, Vector2(-30, -DRAW - 4 + bob), "E: trade", HORIZONTAL_ALIGNMENT_CENTER, 60, 8, Color(0.95, 0.85, 0.6))
+		draw_string(font, Vector2(-40, -DRAW - 4 + bob), "%s: trade" % Game.prompt("interact"), HORIZONTAL_ALIGNMENT_CENTER, 80, 8, Color(0.95, 0.85, 0.6))

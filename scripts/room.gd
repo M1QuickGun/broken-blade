@@ -16,7 +16,6 @@ const Anchor := preload("res://scripts/anchor.gd")
 const Shrine := preload("res://scripts/shrine.gd")
 const MaskShard := preload("res://scripts/mask_shard.gd")
 const Sign := preload("res://scripts/sign.gd")
-const Boss := preload("res://scripts/boss.gd")
 const Centipede := preload("res://scripts/centipede.gd")
 const Colossus := preload("res://scripts/colossus.gd")
 const Bat := preload("res://scripts/bat.gd")
@@ -812,12 +811,13 @@ func _setup_boss() -> void:
 		"dark_storm":
 			boss = DarkStorm.new()
 		_:
-			boss = Boss.new()
+			push_error("No boss of kind %s" % info.kind)
+			return
 	boss.boss_id = info.id
 	boss.kind = info.kind
 	boss.phase = info.phase
 	boss.title = info.title
-	boss.max_hp = info.hp
+	boss.max_hp = ceili(info.hp * (1.5 if Game.hard else 1.0))
 	boss.position = _boss_spawn
 	add_child(boss)
 	# Most rewards drop to the floor where the boss fell; some bosses say exactly where.

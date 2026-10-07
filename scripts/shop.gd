@@ -174,5 +174,5 @@ func _draw_shop() -> void:
 	if _note_time > 0.0:
 		_canvas.draw_string(font, Vector2(panel.position.x, panel.end.y + 14), _note, HORIZONTAL_ALIGNMENT_CENTER, panel.size.x, 10,
 			Color(COLOR_TEXT, clampf(_note_time, 0.0, 1.0)))
-	_canvas.draw_string(font, Vector2(panel.position.x + 12, panel.end.y - 8), "Up / down: choose     Jump: buy     Esc: leave",
+	_canvas.draw_string(font, Vector2(panel.position.x + 12, panel.end.y - 8), Game.fill_prompts("Up / down: choose     {jump}: buy     {pause}: leave"),
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(COLOR_DIM, 0.7))

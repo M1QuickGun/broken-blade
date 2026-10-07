@@ -431,8 +431,8 @@ func _phase_1(p: Vector2, delta: float) -> void:
 				Effects.puff(get_parent(), _pos + Vector2(randf_range(-14, 14), -30), COLOR_SMOKE, 3, 60.0)
 			if _timer <= 0.0:
 				phase = 2
-				max_hp = EVIL_HP
-				hp = EVIL_HP
+				max_hp = ceili(EVIL_HP * (1.5 if Game.hard else 1.0))
+				hp = max_hp
 				title = "The Evil Unbound"
 				subtitle = "What the blade was made to hold"
 				_pace = 1.0

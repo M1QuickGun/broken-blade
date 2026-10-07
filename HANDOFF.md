@@ -31,6 +31,10 @@ controls are in `README.md`.
   (32px, 4x4 corner layout as STONE_TILES; download the metadata's spritesheet_url) and
   toned toward the region's colours.
 - `tools/check_map.py`: checks no two rooms overlap on the map (run after adding rooms).
+- `tools/smoke_test.gd`: builds every room and runs every boss and elite headless (the
+  centipede's first fight stays asleep: it wakes on the hilt). Saving and settings are off
+  in headless runs, so tests can't touch the player's files.
+- `tools/make_music.py` / `make_ambience.py` / `make_sfx.py`: regenerate the audio.
 - `tools/check_reach.py`: reachability check (jump, double jump, wall climb, shockline,
   slide limits) for the fire and lightning regions' gates and secrets.
 - `tools/make_sfx.py`: synthesizes every sound effect into `audio/sfx/`.
@@ -83,5 +87,7 @@ controls are in `README.md`.
   second fights were won.
 - The Dark Storm side boss (a dark copy of Storm) goes on a hidden path between the two
   crossroads (off the lift shaft); its reward isn't decided yet.
-- `scripts/boss.gd` (Gate Warden / Frost Warden) is no longer used by any room;
-  `tools/playtest.*` uses old room names.
+- Exporting: `export_presets.cfg` has a Windows preset (to `export/windows/`); Godot's
+  export templates need installing first (Editor > Manage Export Templates).
+- Achievements are tracked in the settings file (`Game.ACHIEVEMENTS`), ready to hand to
+  Steam once there's a Steamworks build.
