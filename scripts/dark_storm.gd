@@ -7,7 +7,10 @@ extends CharacterBody2D
 ## - Plunge: it leaps over him and drives the blade straight down where he stands.
 ## - Spin: from the air, a ring of black fire bursts out around it.
 ## - Shockline: it points the blade, a thin line showing where, and zips along it.
-## Below half health it chains them faster. Beaten, it shatters like a dropped mirror.
+## - Mirror: for a few seconds it copies whatever Storm does, a beat after him.
+## Below half health it chains them faster, sends its reflections out of the walls at him (one
+## blow breaks them), and once drinks a flask of its own: strike it to spill it. Beaten, it
+## shatters into glass. Its hall is pale silver glass, the two of them reflected in the floor.
 
 signal defeated
 signal engaged
@@ -41,12 +44,19 @@ const DASH := 330.0
 const ZIP := 520.0
 const SLASH_REACH := Vector2(34, 26)
 const SPIN_RADIUS := 52.0
-const PATTERN := ["slash", "dash", "plunge", "slash", "shockline", "spin", "dash", "plunge"]
+const PATTERN := ["slash", "mirror", "dash", "plunge", "slash", "shockline", "spin", "mirror", "dash", "plunge"]
+const PATTERN_HARD := ["mirror", "reflections", "slash", "dash", "plunge", "reflections", "shockline", "spin", "slash"]
+## Mirroring: how long, and how long after Storm it copies each move.
+const MIRROR_TIME := 3.5
+const MIRROR_DELAY := 0.35
+const DRINK_TIME := 1.1
+const DRINK_HEAL := 14
 const COLOR_BODY := Color(0.28, 0.22, 0.38)
 const COLOR_GLOW := Color(0.72, 0.45, 1.0)
 const COLOR_HOT := Color(0.95, 0.85, 1.0)
 
-enum St { DORMANT, WAKE, IDLE, RUN, SLASH, DASH_WINDUP, DASH, LEAP, PLUNGE, SPIN, AIM, ZIP, RECOVER, SHATTER }
+enum St { DORMANT, WAKE, IDLE, RUN, SLASH, DASH_WINDUP, DASH, LEAP, PLUNGE, SPIN, AIM, ZIP, RECOVER, SHATTER,
+	MIRROR, DRINK }
 
 var boss_id := ""
 var kind := "dark_storm"
@@ -71,6 +81,71 @@ var _trail: Array[Dictionary] = []
 var _body: Hitbox
 var _blade: Hitbox
 var _done := false
+## Moves of Storm's to copy: [action, when].
+var _echo: Array = []
+var _drank := false
+## While mirroring: until when (it goes back to copying after each move it copies).
+var _mirror_until := 0.0
+## The floor it stands on, for the reflections in it.
+var _floor_y := 0.0
+var _ghost_time := 0.0
+
+
+## Its reflection, stepping out of the wall and dashing across: one blow breaks it.
+class Reflection extends Area2D:
+	var boss: Node
+	var speed := 260.0
+	var life := 2.2
+	var damage := 1
+
+	func _ready() -> void:
+		collision_layer = 4
+		collision_mask = 0
+		monitoring = false
+		var shape := RectangleShape2D.new()
+		shape.size = Vector2(12, 22)
+		var col := CollisionShape2D.new()
+		col.shape = shape
+		col.position = Vector2(0, -11)
+		add_child(col)
+
+	func _physics_process(delta: float) -> void:
+		position.x += speed * delta
+		life -= delta
+		if life <= 0.0:
+			queue_free()
+		queue_redraw()
+
+	func take_hit(_amount: int, _from: Vector2) -> void:
+		Sfx.play("shatter", -6.0, 0.2)
+		load("res://scripts/effects.gd").sparks(get_parent(), global_position + Vector2(0, -11), Color(0.85, 0.85, 1.0), 10, 120.0)
+		queue_free()
+
+	func _draw() -> void:
+		boss.draw_reflection(self, signf(speed))
+
+
+## A shard of the broken mirror, tumbling away.
+class GlassShard extends Node2D:
+	var velocity := Vector2.ZERO
+	var spin := 0.0
+	var life := 1.2
+	var size := 4.0
+
+	func _process(delta: float) -> void:
+		velocity.y += 500.0 * delta
+		position += velocity * delta
+		rotation += spin * delta
+		life -= delta
+		if life <= 0.0:
+			queue_free()
+		queue_redraw()
+
+	func _draw() -> void:
+		var a := clampf(life / 0.5, 0.0, 1.0)
+		draw_colored_polygon(PackedVector2Array([Vector2(-size, size * 0.6), Vector2(size * 0.8, size), Vector2(0, -size)]),
+			Color(0.85, 0.85, 1.0, 0.8 * a))
+		draw_line(Vector2(0, -size), Vector2(size * 0.8, size), Color(1, 1, 1, a), 1.0)
 
 
 class Hitbox extends Area2D:
@@ -128,12 +203,22 @@ func reward_point() -> Vector2:
 func take_hit(damage: int, from_dir: Vector2) -> void:
 	if _state in [St.DORMANT, St.WAKE, St.SHATTER]:
 		return
+	if _state == St.DRINK:
+		# Struck mid-drink: the flask spills.
+		Sfx.play("shatter", -4.0, 0.0)
+		Effects.sparks(get_parent(), shock_point(), Color("9fe6ff"), 12, 120.0)
+		_enter(St.RECOVER, 0.8)
 	hp -= damage
 	_flash = 0.12
 	Sfx.play("hit_boss", -3.0)
 	Effects.sparks(get_parent(), shock_point(), COLOR_GLOW, 10)
 	if hp <= max_hp / 2:
 		_pace = 0.72
+		if not _drank and hp > 0 and _state != St.DRINK:
+			_drank = true
+			_enter(St.DRINK, DRINK_TIME)
+			Sfx.play("flask", -6.0, 0.0)
+			return
 	if hp <= 0:
 		hp = 0
 		Effects.slow_motion(get_tree())
@@ -163,7 +248,8 @@ func _play(anim: String) -> void:
 
 
 func _next_attack() -> String:
-	var attack: String = PATTERN[_move % PATTERN.size()]
+	var pattern: Array = PATTERN_HARD if hp <= max_hp / 2 else PATTERN
+	var attack: String = pattern[_move % pattern.size()]
 	_move += 1
 	return attack
 
@@ -204,6 +290,14 @@ func _physics_process(delta: float) -> void:
 			velocity.x = move_toward(velocity.x, 0.0, 900.0 * delta)
 			if _timer <= 0.0 and grounded:
 				match _next_attack():
+					"mirror":
+						_echo.clear()
+						_mirror_until = _time + MIRROR_TIME
+						_enter(St.MIRROR, MIRROR_TIME)
+						Sfx.play("shock_charge", -10.0, 0.3)
+					"reflections":
+						_send_reflections(p)
+						_enter(St.RECOVER, 1.0)
 					"slash":
 						_combo = 0
 						_enter(St.RUN, 1.6)
@@ -291,11 +385,47 @@ func _physics_process(delta: float) -> void:
 			if is_on_wall() or _timer <= 0.0:
 				velocity = Vector2.ZERO
 				_enter(St.RECOVER, 0.6)
+		St.MIRROR:
+			# Copying Storm's every move, a beat after him.
+			_face(p)
+			_play("idle")
+			velocity.x = move_toward(velocity.x, 0.0, 900.0 * delta)
+			for action in ["attack", "dash", "jump", "shockline"]:
+				if Input.is_action_just_pressed(action):
+					_echo.append([action, _time + MIRROR_DELAY])
+			if not _echo.is_empty() and _time >= _echo[0][1]:
+				var action: String = _echo.pop_front()[0]
+				match action:
+					"attack":
+						_combo = 1
+						_swing()
+					"dash":
+						velocity = Vector2(_dir * DASH, 0.0)
+						_play("slide")
+					"jump":
+						if grounded:
+							velocity.y = JUMP
+					"shockline":
+						_aim = Vector2(_dir, 0)
+						_enter(St.ZIP, 0.4)
+			if _state == St.MIRROR and _timer <= 0.0:
+				_mirror_until = 0.0
+				_enter(St.RECOVER, 0.5)
+		St.DRINK:
+			velocity.x = 0.0
+			_play("idle")
+			if _timer <= 0.0:
+				hp = mini(max_hp, hp + DRINK_HEAL)
+				Sfx.play("rest", -6.0, 0.0)
+				_enter(St.RECOVER, 0.4)
 		St.RECOVER:
 			_play("idle")
 			velocity.x = move_toward(velocity.x, 0.0, 900.0 * delta)
 			if _timer <= 0.0:
-				_enter(St.IDLE, 0.35)
+				if _time < _mirror_until:
+					_enter(St.MIRROR, _mirror_until - _time)  # back to copying him
+				else:
+					_enter(St.IDLE, 0.35)
 		St.SHATTER:
 			velocity = Vector2.ZERO
 			if _timer <= 0.0 and not _done:
@@ -304,13 +434,50 @@ func _physics_process(delta: float) -> void:
 				Effects.sparks(get_parent(), shock_point(), COLOR_GLOW, 30, 180.0)
 				Effects.sparks(get_parent(), shock_point(), COLOR_HOT, 14, 120.0)
 				Effects.puff(get_parent(), shock_point(), COLOR_BODY, 20, 100.0)
+				for k in 22:
+					var shard := GlassShard.new()
+					shard.position = position + Vector2(randf_range(-6, 6), randf_range(-22, -2))
+					shard.velocity = Vector2.from_angle(randf() * TAU) * randf_range(80, 260) + Vector2(0, -120)
+					shard.spin = randf_range(-12, 12)
+					shard.size = randf_range(2.5, 6.0)
+					get_parent().add_child(shard)
 				Game.defeated[boss_id] = true
 				defeated.emit()
 				visible = false
+	if is_on_floor():
+		_floor_y = global_position.y
+	_ghost_time -= delta
+	if _ghost_time <= 0.0 and _state not in [St.DORMANT, St.SHATTER]:
+		_ghost_time = 0.09
+		_trail.append({"pos": position, "at": _time, "anim": _anim, "frame": _frame(), "dir": _dir})
 	move_and_slide()
 	_update_boxes()
 	_trail = _trail.filter(func(t: Dictionary) -> bool: return _time - t.at < 0.3)
 	queue_redraw()
+
+
+## Its reflections step out of the walls on either side and dash across at Storm's height.
+func _send_reflections(p: Vector2) -> void:
+	var room := get_parent()
+	for side in [-1, 1]:
+		var r := Reflection.new()
+		r.boss = self
+		r.speed = -side * 260.0
+		r.position = Vector2(16.0 if side < 0 else room.size_px.x - 16.0, global_position.y)
+		room.add_child(r)
+	Sfx.play("shatter", -10.0, 0.4)
+
+
+## Draws a reflection (for the Reflection nodes): its running frame, pale and see-through.
+func draw_reflection(node: Node2D, facing: float) -> void:
+	var tex: Texture2D = SHEETS["run"]
+	var size := float(tex.get_height())
+	var w := size / ART_SCALE
+	var frame := int(_time * 14.0) % (tex.get_width() / int(size))
+	node.draw_set_transform(Vector2.ZERO, 0.0, Vector2(facing, 1))
+	node.draw_texture_rect_region(tex, Rect2(-BODY_X / ART_SCALE, -w, w, w), Rect2(frame * size, 0, size, size),
+		Color(0.8, 0.82, 1.0, 0.55))
+	node.draw_set_transform(Vector2.ZERO)
 
 
 func _swing() -> void:
@@ -356,11 +523,11 @@ func _frame() -> int:
 	return mini(f, frames - 1)
 
 
-func _draw_storm(at: Vector2, anim: String, frame: int, facing: int, color: Color) -> void:
+func _draw_storm(at: Vector2, anim: String, frame: int, facing: int, color: Color, upside_down := false) -> void:
 	var tex: Texture2D = SHEETS[anim]
 	var size := float(tex.get_height())
 	var w := size / ART_SCALE
-	draw_set_transform(at, 0.0, Vector2(facing, 1))
+	draw_set_transform(at, 0.0, Vector2(facing, -1.0 if upside_down else 1.0))
 	draw_texture_rect_region(tex, Rect2(-BODY_X / ART_SCALE, -w, w, w), Rect2(frame * size, 0, size, size), color)
 	draw_set_transform(Vector2.ZERO)
 
@@ -391,7 +558,24 @@ func _draw() -> void:
 			var from := Vector2(rng.randf_range(-5, 5), rng.randf_range(-20, -2))
 			draw_line(from, from + Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(4, 12) * g, COLOR_HOT, 1.0)
 	var tint := Color(3, 3, 3) if _flash > 0.0 else COLOR_BODY
-	# A violet rim around the dark body, then the body.
-	for o in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1)]:
-		_draw_storm(o, _anim, _frame(), _dir, Color(COLOR_GLOW, 0.35))
+	if _state == St.DRINK:
+		draw_circle(Vector2(6.0 * _dir, -12.0), 6.0 + 2.0 * sin(_time * 12.0), Color(0.6, 0.9, 1.0, 0.5))
+	if _state == St.MIRROR and fmod(_time, 0.3) < 0.15:
+		tint = Color(0.55, 0.45, 0.75)
+	# The two of them reflected in the glass floor.
+	_draw_storm(Vector2(0, 2.0 * (_floor_y - global_position.y)), _anim, _frame(), _dir, Color(COLOR_GLOW, 0.32), true)
+	var player := get_tree().get_first_node_in_group("player") as Node2D
+	if player and player.get("_sprite"):
+		var sprite: AnimatedSprite2D = player._sprite
+		var frames := sprite.sprite_frames
+		if frames and frames.has_animation(sprite.animation):
+			var ptex := frames.get_frame_texture(sprite.animation, sprite.frame)
+			var at := player.global_position - global_position + Vector2(0, 2.0 * (_floor_y - player.global_position.y))
+			var sz := Vector2(ptex.get_size()) / ART_SCALE
+			draw_set_transform(at, 0.0, Vector2(-1.0 if sprite.flip_h else 1.0, -1.0))
+			draw_texture_rect(ptex, Rect2(Vector2(-sz.x / 2.0, -sz.y), sz), false, Color(0.85, 0.85, 1.0, 0.3))
+			draw_set_transform(Vector2.ZERO)
+	# A pale edge around the dark body, then the body.
+	for o in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1)]:
+		_draw_storm(o, _anim, _frame(), _dir, Color(0.9, 0.82, 1.0, 0.7))
 	_draw_storm(Vector2.ZERO, _anim, _frame(), _dir, tint)

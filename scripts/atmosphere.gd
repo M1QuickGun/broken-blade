@@ -37,6 +37,7 @@ const BACKDROPS := {
 	"refuge": preload("res://art/world/refuge_bg.png"),
 	"battlefield": preload("res://art/world/last_stand_bg.png"),
 	"castle": preload("res://art/world/castle_bg.png"),
+	"mirror": preload("res://art/world/castle_bg.png"),
 }
 ## How much the backdrop follows the camera's movement across the room: 0 would pin it
 ## to the screen, 1 to the room.
@@ -131,7 +132,7 @@ func _ready() -> void:
 	if style == "rain" or style == "static":
 		_setup_storm(rng, cols)
 		return
-	if style == "refuge" or style == "battlefield" or style == "castle":
+	if style == "refuge" or style == "battlefield" or style == "castle" or style == "mirror":
 		_setup_pass(rng)
 		return
 	if style != "forest":
@@ -384,6 +385,14 @@ func _draw_back() -> void:
 func _draw_front() -> void:
 	if style == "castle":
 		_draw_castle()
+		return
+	if style == "mirror":
+		# Glints sliding across the glass, and a pale sheen.
+		draw_rect(Rect2(Vector2.ZERO, size_px), Color(0.8, 0.82, 0.95, 0.06))
+		for k in 6:
+			var x := fmod(k * 160.0 + _time * 40.0, size_px.x + 200.0) - 100.0
+			draw_colored_polygon(PackedVector2Array([Vector2(x, 0), Vector2(x + 18, 0), Vector2(x - 60, size_px.y),
+				Vector2(x - 78, size_px.y)]), Color(1, 1, 1, 0.05))
 		return
 	if style == "refuge" or style == "battlefield":
 		_draw_pass()

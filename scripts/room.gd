@@ -196,7 +196,9 @@ func build(name_: String) -> void:
 			woods.size_px = size_px
 			woods.solid = _grid
 			woods.seed_text = room_name
-			if _castle:
+			if room_name == "mirror_hall":
+				woods.backdrop_tint = Color(1.25, 1.25, 1.45)  # silver glass
+			elif _castle:
 				# The ramparts look out over the battlefield; inside, the hall painting, dimmed.
 				woods.backdrop_tint = Color(0.6, 0.6, 0.68) if roof_px == 0.0 else Color(0.62, 0.64, 0.72)
 			elif _cross:
@@ -321,6 +323,8 @@ func _atmosphere_style() -> String:
 		return "ash" if roof_px == 0.0 else "forge"
 	if _storm:
 		return "rain" if roof_px == 0.0 else "static"
+	if room_name == "mirror_hall":
+		return "mirror"
 	if _castle:
 		return "battlefield" if roof_px == 0.0 else "castle"
 	if _cross:
