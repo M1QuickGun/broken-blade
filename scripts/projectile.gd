@@ -50,6 +50,10 @@ func _ready() -> void:
 		_size = Vector2(14, height)
 	elif kind == "arrow":
 		_size = Vector2(8, 4)
+	elif kind == "ice_spike":
+		_size = Vector2(14, 34)
+	elif kind == "fire_pillar":
+		_size = Vector2(20, 84)
 	elif kind == "burst":
 		_size = Vector2(56, 44)
 	elif not falls:
@@ -81,7 +85,7 @@ func _physics_process(delta: float) -> void:
 
 ## The blade breaks it.
 func take_hit(_damage: int, _from_dir: Vector2) -> void:
-	if kind == "flame" or kind == "bolt" or kind == "burst":
+	if kind in ["flame", "bolt", "burst", "ice_spike", "fire_pillar"]:
 		return
 	if kind == "orb":
 		_burst()
@@ -147,6 +151,23 @@ func _draw() -> void:
 					Vector2(x - 3, 0), Vector2(x + sin(life * 18.0 + i) * 1.5, -h), Vector2(x + 3, 0),
 				]), Color(COLOR_FIRE, 0.9 * fade))
 			draw_rect(Rect2(-8, -1, 16, 1), Color(COLOR_FIRE_HOT, 0.7 * fade))
+		"ice_spike":
+			# A shard of ice bursting up out of the floor, then cracking away.
+			var rise := clampf((0.6 - life) / 0.08, 0.0, 1.0)
+			var h := _size.y * rise
+			var fade := clampf(life / 0.2, 0.0, 1.0)
+			draw_colored_polygon(PackedVector2Array([Vector2(-7, 0), Vector2(0, -h), Vector2(7, 0)]), Color(COLOR_ICE, 0.9 * fade))
+			draw_colored_polygon(PackedVector2Array([Vector2(-2, 0), Vector2(0, -h * 0.85), Vector2(3, 0)]), Color(1, 1, 1, 0.7 * fade))
+			draw_line(Vector2(-7, 0), Vector2(0, -h), Color(COLOR_ICE_DARK, fade), 1.0)
+		"fire_pillar":
+			# A column of flame roaring up from the floor.
+			var fade := clampf(life / 0.25, 0.0, 1.0)
+			var rise := clampf((0.8 - life) / 0.12, 0.0, 1.0)
+			for i in 7:
+				var y := -_size.y * rise * i / 7.0
+				var w := 18.0 - i * 1.6 + sin(Time.get_ticks_msec() / 60.0 + i) * 2.0
+				draw_rect(Rect2(-w / 2.0, y - 12.0, w, 13.0), Color(COLOR_FIRE, 0.55 * fade))
+				draw_rect(Rect2(-w / 4.0, y - 10.0, w / 2.0, 10.0), Color(COLOR_FIRE_HOT, 0.7 * fade))
 		"arrow":
 			var along := velocity.normalized()
 			draw_line(-along * 7.0, along * 5.0, Color(0.55, 0.45, 0.35), 1.5)

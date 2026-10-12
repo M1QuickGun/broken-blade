@@ -277,7 +277,13 @@ static func clock(seconds: float) -> String:
 
 ## Writes progress. Called whenever something worth keeping happens: resting at a shrine,
 ## a pickup, a boss beaten.
+## Set by the capture tools: nothing is written to the player's saves or settings.
+var no_save := false
+
+
 func save_game() -> void:
+	if no_save:
+		return
 	if DisplayServer.get_name() == "headless":
 		return  # a headless test run: never touch the player's real save
 	if boss_rush:
@@ -524,6 +530,8 @@ func apply_settings() -> void:
 
 
 func save_settings() -> void:
+	if no_save:
+		return
 	if DisplayServer.get_name() == "headless":
 		return  # a headless test run: never touch the player's settings
 	write_safely(SETTINGS_PATH, JSON.stringify({

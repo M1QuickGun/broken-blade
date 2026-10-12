@@ -4,8 +4,7 @@ extends "res://scripts/main.gd"
 ## tools/make_portfolio_shots.py to pick from. Not part of the game. Run it with
 ##   Godot_console.exe --path . res://tools/capture.tscn
 ## (set SHOT=room1,room2 to capture only some). The save is put back as it was when it
-## finishes (rooms are marked visited and abilities granted quietly, but a pickup Storm
-## walks over would still save).
+## finishes: Game.no_save is set, so nothing it does touches the saves or settings.
 
 const OUT := "res://press/raw/"
 
@@ -40,8 +39,7 @@ func _ready() -> void:
 	Game.apply_settings()
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT))
 	get_tree().paused = false
-	var had_save := Game.has_save()
-	var save_text := FileAccess.get_file_as_string(Game.SAVE_PATH) if had_save else ""
+	Game.no_save = true
 	Game.new_game()
 	for room_name in Rooms.LAYOUTS:
 		Game.visited[room_name] = true  # so loading a room never saves
@@ -60,10 +58,6 @@ func _ready() -> void:
 		map_screen.open()
 		await _wait(0.5)
 		await _snap("map_00")
-	if had_save:
-		FileAccess.open(Game.SAVE_PATH, FileAccess.WRITE).store_string(save_text)
-	elif Game.has_save():
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(Game.SAVE_PATH))
 	get_tree().quit()
 
 

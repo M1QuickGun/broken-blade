@@ -118,7 +118,7 @@ func _ready() -> void:
 	add_child(_timer)
 
 	_crowns = Control.new()
-	_crowns.position = FLASKS_POS + Vector2(0, 14)
+	_crowns.position = Vector2(14, 64)  # under the blade's line, clear of it
 	_crowns.draw.connect(_draw_crowns)
 	add_child(_crowns)
 	Game.crowns_changed.connect(func(_count: int) -> void: _crowns.queue_redraw())

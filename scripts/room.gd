@@ -291,6 +291,8 @@ func _add_props() -> void:
 		sprite.texture = tex
 		sprite.centered = false
 		var prop_scale: float = PROP_SCALE.get(prop[0], 0.5)  # (most are drawn at 2x detail)
+		if prop[0] == "throne":
+			sprite.modulate = Color(0.6, 0.56, 0.66)  # darker, so the King stands out from it
 		sprite.scale = Vector2(prop_scale, prop_scale)
 		var size := Vector2(tex.get_size()) * prop_scale
 		var foot := Vector2((prop[1] + 0.5) * TILE, prop[2] * TILE + PROP_SINK.get(prop[0], 0.0))
@@ -300,6 +302,8 @@ func _add_props() -> void:
 
 ## Which ring skin this room's shockline rings use.
 func _ring_style() -> String:
+	if _castle:
+		return "castle"
 	if _ice:
 		return "ice"
 	if room_name in Rooms.FIRE_ROOMS:

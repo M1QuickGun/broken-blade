@@ -386,6 +386,8 @@ func _on_player_died() -> void:
 const LOOK_AHEAD := 34.0
 const PEEK := 72.0
 const PEEK_AFTER := 0.4
+## How far the boss camera may lead off Storm (world units): he stays well inside the view.
+const BOSS_FRAME := Vector2(170, 95)
 var _peek_time := 0.0
 
 
@@ -405,8 +407,14 @@ func _update_camera(delta: float) -> void:
 	if camera == null or player == null:
 		return
 	var target := Vector2.ZERO
-	var fighting := get_tree().get_first_node_in_group("boss") != null
-	if not fighting:
+	var boss = get_tree().get_first_node_in_group("boss")
+	if boss:
+		# The boss camera: framing the fight, halfway between Storm and the boss's body (its
+		# head, for the big ones), never so far that Storm leaves the screen.
+		var focus: Vector2 = boss.shock_point() if boss.has_method("shock_point") else boss.global_position
+		var between: Vector2 = (focus - player.global_position) * 0.5
+		target = Vector2(clampf(between.x, -BOSS_FRAME.x, BOSS_FRAME.x), clampf(between.y - 20.0, -BOSS_FRAME.y, 40.0))
+	else:
 		var moving := absf(player.velocity.x) > 40.0
 		target.x = player.facing * (LOOK_AHEAD if moving else LOOK_AHEAD * 0.4)
 	var still: bool = player.is_on_floor() and absf(player.velocity.x) < 5.0 and not player.controls_locked

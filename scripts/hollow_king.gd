@@ -28,8 +28,16 @@ extends Node2D
 ##   or be up on a ring.
 ## - Ruin: ice, fire and lightning fall all over the room, each marked on the floor first.
 ## - Orbs: it breathes three orbs of dark that drift after Storm; strike them to pop them.
-## Below 40% it fights faster. Beaten, light breaks through it, its arms fall away and it
-## splits apart down the middle.
+## Below 40% it fights faster. It's struck at its three eyes (a blow at it lands on the eye
+## nearest Storm); with all three put out it slumps, its core bare, for double damage. A
+## slammed claw stays down as a slope to run up toward its head. At half health the King's
+## empty armor rises and holds it fast for a while; below a third the floor gives way to
+## burning dark and pillars rise to stand on. The last blow drives Storm along the shockline
+## into its core; then light breaks through it, its arms fall away and it splits apart.
+## Phase 1 opens with the King leaping from his throne into the hall; he lunges across it,
+## raises ice and flame from the floor, and if his blade is struck in the instant before his
+## overhead slash falls, he's parried and reels open. The chandeliers stay hidden until the
+## evil rises, then come down on their chains as rings.
 
 signal defeated
 ## Emitted when it wakes; the room bars its doors then.
@@ -58,7 +66,7 @@ const HAND_L := Vector2(40, 189)
 const HAND_R := Vector2(216, 189)
 const FRAME := 128
 ## The King's frames drawn this big (world units), his feet this far down the frame.
-const DRAW := 96.0
+const DRAW := 130.0
 const FEET := 124.0 / 128.0
 ## The evil drawn this big; its head (the core, where to strike) at this point of the art.
 const EVIL_DRAW := 236.0
@@ -71,10 +79,10 @@ const TILE := 16
 const LAYER_WORLD := 1
 const LAYER_ENEMY := 4
 
-const PATTERN_1 := ["slash", "ice", "slash", "fire", "thrust", "bolts", "slash", "thrust"]
+const PATTERN_1 := ["lunge", "slash", "ice", "slash", "fire", "lunge", "thrust", "bolts", "slash"]
 const PATTERN_2 := ["claw", "ruin", "claw", "sweep", "orbs", "claw", "sweep", "ruin"]
 ## Cracked (below 40%), the King's pattern with judgement in it.
-const PATTERN_CRACKED := ["slash", "judgement", "fire", "slash", "thrust", "judgement", "ice", "bolts"]
+const PATTERN_CRACKED := ["lunge", "judgement", "slash", "fire", "lunge", "thrust", "judgement", "ice", "slash", "bolts"]
 const CRACK_AT := 0.4
 const JUDGEMENT := 3
 const JUDGEMENT_EVERY := 0.55
@@ -85,13 +93,30 @@ const FAST_PACE := 0.78
 const EVIL_FAST_AT := 0.4
 const EVIL_FAST_PACE := 0.72
 const WALK_SPEED := 70.0
-const SLASH_REACH := Vector2(84, 64)
+const SLASH_REACH := Vector2(110, 84)
+## The lunge: across the hall in a rush, afterimages behind.
+const LUNGE_SPEED := 430.0
+## The parry: strike his blade as it comes down to stagger him.
+const PARRY_WINDOW := 0.3
+const STAGGER_TIME := 2.2
 const THRUST_REACH := 260.0
 const BOLTS := 5
 const BOLT_EVERY := 0.36
 const BOLT_WARNING := 0.7
 ## The evil's head drifts toward Storm along this height, this fast.
-const EVIL_HEIGHT := 112.0
+const EVIL_HEIGHT := 150.0
+## Its three eyes, where to strike it (offsets from its head) and how much each takes; with
+## all three put out it slumps, its core open, for EYES_DOWN seconds.
+const EYES := [Vector2(-34, 16), Vector2(34, 16), Vector2(0, -24)]
+const EYE_HP := 8
+const EYES_DOWN := 4.0
+## The arm it slams down stays as a slope up toward its head, this long.
+const ARM_TIME := 3.2
+const ARM_SLOPE := 0.66
+## At half health, your father's armor rises and holds it; below a third, the floor gives way.
+const HOLD_AT := 0.5
+const HOLD_TIME := 5.0
+const COLLAPSE_AT := 0.33
 const EVIL_DRIFT := 30.0
 const CLAW_HOVER := 120.0
 const SWEEP_SPEED := 300.0
@@ -110,7 +135,9 @@ const COLOR_SHADOW := Color(0.02, 0.02, 0.06, 0.45)
 
 enum St {
 	DORMANT, RISE, IDLE, WALK, SLASH_WINDUP, SLASH, RECOVER, CAST, BOLT_WAIT, THRUST_WINDUP, THRUST,
+	LEAP, LUNGE_WINDUP, LUNGE, STAGGER,
 	KNEEL, TEAR, HOVER, CLAW_AIM, CLAW_FALL, CLAW_DOWN, CLAW_RISE, SWEEP_WARN, SWEEP, RUIN, ORBS, DYING,
+	SLUMP, HELD, FINAL,
 }
 
 var boss_id := ""
@@ -153,6 +180,25 @@ var _hunt := 0
 var _done := false
 ## Below 40% the King's armor cracks.
 var _cracked := false
+## Where the King's opening leap lands, and the afterimages of his lunge.
+var _leap_from := Vector2.ZERO
+var _trail: Array[Dictionary] = []
+## The parry: his raised blade, there to be struck in the last moment before it falls.
+var _parry_box: Hitbox
+## The evil's eyes: health left in each, and their hitboxes.
+var _eye_hp: Array[int] = [EYE_HP, EYE_HP, EYE_HP]
+var _eye_boxes: Array[Hitbox] = []
+## The arm-slope while a claw rests on the floor.
+var _arm: StaticBody2D
+var _arm_top := Vector2.ZERO
+## The rings (chandeliers): hidden while the King fights, let down on their chains after.
+var _rings: Array[Node2D] = []
+var _ring_rest: Array[Vector2] = []
+var _held_done := false
+var _collapsed := false
+var _void: Hitbox
+var _pillars: Array[StaticBody2D] = []
+var _final_from := Vector2.ZERO
 
 var _body_box: Hitbox
 var _blade_box: Hitbox
@@ -167,9 +213,16 @@ class Hitbox extends Area2D:
 	var weak := false
 	var harmless := false
 	var slide_through := false
+	var on_hit: Callable
+	## One of the evil's eyes (0-2), or -1.
+	var eye := -1
 
 	func take_hit(damage: int, from_dir: Vector2) -> void:
-		if weak:
+		if eye >= 0:
+			boss.hit_eye(eye, damage)
+		elif on_hit.is_valid():
+			on_hit.call()
+		elif weak:
 			boss.take_hit(damage, from_dir)
 
 
@@ -179,13 +232,28 @@ func _ready() -> void:
 	_throne = position
 	_pos = position
 	_measure()
-	_body_box = _make_box(Vector2(28, 64), true, false)
+	_body_box = _make_box(Vector2(38, 86), true, false)
+	_parry_box = _make_box(Vector2(46, 44), false, true)
+	_parry_box.on_hit = _parried
 	_blade_box = _make_box(SLASH_REACH, false, false)
 	_blade_box.slide_through = true
 	_head_box = _make_box(Vector2(64, 54), true, true)
 	_claw_box = _make_box(Vector2(50, 40), false, false)
-	for box in [_body_box, _blade_box, _head_box, _claw_box]:
+	for i in EYES.size():
+		var eye := _make_box(Vector2(20, 20), false, true)
+		eye.eye = i
+		_eye_boxes.append(eye)
+	_head_box.on_hit = _clink
+	_head_box.weak = false
+	for box in [_body_box, _blade_box, _head_box, _claw_box, _parry_box] + _eye_boxes:
 		_set_box(box, false)
+	# The chandeliers stay hidden while the King fights; they come down when the evil rises.
+	for child in get_parent().get_children():
+		if child.has_method("shock_point") and child.get("style") is String:
+			_rings.append(child)
+			_ring_rest.append(child.position)
+			child.visible = false
+			child.remove_from_group("shock_target")
 
 
 ## The floor in front of the throne, and the stretch of it the fight has.
@@ -251,6 +319,23 @@ func reward_point() -> Vector2:
 func take_hit(damage: int, _from_dir: Vector2) -> void:
 	if not _fighting():
 		return
+	if phase == 2 and _state not in [St.SLUMP, St.FINAL]:
+		# A blow at the evil (or the shockline's) lands on the eye nearest Storm.
+		var player := _player()
+		var best := -1
+		for i in EYES.size():
+			if _eye_hp[i] > 0 and (best < 0 or player == null
+					or (_head + EYES[i]).distance_to(player.position) < (_head + EYES[best]).distance_to(player.position)):
+				best = i
+		if best >= 0:
+			hit_eye(best, damage)
+		return
+	if _state == St.STAGGER or _state == St.SLUMP:
+		damage *= 2
+	_hurt(damage)
+
+
+func _hurt(damage: int) -> void:
 	hp -= damage
 	_flash = 0.14
 	Sfx.play("hit_boss", -3.0)
@@ -267,6 +352,16 @@ func take_hit(damage: int, _from_dir: Vector2) -> void:
 		Effects.sparks(get_parent(), _pos + Vector2(0, -40), COLOR_VIOLET_HOT, 24, 180.0)
 	if phase == 2 and hp <= int(max_hp * EVIL_FAST_AT):
 		_pace = EVIL_FAST_PACE
+	if phase == 2 and not _held_done and hp > 0 and hp <= int(max_hp * HOLD_AT):
+		# Your father's armor rises and takes hold of it.
+		_held_done = true
+		_end_arm()
+		_strikes.clear()
+		_enter(St.HELD, HOLD_TIME)
+		_say("The King's empty armor rises, and holds it fast.")
+		return
+	if phase == 2 and not _collapsed and hp > 0 and hp <= int(max_hp * COLLAPSE_AT):
+		_collapse()
 	if hp > 0:
 		return
 	hp = 0
@@ -277,12 +372,64 @@ func take_hit(damage: int, _from_dir: Vector2) -> void:
 		# The King falls to his knees, and the evil tears out of him.
 		_enter(St.KNEEL, 1.8)
 	else:
+		# The last blow: the reforged blade, driven into its core along the shockline.
 		remove_from_group("boss")
-		_enter(St.DYING, DEATH_TIME)
+		_end_arm()
+		_clear_collapse()
+		var player := _player()
+		if player:
+			player.controls_locked = true
+			_final_from = player.global_position
+		_enter(St.FINAL, 1.4)
+		Sfx.play("shock_fire", 0.0, 0.0)
+
+
+## One of its eyes struck: put out at last, and with all three out it slumps, core open.
+func hit_eye(i: int, damage: int) -> void:
+	if phase != 2 or not _fighting() or _eye_hp[i] <= 0 or _state == St.SLUMP:
+		return
+	_eye_hp[i] = maxi(0, _eye_hp[i] - damage)
+	Effects.sparks(get_parent(), _head + EYES[i], Color(1.0, 0.95, 0.7), 10, 140.0)
+	_hurt(damage)
+	if _eye_hp[i] == 0:
+		Sfx.play("shatter", -4.0, 0.0)
+		Effects.puff(get_parent(), _head + EYES[i], COLOR_SMOKE, 10, 90.0)
+	if _eye_hp.all(func(h: int) -> bool: return h <= 0) and hp > 0:
+		_end_arm()
+		_strikes.clear()
+		Sfx.play("roar", -2.0, 0.0)
+		_enter(St.SLUMP, EYES_DOWN)
+
+
+## A blow at its closed head rings off.
+func _clink() -> void:
+	if phase == 2 and _state == St.SLUMP:
+		take_hit(Game.blade_damage(), Vector2.ZERO)
+		return
+	Sfx.play("hit", -8.0, 0.0)
+	Effects.sparks(get_parent(), _head, Color(0.6, 0.6, 0.7), 4, 90.0)
+
+
+func _say(text: String) -> void:
+	var main = get_tree().current_scene
+	if main and main.get("hud"):
+		main.hud.show_message(text)
+
+
+## His blade struck as it fell: it rings off, and he reels with his guard wide open.
+func _parried() -> void:
+	if _state != St.SLASH_WINDUP:
+		return
+	Sfx.play("shatter", 0.0, 0.0)
+	Sfx.play("hit_boss", -2.0, 0.0)
+	_shake = 0.4
+	Effects.sparks(get_parent(), _pos + Vector2(_dir * 20.0, -96.0), COLOR_VIOLET_HOT, 24, 220.0)
+	Effects.slow_motion(get_tree(), 0.3, 0.25)
+	_enter(St.STAGGER, STAGGER_TIME)
 
 
 func _fighting() -> bool:
-	return _state not in [St.DORMANT, St.RISE, St.KNEEL, St.TEAR, St.DYING]
+	return _state not in [St.DORMANT, St.RISE, St.LEAP, St.KNEEL, St.TEAR, St.DYING, St.FINAL]
 
 
 # --- Behaviour ---
@@ -304,10 +451,10 @@ func _physics_process(delta: float) -> void:
 
 
 func _enter(state: St, time := 0.0) -> void:
-	if state in [St.THRUST_WINDUP, St.SWEEP_WARN, St.RUIN]:
+	if state in [St.THRUST_WINDUP, St.LUNGE_WINDUP, St.SWEEP_WARN, St.RUIN]:
 		Sfx.play("warn", -6.0, 0.0)  # its biggest blows ring a warning first
 	_state = state
-	if state not in [St.RISE, St.KNEEL, St.TEAR, St.DYING, St.WALK, St.BOLT_WAIT, St.RUIN]:
+	if state not in [St.RISE, St.LEAP, St.KNEEL, St.TEAR, St.DYING, St.WALK, St.BOLT_WAIT, St.RUIN, St.LUNGE]:
 		time *= _pace
 	_timer = time
 	_state_time = maxf(time, 0.001)
@@ -352,14 +499,24 @@ func _phase_1(p: Vector2, delta: float) -> void:
 				Sfx.play("roar", -2.0, 0.0)
 				_enter(St.RISE, 1.8)
 		St.RISE:
-			# He stands, and steps down off the dais in front of the throne.
-			var t := clampf(1.0 - _timer / _state_time, 0.0, 1.0)
-			var step := clampf((t - 0.45) / 0.55, 0.0, 1.0)
-			var down := Vector2(_right - 2.0 * TILE, _floor)
-			_pos = _throne.lerp(down, step) + Vector2(0, -sin(step * PI) * 26.0)
+			# He stands up out of his kneel before the throne...
 			if _timer <= 0.0:
-				_pos = down
-				_enter(St.IDLE, 0.6)
+				_leap_from = _pos
+				_enter(St.LEAP, 0.9)
+				Sfx.play("swing", -4.0, 0.0)
+		St.LEAP:
+			# ...and leaps down into the middle of the hall.
+			var t := clampf(1.0 - _timer / _state_time, 0.0, 1.0)
+			var land := Vector2((_left + _right) / 2.0, _floor)
+			_pos = _leap_from.lerp(land, t) + Vector2(0, -sin(t * PI) * 90.0)
+			_face(p)
+			if _timer <= 0.0:
+				_pos = land
+				_shake = 0.6
+				Sfx.play("slam", 0.0)
+				for side in [-1, 1]:
+					Effects.puff(get_parent(), _pos + Vector2(side * 24.0, -4.0), COLOR_SMOKE, 8, 90.0)
+				_enter(St.IDLE, 0.7)
 		St.IDLE:
 			_face(p)
 			if _timer <= 0.0:
@@ -371,11 +528,32 @@ func _phase_1(p: Vector2, delta: float) -> void:
 						_enter(St.CAST, 0.9)
 					"thrust":
 						_enter(St.THRUST_WINDUP, 1.0)
+					"lunge":
+						_enter(St.LUNGE_WINDUP, 0.7)
+		St.LUNGE_WINDUP:
+			# Crouched, blade low and back, flickering: then across the hall.
+			_face(p)
+			if _timer <= 0.0:
+				_enter(St.LUNGE, 1.2)
+				Sfx.play("swing", 0.0)
+		St.LUNGE:
+			_pos.x += _dir * LUNGE_SPEED / _pace * delta
+			if fmod(_time, 0.035) < delta:
+				_trail.append({"pos": _pos, "at": _time, "dir": _dir})
+			var stop := _left + 2.0 * TILE if _dir < 0 else _right - 2.0 * TILE
+			if (_dir < 0 and _pos.x <= stop) or (_dir > 0 and _pos.x >= stop) or _timer <= 0.0:
+				_pos.x = clampf(_pos.x, _left + 2.0 * TILE, _right - 2.0 * TILE)
+				_shake = 0.3
+				_enter(St.RECOVER, 0.8)
+		St.STAGGER:
+			# Parried: reeling, his guard open.
+			if _timer <= 0.0:
+				_enter(St.IDLE, 0.5)
 		St.WALK:
 			# Stalking him until he's in reach of the blade.
 			_face(p)
 			var gap := p.x - _pos.x
-			if absf(gap) > SLASH_REACH.x * 0.7 and _timer > 0.0:
+			if absf(gap) > SLASH_REACH.x * 0.6 and _timer > 0.0:
 				_pos.x = clampf(_pos.x + _dir * WALK_SPEED / _pace * delta, _left + 2.0 * TILE, _right - TILE)
 			else:
 				_enter(St.SLASH_WINDUP, 0.75)
@@ -437,6 +615,7 @@ func _phase_1(p: Vector2, delta: float) -> void:
 				hp = max_hp
 				title = "The Evil Unbound"
 				subtitle = "What the blade was made to hold"
+				_lower_rings()
 				_pace = 1.0
 				_move = 0
 				add_to_group("shock_target")
@@ -447,11 +626,16 @@ func _phase_1(p: Vector2, delta: float) -> void:
 func _cast(p: Vector2) -> void:
 	match _attack:
 		"ice":
-			for side in [-1, 1]:
-				_spawn("frost_wave", Vector2(_pos.x + side * 20.0, _floor), Vector2(side * 210.0, 0), 0.0, 3.0)
+			# Ice bursting up out of the floor in a row running at him, each marked first.
+			var side := 1 if p.x > _pos.x else -1
+			for k in 9:
+				var x := _pos.x + side * (40.0 + k * 30.0)
+				if x < _left + 8.0 or x > _right - 8.0:
+					break
+				_strikes.append({"x": x, "t": 0.45 + k * 0.09, "kind": "ice_spike"})
 			Sfx.play("shatter", -6.0)
 			_shake = 0.3
-			_enter(St.RECOVER, 0.7)
+			_enter(St.RECOVER, 1.2)
 		"fire":
 			for k in 4:
 				var x := clampf(p.x + (k - 1.5) * 34.0, _left + 12.0, _right - 12.0)
@@ -461,9 +645,12 @@ func _cast(p: Vector2) -> void:
 				var vel := Vector2((x - from.x) / flight, (_floor - 4.0 - from.y - 0.5 * g * flight * flight) / flight)
 				_spawn("ember", from, vel, g, flight + 0.3)
 				_strikes.append({"x": x, "t": flight, "kind": "ember"})
-			_spawn("fire_wave", Vector2(_pos.x + _dir * 20.0, _floor), Vector2(_dir * 190.0, 0), 0.0, 3.0)
+			# And pillars of flame where he stands, and to either side.
+			for k in [-1, 0, 1]:
+				var x := clampf(p.x + k * 70.0, _left + 12.0, _right - 12.0)
+				_strikes.append({"x": x, "t": 1.0 + absf(k) * 0.25, "kind": "fire_pillar"})
 			Sfx.play("fire_breath", -4.0)
-			_enter(St.RECOVER, 1.0)
+			_enter(St.RECOVER, 1.5)
 		"bolts":
 			_hunt = BOLTS
 			_enter(St.BOLT_WAIT, 0.0)
@@ -475,11 +662,14 @@ func _cast(p: Vector2) -> void:
 # --- Phase 2: the evil unbound ---
 
 func _phase_2(p: Vector2, delta: float) -> void:
-	if _state != St.DYING:
-		# Its head drifts after Storm along the top of the room.
+	if _state not in [St.DYING, St.FINAL]:
+		# Its head drifts after Storm along the top of the room (it sinks when it slumps or
+		# is held, low enough to reach).
 		var want := clampf(p.x, _left + 120.0, _right - 100.0)
-		_head.x = move_toward(_head.x, want, EVIL_DRIFT / _pace * delta)
-		_head.y = EVIL_HEIGHT + sin(_time * 0.9) * 6.0
+		var drift := 0.0 if _state in [St.SLUMP, St.HELD, St.CLAW_DOWN] else EVIL_DRIFT / _pace
+		_head.x = move_toward(_head.x, want, drift * delta)
+		var low := 70.0 if _state in [St.SLUMP, St.HELD] else 0.0
+		_head.y = move_toward(_head.y, EVIL_HEIGHT + low + sin(_time * 0.9) * 6.0, 90.0 * delta)
 	match _state:
 		St.HOVER:
 			if _timer <= 0.0:
@@ -514,10 +704,39 @@ func _phase_2(p: Vector2, delta: float) -> void:
 				Sfx.play("slam", 0.0)
 				for side in [-1, 1]:
 					Effects.puff(get_parent(), Vector2(_claw.x + side * 20.0, _floor - 4.0), COLOR_SMOKE, 5, 70.0)
-				_enter(St.CLAW_DOWN, 1.4)
+				_make_arm()
+				_enter(St.CLAW_DOWN, ARM_TIME)
 		St.CLAW_DOWN:
 			if _timer <= 0.0:
+				_end_arm()
 				_enter(St.CLAW_RISE, 0.4)
+		St.SLUMP:
+			# All its eyes put out: it sags, its core bare. Then the eyes open again.
+			if fmod(_time, 0.15) < delta:
+				Effects.sparks(get_parent(), _head, COLOR_VIOLET_HOT, 3, 80.0)
+			if _timer <= 0.0:
+				_eye_hp = [EYE_HP, EYE_HP, EYE_HP]
+				_enter(St.HOVER, 0.8)
+		St.HELD:
+			# Your father holds it down: no attacks, its head low.
+			if _timer <= 0.0:
+				_enter(St.HOVER, 0.6)
+		St.FINAL:
+			# Storm along the shockline into its core.
+			var t := clampf(1.0 - _timer / _state_time, 0.0, 1.0)
+			var player := _player()
+			if player:
+				player.velocity = Vector2.ZERO
+				player.global_position = _final_from.lerp(get_parent().to_global(_head + Vector2(0, 10)), minf(1.0, t * 1.6))
+			_shake = maxf(_shake, 0.2 * t)
+			if _timer <= 0.0:
+				_flash = 0.4
+				Sfx.play("burst", 0.0, 0.0)
+				Sfx.play("shatter", 0.0, 0.0)
+				Effects.sparks(get_parent(), _head, COLOR_VIOLET_HOT, 40, 260.0)
+				if player:
+					player.global_position = get_parent().to_global(Vector2(_head.x, _floor - 2.0))
+				_enter(St.DYING, DEATH_TIME)
 		St.CLAW_RISE:
 			_claw.y -= 300.0 * delta
 			if _timer <= 0.0:
@@ -570,6 +789,83 @@ func _phase_2(p: Vector2, delta: float) -> void:
 				defeated.emit()
 
 
+# --- The arm, the chandeliers, the collapse ---
+
+## The arm it slammed down rests as a slope from the claw up toward its head: run up it.
+func _make_arm() -> void:
+	_end_arm()
+	var side := 1.0 if _head.x >= _claw.x else -1.0
+	if absf(_head.x - _claw.x) < 50.0:
+		side = 1.0 if _claw.x < (_left + _right) / 2.0 else -1.0
+	var run := clampf(absf(_head.x - _claw.x) - 20.0, 90.0, 180.0)
+	var from := Vector2(_claw.x, _floor - 2.0)
+	_arm_top = from + Vector2(side * run, -run * ARM_SLOPE)
+	_arm = StaticBody2D.new()
+	_arm.collision_layer = LAYER_WORLD
+	_arm.collision_mask = 0
+	var shape := RectangleShape2D.new()
+	shape.size = Vector2(from.distance_to(_arm_top), 6.0)
+	var col := CollisionShape2D.new()
+	col.shape = shape
+	col.one_way_collision = true
+	_arm.add_child(col)
+	_arm.position = (from + _arm_top) / 2.0
+	_arm.rotation = (_arm_top - from).angle() if side > 0.0 else (from - _arm_top).angle()
+	get_parent().add_child(_arm)
+
+
+func _end_arm() -> void:
+	if _arm:
+		_arm.queue_free()
+		_arm = null
+
+
+func _lower_rings() -> void:
+	for i in _rings.size():
+		var ring := _rings[i]
+		ring.visible = true
+		ring.position = _ring_rest[i] + Vector2(0, -220)
+		var tween := ring.create_tween()
+		tween.tween_interval(0.3 * i)
+		tween.tween_property(ring, "position", _ring_rest[i], 1.2).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
+		tween.tween_callback(func() -> void: ring.add_to_group("shock_target"))
+	Sfx.play("rumble", -6.0, 0.0)
+
+
+## Below a third: the floor gives way to burning dark, and stone pillars rise out of it.
+func _collapse() -> void:
+	_collapsed = true
+	_shake = 0.8
+	Sfx.play("rumble", 0.0, 0.0)
+	Sfx.play("roar", -2.0, 0.0)
+	_say("The floor gives way to the dark. Get up on the pillars.")
+	_void = _make_box(Vector2(_right - _left, 6.0), false, false)
+	var x := _left + 60.0
+	while x < _right - 40.0:
+		var pillar := StaticBody2D.new()
+		pillar.collision_layer = LAYER_WORLD
+		pillar.collision_mask = 0
+		var shape := RectangleShape2D.new()
+		shape.size = Vector2(34, 40)
+		var col := CollisionShape2D.new()
+		col.shape = shape
+		pillar.add_child(col)
+		pillar.position = Vector2(x, _floor + 20.0)
+		get_parent().add_child(pillar)
+		pillar.create_tween().tween_property(pillar, "position:y", _floor - 20.0, 0.8).set_trans(Tween.TRANS_BACK)
+		_pillars.append(pillar)
+		x += 110.0
+
+
+func _clear_collapse() -> void:
+	if _void:
+		_void.queue_free()
+		_void = null
+	for pillar in _pillars:
+		pillar.queue_free()
+	_pillars.clear()
+
+
 # --- Strikes: the marked spots where something's about to land ---
 
 func _update_strikes(delta: float) -> void:
@@ -590,6 +886,12 @@ func _update_strikes(delta: float) -> void:
 					Sfx.play("thunder", -10.0, 0.2)
 				"icicle":
 					_spawn("icicle", Vector2(s.x, _floor - 200.0), Vector2(0, 500.0), 900.0, 1.0)
+				"ice_spike":
+					_spawn("ice_spike", Vector2(s.x, _floor), Vector2.ZERO, 0.0, 0.6)
+					Sfx.play("shatter", -14.0, 0.3)
+				"fire_pillar":
+					_spawn("fire_pillar", Vector2(s.x, _floor), Vector2.ZERO, 0.0, 0.8)
+					Sfx.play("fire_breath", -8.0, 0.2)
 				"ember" when phase == 2:
 					_spawn("ember", Vector2(s.x, _floor - 200.0), Vector2(0, 460.0), 900.0, 1.0)
 	for s in landed:
@@ -608,18 +910,28 @@ func _spawn(p_kind: String, pos: Vector2, vel: Vector2, accel: float, p_life: fl
 
 func _update_boxes() -> void:
 	var king := phase == 1 and _fighting()
-	_set_box(_body_box, king, _pos + Vector2(0, -32))
+	_set_box(_body_box, king, _pos + Vector2(0, -43))
+	# The body takes double in a stagger (see take_hit); its contact still hurts.
+	var parrying := _state == St.SLASH_WINDUP and _timer < PARRY_WINDOW * _pace
+	_set_box(_parry_box, parrying, _pos + Vector2(_dir * 20.0, -96.0))
 	var slashing := _state == St.SLASH
 	var shape: RectangleShape2D = _blade_box.get_child(0).shape
 	if slashing:
 		shape.size = SLASH_REACH
 		_set_box(_blade_box, true, _pos + Vector2(_dir * (SLASH_REACH.x / 2.0 + 6.0), -SLASH_REACH.y / 2.0))
+	elif _state == St.LUNGE:
+		shape.size = Vector2(70, 40)
+		_set_box(_blade_box, true, _pos + Vector2(_dir * 40.0, -30.0))
 	elif _state == St.THRUST:
 		shape.size = Vector2(THRUST_REACH, 12)
 		_set_box(_blade_box, true, _pos + Vector2(_dir * (THRUST_REACH / 2.0 + 10.0), -12.0))
 	else:
 		_set_box(_blade_box, false)
 	_set_box(_head_box, phase == 2 and _fighting(), _head)
+	for i in EYES.size():
+		_set_box(_eye_boxes[i], phase == 2 and _fighting() and _eye_hp[i] > 0 and _state != St.SLUMP, _head + EYES[i])
+	if _void:
+		_set_box(_void, true, Vector2((_left + _right) / 2.0, _floor - 3.0))
 	# The claw hurts as it falls and sweeps; resting on the floor it can be struck instead.
 	var claw_live := _state in [St.CLAW_FALL, St.SWEEP]
 	_claw_box.weak = _state == St.CLAW_DOWN
@@ -650,9 +962,11 @@ func _restore_camera() -> void:
 func _draw() -> void:
 	for s in _strikes:
 		# Where each strike will land: a glow on the floor, brightening as it comes.
-		var warning := RUIN_WARNING if phase == 2 else (JUDGEMENT_WARNING if s.kind == "blade" else BOLT_WARNING)
+		var warning := RUIN_WARNING if phase == 2 else (JUDGEMENT_WARNING if s.kind == "blade" else 1.0 if s.kind == "fire_pillar" \
+			else 0.45 if s.kind == "ice_spike" else BOLT_WARNING)
 		var grow := clampf(1.0 - s.t / warning, 0.0, 1.0)
-		var color: Color = {"bolt": COLOR_SPARK, "blade": COLOR_VIOLET, "icicle": COLOR_ICE, "ember": COLOR_FIRE}[s.kind]
+		var color: Color = {"bolt": COLOR_SPARK, "blade": COLOR_VIOLET, "icicle": COLOR_ICE, "ember": COLOR_FIRE,
+			"ice_spike": COLOR_ICE, "fire_pillar": COLOR_FIRE}[s.kind]
 		if s.kind == "blade":
 			# A phantom blade hanging point-down over the spot, sinking as it comes.
 			var tip := Vector2(s.x, _floor - 90.0 + 50.0 * grow * grow) - position
@@ -662,19 +976,49 @@ func _draw() -> void:
 		_draw_ellipse(Vector2(s.x, _floor) - position, Vector2(5.0 + 9.0 * grow, 2.5), Color(color, 0.25 + 0.4 * grow))
 		if s.kind == "bolt" and fmod(_time, 0.1) < 0.06:
 			draw_line(Vector2(s.x, 0) - position, Vector2(s.x, _floor) - position, Color(color, 0.1 + 0.3 * grow), 1.0)
+	if _collapsed and _void:
+		# The floor gone to burning dark.
+		var y := _floor - position.y
+		draw_rect(Rect2(_left - position.x, y - 6.0, _right - _left, 6.0), Color(0.05, 0.02, 0.08))
+		for k in 24:
+			var x := _left + fmod(k * 37.0 + _time * 40.0, _right - _left)
+			draw_circle(Vector2(x - position.x, y - 4.0 - fmod(_time * 20.0 + k * 3.0, 14.0)), 2.0, Color(COLOR_VIOLET, 0.4))
+	for pillar in _pillars:
+		var at: Vector2 = pillar.position - position
+		draw_rect(Rect2(at - Vector2(17, 20), Vector2(34, 40)), Color(0.32, 0.3, 0.36))
+		draw_rect(Rect2(at - Vector2(17, 20), Vector2(34, 3)), Color(0.5, 0.48, 0.55))
 	if phase == 2 or _state == St.TEAR:
 		_draw_evil()
 	_draw_king()
 	if phase == 2:
 		_draw_claw()
+		_draw_eyes()
+		if _state == St.HELD:
+			# A chain of pale light from the King's hand to the evil's arm.
+			var hand := _pos + Vector2(_dir * 24.0, -70.0) - position
+			var arm := _head + Vector2(-60.0 if _pos.x < _head.x else 60.0, 70.0) - position
+			for i in 8:
+				var a := hand.lerp(arm, i / 8.0)
+				var b := hand.lerp(arm, (i + 1) / 8.0)
+				draw_line(a, b, Color(0.9, 0.95, 1.0, 0.6 + 0.3 * sin(_time * 8.0 + i)), 3.0)
+	if _state == St.FINAL:
+		var player := _player()
+		if player:
+			var at: Vector2 = get_parent().to_global(_head)
+			draw_line(player.global_position - global_position + Vector2(0, -12), at - global_position,
+				COLOR_VIOLET_HOT, 3.0)
+	if _flash > 0.2 and phase == 2:
+		draw_rect(Rect2(-position, get_parent().size_px), Color(1, 1, 1, (_flash - 0.2) * 2.0))
 
 
 func _draw_king() -> void:
 	var tint := Color(3, 3, 3) if _flash > 0.0 and phase == 1 else Color.WHITE
 	tint.a = _armor_alpha
 	if phase == 2 or _state in [St.KNEEL, St.TEAR]:
-		# Kneeling, emptied: the King's armor, left behind.
-		tint = Color(0.55, 0.52, 0.6, _armor_alpha)
+		# Kneeling, emptied: the King's armor, left behind (it fades once it's held the evil).
+		tint = Color(0.55, 0.52, 0.6, _armor_alpha * (0.0 if _held_done and _state != St.HELD else 1.0))
+	if _state == St.HELD:
+		tint = Color(1.2, 1.25, 1.5, 0.85)  # risen, pale with light
 	var tex: Texture2D = IDLE
 	var frame := 0
 	var t := clampf(1.0 - _timer / _state_time, 0.0, 1.0)
@@ -690,9 +1034,12 @@ func _draw_king() -> void:
 			tex = KNEEL
 			frame = mini(int(t * 8.0), 7)
 		St.TEAR, St.HOVER, St.CLAW_AIM, St.CLAW_FALL, St.CLAW_DOWN, St.CLAW_RISE, St.SWEEP_WARN, \
-				St.SWEEP, St.RUIN, St.ORBS, St.DYING:
+				St.SWEEP, St.RUIN, St.ORBS, St.DYING, St.SLUMP, St.FINAL:
 			tex = KNEEL
 			frame = 7
+		St.HELD:
+			tex = IDLE
+			frame = 0
 		St.WALK:
 			tex = WALK
 			frame = int(_time * 8.0) % 8
@@ -712,17 +1059,50 @@ func _draw_king() -> void:
 			tex = SLASH
 			frame = 6 if t < 0.5 else 7
 		St.RECOVER:
-			tex = SLASH if _attack == "slash" else THRUST if _attack == "thrust" else CAST
+			tex = SLASH if _attack == "slash" else THRUST if _attack in ["thrust", "lunge"] else CAST
 			frame = 7
+		St.LEAP:
+			tex = SLASH
+			frame = 2 if t < 0.5 else 6
+		St.LUNGE_WINDUP:
+			tex = THRUST
+			frame = mini(int(t * 5.0), 4)
+		St.LUNGE:
+			tex = THRUST
+			frame = 7
+		St.STAGGER:
+			tex = KNEEL
+			frame = 3
 	var at := _pos - position
 	var size := DRAW
 	var drop := 0.0
 	if _state == St.DORMANT:
 		tint = Color(0.6, 0.58, 0.66)  # kneeling in the dark before his throne
+	for ghost in _trail:
+		# The lunge's afterimages.
+		var fade: float = 1.0 - (_time - ghost.at) / 0.35
+		if fade > 0.0:
+			draw_set_transform(ghost.pos - position, 0.0, Vector2(ghost.dir, 1))
+			draw_texture_rect_region(THRUST, Rect2(Vector2(-size / 2.0, -size * FEET), Vector2(size, size)),
+				Rect2(7 * FRAME, 0, FRAME, FRAME), Color(COLOR_VIOLET, 0.35 * fade))
+	_trail = _trail.filter(func(g: Dictionary) -> bool: return _time - g.at < 0.35)
+	if phase == 1 and _state != St.DORMANT and tint.a > 0.0:
+		# A pale edge of light around him, so he never sinks into the dark or the throne.
+		draw_set_transform(at, 0.0, Vector2(_dir, 1))
+		for o in [Vector2(-1.5, 0), Vector2(1.5, 0), Vector2(0, -1.5)]:
+			draw_texture_rect_region(tex, Rect2(Vector2(-size / 2.0, -size * FEET + drop) + o, Vector2(size, size)),
+				Rect2(frame * FRAME, 0, FRAME, FRAME), Color(0.85, 0.8, 1.0, 0.35 * tint.a))
+	if _state == St.LUNGE_WINDUP and fmod(_time, 0.12) < 0.06:
+		tint = Color(1.6, 1.3, 2.0, tint.a)
+	if _state == St.STAGGER:
+		tint = Color(1.4, 1.4, 1.6, tint.a) if fmod(_time, 0.2) < 0.1 else tint
 	if _state == St.SLASH_WINDUP:
 		# The phantom blade raised high, glowing brighter.
 		var g := clampf(1.0 - _timer / _state_time, 0.0, 1.0)
-		draw_circle(at + Vector2(_dir * -6.0, -78.0), 8.0 + 10.0 * g, Color(COLOR_VIOLET, 0.15 + 0.3 * g))
+		draw_circle(at + Vector2(_dir * 20.0, -96.0), 10.0 + 14.0 * g, Color(COLOR_VIOLET, 0.15 + 0.3 * g))
+		if _timer < PARRY_WINDOW * _pace and fmod(_time, 0.08) < 0.05:
+			# The moment to strike his blade: it flashes.
+			draw_circle(at + Vector2(_dir * 20.0, -96.0), 6.0, COLOR_VIOLET_HOT)
 	# (The art faces right.)
 	draw_set_transform(at, 0.0, Vector2(_dir, 1))
 	draw_texture_rect_region(tex, Rect2(Vector2(-size / 2.0, -size * FEET + drop), Vector2(size, size)),
@@ -743,12 +1123,13 @@ func _draw_king() -> void:
 			draw_polyline(pts, Color(COLOR_VIOLET_HOT, 0.75 * pulse), 1.0)
 	if _state == St.SLASH:
 		# The great arc of the blade coming down.
-		var center := at + Vector2(_dir * 10.0, -36.0)
+		var center := at + Vector2(_dir * 12.0, -48.0)
 		var pts := PackedVector2Array()
 		for i in 9:
 			var a := lerpf(-1.4, 1.2, float(i) / 8.0 * (0.4 + 0.6 * t))
-			pts.append(center + Vector2(_dir * cos(a), sin(a)) * 62.0)
-		draw_polyline(pts, Color(COLOR_VIOLET, 0.5), 10.0)
+			pts.append(center + Vector2(_dir * cos(a), sin(a)) * 86.0)
+		draw_polyline(pts, Color(COLOR_VIOLET, 0.35), 22.0)
+		draw_polyline(pts, Color(COLOR_VIOLET, 0.6), 10.0)
 		draw_polyline(pts, COLOR_VIOLET_HOT, 3.0)
 	if _state == St.THRUST_WINDUP:
 		# A thin line along the floor showing how far the thrust will reach.
@@ -832,10 +1213,43 @@ func _claw_side() -> int:
 	return -1 if _claw.x < _head.x else 1
 
 
+func _draw_eyes() -> void:
+	if _state in [St.DYING, St.FINAL]:
+		return
+	for i in EYES.size():
+		var at: Vector2 = _head + EYES[i] - position
+		if _eye_hp[i] <= 0 or _state == St.SLUMP:
+			draw_circle(at, 6.0, Color(0.05, 0.03, 0.06))
+			continue
+		var pulse := 0.6 + 0.4 * sin(_time * 4.0 + i)
+		draw_circle(at, 10.0, Color(1.0, 0.9, 0.55, 0.18 * pulse))
+		draw_circle(at, 5.5, Color(1.0, 0.95, 0.7))
+		draw_circle(at, 2.5, Color(0.2, 0.05, 0.1))
+		var frac := float(_eye_hp[i]) / EYE_HP
+		draw_arc(at, 8.0, -PI / 2.0, -PI / 2.0 + TAU * frac, 16, Color(1.0, 0.85, 0.5, 0.7), 1.5)
+	if _state == St.SLUMP:
+		# Its core, bare: strike it.
+		var core := _head - position
+		draw_circle(core, 16.0 + 3.0 * sin(_time * 10.0), Color(COLOR_VIOLET_HOT, 0.35))
+		draw_circle(core, 8.0, COLOR_VIOLET_HOT)
+
+
 func _draw_claw() -> void:
 	if _state not in [St.CLAW_AIM, St.CLAW_FALL, St.CLAW_DOWN, St.CLAW_RISE, St.SWEEP_WARN, St.SWEEP]:
 		return
 	var at := _claw - position
+	if _arm and _state == St.CLAW_DOWN:
+		# The arm laid down as a slope, dark and veined, up toward its body.
+		var bottom := Vector2(_claw.x, _floor - 2.0) - position
+		var top := _arm_top - position
+		var side := (top - bottom).orthogonal().normalized()
+		draw_colored_polygon(PackedVector2Array([bottom + side * 9.0, top + side * 7.0, top - side * 3.0, bottom - side * 4.0]),
+			Color(0.05, 0.03, 0.07))
+		draw_line(bottom + side * 9.0, top + side * 7.0, Color(0.7, 0.62, 0.85), 2.0)
+		var vein: Color = [COLOR_ICE, COLOR_FIRE, COLOR_SPARK][int(_time * 2.0) % 3]
+		draw_line(bottom + side * 3.0, top + side * 2.0, Color(vein, 0.6), 1.0)
+		var shoulder := _head + Vector2(signf(_arm_top.x - _claw.x) * -50.0, 60.0) - position
+		draw_line(top, shoulder, Color(COLOR_SMOKE, 0.9), 10.0)
 	if _state == St.CLAW_AIM:
 		# Its shadow on the floor, darkening as it's about to fall.
 		var g := clampf(1.0 - _timer / _state_time, 0.0, 1.0)

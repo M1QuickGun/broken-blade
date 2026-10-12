@@ -36,6 +36,17 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	var pulse := 0.5 + 0.5 * sin(_time * 3.0)
+	if style == "castle":
+		# An iron chandelier: a hoop on its chain, three candles burning on it.
+		draw_line(Vector2(0, -7), Vector2(0, -40), Color(0.25, 0.24, 0.28), 1.0)
+		draw_arc(Vector2(0, 2), 9.0, 0.0, TAU, 20, Color(0.22, 0.2, 0.24), 3.0)
+		draw_arc(Vector2(0, 2), 9.0, PI, TAU, 12, Color(0.45, 0.42, 0.48), 1.0)
+		for x in [-8.0, 0.0, 8.0]:
+			var flick := sin(_time * 9.0 + x) * 0.6
+			draw_rect(Rect2(x - 1.0, -4.0, 2.0, 5.0), Color(0.86, 0.82, 0.7))
+			draw_circle(Vector2(x, -6.0 + flick * 0.3), 1.6, Color(1.0, 0.75, 0.35))
+			draw_circle(Vector2(x, -6.0), 5.0 + pulse, Color(1.0, 0.7, 0.3, 0.08))
+		return
 	draw_circle(Vector2.ZERO, 9.0 + pulse * 2.0, Color(GLOW[style], 0.12 + 0.08 * pulse))
 	var tex: Texture2D = SKINS[style]
 	draw_texture_rect(tex, Rect2(-8, -8, 16, 16), false)
