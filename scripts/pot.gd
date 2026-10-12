@@ -10,6 +10,9 @@ const COLOR_CLAY_LIGHT := Color("8a6448")
 
 ## Set by the room: the region's tint for the clay.
 var tint := Color.WHITE
+## A crown cache (set with its id): a big urn rimmed in gold at the top of a climb, full of
+## crowns, broken for good once broken.
+var cache_id := ""
 ## The urn's shape, varied a little each time.
 var _wide := randf_range(5.0, 7.0)
 var _tall := randf_range(11.0, 15.0)
@@ -18,6 +21,9 @@ var harmless := true
 
 
 func _ready() -> void:
+	if cache_id != "":
+		_wide = 9.0
+		_tall = 20.0
 	collision_layer = LAYER_ENEMY
 	collision_mask = 0
 	monitoring = false
@@ -35,7 +41,9 @@ func take_hit(_damage: int, _from_dir: Vector2) -> void:
 	if room.has_method("_spawn_debris"):
 		for i in 5:
 			room._spawn_debris(position + Vector2(randf_range(-5, 5), -_tall / 2.0), COLOR_CLAY * tint)
-	Coin.drop(get_parent(), position + Vector2(0, -6), randi_range(2, 5))
+	Coin.drop(get_parent(), position + Vector2(0, -6), 30 if cache_id != "" else randi_range(2, 5))
+	if cache_id != "":
+		Game.collected[cache_id] = true
 	queue_free()
 
 
@@ -49,5 +57,11 @@ func _draw() -> void:
 	draw_colored_polygon(pts, c)
 	draw_rect(Rect2(-_wide * 0.45, -_tall, _wide * 0.9, _tall * 0.3), c)
 	draw_rect(Rect2(-_wide * 0.6, -_tall - 1.0, _wide * 1.2, 2.0), COLOR_CLAY_LIGHT * tint)
+	if cache_id != "":
+		# Gold bands, and a glint: worth the climb.
+		draw_rect(Rect2(-_wide * 0.9, -_tall * 0.6, _wide * 1.8, 1.5), Color(0.95, 0.78, 0.36))
+		draw_rect(Rect2(-_wide * 0.6, -_tall - 1.5, _wide * 1.2, 1.0), Color(0.95, 0.78, 0.36))
+		if fmod(Time.get_ticks_msec() / 1000.0, 1.8) < 0.15:
+			draw_rect(Rect2(_wide * 0.3, -_tall * 0.7, 1.5, 1.5), Color(1, 1, 0.85))
 	draw_rect(Rect2(-_wide * 0.8, -_tall * 0.45, _wide * 1.6, 1.0), COLOR_CLAY_DARK * tint)
 	draw_rect(Rect2(-_wide * 0.5, -_tall * 0.62, 1.5, _tall * 0.3), Color(COLOR_CLAY_LIGHT * tint, 0.6))

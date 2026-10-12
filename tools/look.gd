@@ -8,7 +8,8 @@ extends "res://scripts/main.gd"
 ##
 ## Each entry is room[:door[:seconds[:every[:mode]]]]; mode "fight" walks Storm at the boss
 ## and keeps him swinging ("phase2" also finishes the boss's first phase early), "walk" walks
-## him right, "sign" shows a sign's text, anything else
+## him right, "sign" shows a sign's text, "up" puts him at the top of the room's climb,
+## anything else
 ## stands still. Nothing is saved (Game.no_save).
 
 var _out := ""
@@ -60,6 +61,13 @@ func _look(room_name: String, door: String, seconds: float, every: float, mode: 
 	await hud.fade_in(0.01)
 	_transitioning = false
 	player.controls_locked = false
+	if mode == "up":
+		# Stand him by the room's crown cache, to look at the top of a climb.
+		for y in room.size_tiles.y:
+			var x: int = String(Rooms.LAYOUTS[room_name][y]).find("C")
+			if x >= 0:
+				player.place_at(Vector2((x - 3 + 0.5) * Rooms.TILE, (y + 1) * Rooms.TILE))
+				camera.reset_smoothing()
 	if mode == "sign":
 		var texts: Array = Rooms.SIGNS.get(room_name, ["A sign, to read the lettering by: The quick brown fox, 1234567890."])
 		hud.show_message(texts[0])

@@ -251,6 +251,14 @@ EXPECT = [
     ("chain_ravine", "v", "k", ["storm"], []),
     ("old_barracks", "f", "k", ["hilt"], []),
     ("castle_gate", "c", "k", ["all"], []),
+    ("thicket", "a", "C", ["none"], []),
+    ("sunken_glade", "a", "C", ["none"], []),
+    ("village_square", "g", "C", ["hilt"], []),
+    ("burning_homes", "t", "C", ["storm"], ["base"]),
+    ("storm_bridges", "s", "C", ["fire"], ["base"]),
+    ("ashen_road", "q", "C", ["hilt"], []),
+    ("cliff_road", "r", "C", ["hilt"], []),
+    ("throne_approach", "i", "C", ["all"], []),
 ]
 
 

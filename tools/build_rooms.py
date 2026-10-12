@@ -821,6 +821,91 @@ hidden_room("charcoal_loft", "u", "H")
 hidden_room("bell_hut", "u", "K")
 hidden_room("watch_post", "w", "H")
 
+# ---------------------------------------------------------------- Upper storeys
+# Rooms given a second storey above what they were: rows added on top (so their doors, all on
+# their sides, stay put on the map), and a climb up into the new space: ledges zig-zagging
+# three rows at a time between two columns six tiles apart, then a wide platform at the top
+# with a crown cache ("C") for whoever makes it up. Spots in EXTRA and the rows in rooms.gd's
+# PROPS for these rooms are given in the rooms' original rows; the extra is added for them.
+
+RAISE = {}
+
+
+def raise_room(name, extra, roofed=False):
+    r = ROOMS[name]
+    w = r.w
+    rows = []
+    for i in range(extra):
+        if roofed and i == 0:
+            rows.append(["#"] * w)
+        else:
+            rows.append(["#"] + ["."] * (w - 2) + ["#"])
+    r.g = rows + r.g
+    r.h += extra
+    RAISE[name] = extra
+    return r
+
+
+def ladder(r, x, stand, col_a, steps, toward=1):
+    """From standing at (x, stand), ledges up between column col_a and col_a + 6 * toward,
+    each 4 wide and three rows higher than the last; returns where the climb ends."""
+    cols = [col_a, col_a + 6 * toward]
+    for i in range(steps):
+        x0 = cols[i % 2]
+        row = stand - 2
+        for xx in range(x0, x0 + 4):
+            for yy in range(row - 3, row + 1):
+                assert r.g[yy][xx] == ".", "%s: ledge at %d,%d hits %s" % (r.name, xx, row, r.g[yy][xx])
+        r.box(x0, row, x0 + 3, row)
+        stand = row - 1
+        x = x0
+    return x, stand
+
+
+def top(r, x0, x1, row, cache_x, flier=None):
+    r.box(x0, row, x1, row)
+    r.put(cache_x, row - 1, "C")
+    if flier:
+        r.put(flier[0], flier[1], "V")
+
+
+def build_upper_storeys():
+    # The Thicket: the canopy, branch over branch above the forest floor.
+    r = raise_room("thicket", 18)
+    ladder(r, 27, 27, 29, 6)
+    top(r, 22, 34, 7, 27, (44, 9))
+    # The Sunken glade: up the glade's wall into the old trees.
+    r = raise_room("sunken_glade", 18)
+    ladder(r, 12, 33, 14, 7)
+    top(r, 2, 11, 10, 6)
+    # The Village square: up over the roofs, from the high shelf by the east door.
+    r = raise_room("village_square", 16)
+    r.box(53, 19, 56, 19)
+    ladder(r, 44, 15, 38, 2, -1)
+    top(r, 18, 31, 7, 24, (40, 4))
+    # The Burning homes: up through the smoke over the burned roofs.
+    r = raise_room("burning_homes", 16)
+    ladder(r, 41, 22, 43, 4)
+    top(r, 53, 62, 8, 58, (30, 5))
+    # The Storm bridges: up the towers over the bridges.
+    r = raise_room("storm_bridges", 18)
+    ladder(r, 50, 28, 52, 5)
+    top(r, 40, 50, 11, 45, (30, 6))
+    # The Ashen road: the fallen beam's top, and up from it (climb its face).
+    r = raise_room("ashen_road", 14)
+    ladder(r, 44, 13, 38, 2, -1)
+    top(r, 20, 31, 5, 25)
+    # The Cliff road: the old pillar's top, and up from it (climb its face).
+    r = raise_room("cliff_road", 14)
+    ladder(r, 17, 13, 19, 2)
+    top(r, 31, 42, 5, 36)
+    # The Throne approach: a gallery over the corridor, through a gap in its ceiling.
+    r = raise_room("throne_approach", 14, roofed=True)
+    ladder(r, 2, 27, 4, 3)
+    r.air(8, 14, 11, 14)
+    r.put(40, 13, "C")
+    r.put(26, 13, "E")
+
 # ---------------------------------------------------------------- Trials
 # One optional trial in each region: a loop out along a lower course, up, and back along an
 # upper one (two tiles thick) to a chest ("T": Rooms.TRIALS), with a drop beside it back down
@@ -1229,7 +1314,7 @@ def place_pots():
             continue
         g = room.g
         doors = [(x, y) for y, row in enumerate(g) for x, c in enumerate(row) if "a" <= c <= "z"]
-        busy = [(x, y) for y, row in enumerate(g) for x, c in enumerate(row) if c in "EUYVXQZKRS?BNHIFLW*O"]
+        busy = [(x, y) for y, row in enumerate(g) for x, c in enumerate(row) if c in "EUYVXQZKRS?BNHIFLW*OC"]
         spots = []
         for y in range(2, room.h - 1):
             for x in range(2, room.w - 2):
@@ -1300,6 +1385,7 @@ def place_extra():
             return not any(g[yy][xx] in "EUYV" for yy in range(y - 2, y + 3) for xx in range(x - 3, x + 4)
                            if 0 <= yy < room.h and 0 <= xx < room.w)
         for x, y, ch in spots:
+            y += RAISE.get(name, 0)
             best = None
             for dy in range(-6, 7):
                 for dx in range(-10, 11):
@@ -1438,6 +1524,7 @@ def gd_block():
 
 
 def main():
+    build_upper_storeys()
     place_extra()
     place_shrines()
     place_pots()

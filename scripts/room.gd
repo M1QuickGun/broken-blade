@@ -540,6 +540,13 @@ func _scan_cells() -> void:
 						flask.id = "%s:%d,%d" % [room_name, x, y]
 						flask.position = Vector2((x + 0.5) * TILE, (y + 0.5) * TILE)
 						add_child(flask)
+				"C":
+					var cache_id := "cache:%s" % room_name
+					if not Game.collected.has(cache_id):
+						var cache := Pot.new()
+						cache.cache_id = cache_id
+						cache.position = feet
+						add_child(cache)
 				"O":
 					var pot := Pot.new()
 					pot.position = feet
