@@ -227,8 +227,13 @@ func door_spawn(door: String) -> Vector2:
 		return Vector2((size_tiles.x - 2) * TILE, r.end.y * TILE)
 	if r.position.y == 0:
 		return Vector2(center_x, 3 * TILE)
-	# Up through a gap in the floor: standing on the ground just beside it.
-	return Vector2((r.end.x + 1) * TILE, r.position.y * TILE)
+	# Up through a gap in the floor: standing on the ground just beside it (on top, however
+	# deep the gap goes down through the floor).
+	var x := r.end.x + 1
+	var y := r.position.y
+	while y > 1 and _earth(x, y - 1):
+		y -= 1
+	return Vector2(x * TILE, y * TILE)
 
 
 ## Past the edge, a room carries on as its edge does: walled rooms stay walled, and rooms

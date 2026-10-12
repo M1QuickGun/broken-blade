@@ -535,3 +535,17 @@ under, so nothing short-cuts the course. The chests hold crowns; the two hardest
 - **The King's Gauntlet** (off the gatehouse): the hardest, all of it.
 Opening every chest earns "Tried and True".
 
+
+### Bigger rooms: upper storeys and cellars
+The mountain was mostly one screen tall. Eight rooms grew a second storey above them, climbed
+by zig-zag ledges to a crown cache (a big gold-banded urn worth thirty crowns, broken for
+good). Ten cellars hang under rooms with floor to spare, reached by dropping through a gap
+dug in the floor: a shaft of ledges by the way in (also the climb back out), a lower hall of
+the region's creatures, then a climb at the far end to a gallery above the hall, walked back
+past the region's test (pits in the Foothills, ice to slide under in the village, wide pits
+on the fire slopes, rings over thorns on the peaks, a slide and rings at the Crossroads, the
+summit and the castle) to a crown cache by the shaft's wall, seen from the shaft on the way
+down. Each has a sign: the root cellar under the landing, the badger sett, the rime crypt
+under the village square, the cinder cellars, the drowned cistern, the smugglers' tunnel
+under the barracks, the fallen trench and the deserters' cave on the summit, the ossuary
+under the crypt, the dungeon under the king's quarters.

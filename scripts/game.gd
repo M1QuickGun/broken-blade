@@ -66,7 +66,7 @@ var rush_best := 0.0
 const RUSH := [["gate_cavern", "f"], ["frost_arena", "k"], ["frost_throne", "m"], ["forge", "t"],
 	["drake_roost", "w"], ["spire", "t"], ["thunder_eyrie", "v"], ["mirror_hall", "m"], ["throne_room", "j"]]
 ## What counts toward a save's completion, and how many of each there are.
-const COMPLETION := {"bosses": 10, "elites": 5, "survivors": 5, "masks": 19, "flasks": 6, "rooms": 72, "trials": 6}
+const COMPLETION := {"bosses": 10, "elites": 5, "survivors": 5, "masks": 19, "flasks": 6, "rooms": 82, "trials": 6}
 
 ## A blow of the blade: two, and one more for each time Bram has honed it.
 const BASE_DAMAGE := 2

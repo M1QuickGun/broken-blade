@@ -259,7 +259,24 @@ EXPECT = [
     ("ashen_road", "q", "C", ["hilt"], []),
     ("cliff_road", "r", "C", ["hilt"], []),
     ("throne_approach", "i", "C", ["all"], []),
+    # The cellars: back out the way in with nothing; the cache asks for the region's ability.
+    # (The gallery's gates can't be checked from the way in: the jump over the shaft's wall
+    # to the cache ignores the wall, and the ceiling over it.)
+    ("root_cellar", "p", "p", ["none"], []),
+    ("root_cellar", "p", "C", ["none"], []),
+    ("badger_sett", "p", "C", ["none"], []),
+    ("rime_crypt", "p", "C", ["base"], []),
+    ("cinder_cellars", "p", "C", ["fire"], []),
+    ("drowned_cistern", "p", "C", ["storm"], []),
+    ("smugglers_tunnel", "p", "C", ["all"], []),
+    ("fallen_trench", "p", "C", ["all"], []),
+    ("deserters_cave", "p", "C", ["all"], []),
+    ("ossuary", "p", "C", ["all"], []),
+    ("dungeon", "p", "C", ["all"], []),
 ]
+for _cellar in ["badger_sett", "rime_crypt", "cinder_cellars", "drowned_cistern", "smugglers_tunnel",
+                "fallen_trench", "deserters_cave", "ossuary", "dungeon"]:
+    EXPECT.append((_cellar, "p", "p", ["none"], []))
 
 
 def main():

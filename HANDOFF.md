@@ -3,8 +3,12 @@
 Notes for picking the project up in a new chat. Read this first. The design is in
 `DESIGN.md`, the controls in `README.md`, the release checklist in `ROADMAP.md`.
 
-## Where we are (2026-10-07)
-The game is complete start to finish (72 rooms, 10 boss fights, the ending) and has had a
+## Where we are (2026-10-12)
+Since the last handoff: a boss camera (frames Storm and the boss together), the Hollow King
+and Dark Storm reworked (see `DESIGN.md`), eight rooms given a second storey with a crown
+cache at the top, and ten new cellar rooms (below). None of it has been played yet.
+
+The game is complete start to finish (82 rooms, 10 boss fights, the ending) and has had a
 large polish pass, but **most of the last two sessions' work has never been played**. Storm
 is about to do a long playtest and will come back with many notes: the next chat starts
 with refining from those notes. Expect tuning, bugs, and layouts that need reworking.
@@ -15,8 +19,10 @@ rasterized at half the font's native size); fixed by rendering the font at 2x
 at size 16 (the size the boss names use, which Storm likes) and re-laying out the panels.
 
 ## Working with Storm (the developer)
-- He playtests; don't run the game to play it yourself (no windowed runs, no screenshot runs
-  unless he asks; `tools/capture.tscn` portfolio captures were approved once). "start it up"
+- He playtests; don't play the game yourself. Screenshot runs are fine (approved
+  2026-10-12): `tools/look.tscn`, configured by the LOOK / LOOK_OUT environment variables
+  (see the top of `tools/look.gd`; output outside the project). It never saves
+  (`Game.no_save`). "start it up"
   means launch the game for him, in the background:
   `"/c/Users/miche/Downloads/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe" --path .`
   (close any running copy first; the game autosaves).
@@ -54,6 +60,16 @@ at size 16 (the size the boss names use, which Storm likes) and re-laying out th
   behind a later ability); found, they move to the refuge and give a gift.
 - **Trials** (`Rooms.TRIALS`, "T"): one loop room per region off an existing room; chest of
   crowns (a mask in the two hardest).
+- **Upper storeys** (`build_rooms.py`'s `build_upper_storeys`): thicket, sunken glade, village
+  square, burning homes, storm bridges, ashen road, cliff road and throne approach have rows
+  added above them, climbed by zig-zag ledges to a crown cache ("C", 30 crowns, once).
+- **Cellars** (`build_rooms.py`'s `CELLARS`): ten 56x26 rooms under existing rooms, entered by
+  dropping through a gap dug in the floor (door "p"). A shaft of ledges by the way in, a lower
+  hall of creatures, a climb at the far end to a gallery that tests the region's ability on
+  the way back to a crown cache. Under: landing, sunken glade, village square, burning homes,
+  chain ravine, old barracks, summit ledge, windward pass, crypt, king's quarters. Each has a
+  lore sign. The fire and lightning regions have one each (their rooms' floors are spike
+  pits); the map has no room left beside rooms, but plenty below.
 - **Systems:** three save slots (safe writes with backups), fast travel between lit shrines,
   the map (bosses, shops, survivors, pins, legend, Wren's map outlines), journal (bestiary and
   lore), completion %, achievements (`Game.ACHIEVEMENTS`), hard mode and a boss rush after the
@@ -82,7 +98,9 @@ at size 16 (the size the boss names use, which Storm likes) and re-laying out th
   rooms.gd). Then always `python tools/check_reach.py` (ability gates; note it ignores walls
   between jumps, so slide-only gaps can't be checked as gates) and `python tools/check_map.py`
   (no overlaps on the map). New rooms: find free map space first (see how the trials and
-  hidden rooms were placed: a search over each parent's sides).
+  hidden rooms were placed: a search over each parent's sides; the cellars search below).
+  The cellars' gallery gates can't be checked by check_reach from the way in (it jumps
+  the shaft's wall); they were checked with the shaft walled off.
 - `godot --headless --path . -s tools/smoke_test.gd`: builds every room, runs every boss and
   elite (the centipede's first fight stays asleep; it wakes on the hilt).
 - Audio: `tools/make_sfx.py` (deterministic; appending new sounds at the end of `main()`
@@ -102,7 +120,8 @@ at size 16 (the size the boss names use, which Storm likes) and re-laying out th
 Spire, eyrie, castle gate, throne approach), 0 reveal the map.
 
 ## Open items
-- **Never played:** the castle and Hollow King polish, elites, shops/crowns, survivors and
+- **Never played:** the boss camera, the King and Dark Storm reworks, the upper storeys and
+  cellars, the castle and Hollow King polish, elites, shops/crowns, survivors and
   hidden rooms, trials, Dark Storm, the boss rush, fast travel, journal, menus and settings,
   the new music and ambience, the sentinel. Balance (health doubling, prices, boss health) is
   untuned.

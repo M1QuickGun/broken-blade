@@ -1254,7 +1254,7 @@ EXTRA = {
     "fern_gully": [(30, 27, "Y")],
     "thicket": [(26, 14, "Y")],
     "frozen_street": [(30, 16, "V"), (48, 16, "Y")],
-    "village_square": [(38, 16, "Y"), (24, 16, "V")],
+    "village_square": [(52, 16, "Y"), (24, 16, "V")],
     "icefall_hall": [(24, 17, "V")],
     "ice_caverns": [(22, 21, "V")],
     "glacier_run": [(36, 15, "Y")],
@@ -1300,6 +1300,166 @@ AFTER_SHRINES = {
     "gate_cavern": "g", "frost_arena": "l", "frost_throne": "n", "forge": "v",
     "drake_roost": "x", "spire": "u", "thunder_eyrie": "w", "throne_room": "j",
 }
+
+
+# ---------------------------------------------------------------- Cellars
+# A big room under each region's rooms (the mountain is packed side to side, but there's
+# room underneath), reached by a gap dug in a room's floor. Each is two storeys: the drop
+# lands on ledges down a shaft by the way in (the climb back out), a lower hall along the
+# bottom past the region's creatures, and at the far end a climb to a gallery over the hall,
+# where the region's ability is tested on the way back to a crown cache ("C") at its end.
+# Drawn with the way in on the left, then mirrored when it fits the map better.
+# Each spec: (name, parent, gate, lower hall, gallery creature).
+#   gate: what the gallery asks for: "none" (pits), "dash" (slide under ice), "double" (wide
+#   pits), "shock" (rings over thorns), "all" (a slide, then rings).
+#   lower: features along the hall: ("pit", x, w), ("block", x, w, h), or a creature (ch, x).
+
+CELLAR_W, CELLAR_H, CELLAR_FLOOR = 56, 26, 22
+
+CELLARS = [
+    ("root_cellar", "landing", "none",
+     [("pit", 24, 3), ("E", 28), ("block", 31, 3, 3), ("pit", 35, 3), ("U", 40), ("Y", 49)], "V"),
+    ("badger_sett", "sunken_glade", "none",
+     [("U", 23), ("block", 27, 4, 2), ("pit", 33, 4), ("E", 40), ("U", 50)], "V"),
+    ("rime_crypt", "village_square", "dash",
+     [("pit", 23, 4), ("Y", 30), ("block", 34, 4, 2), ("E", 41), ("E", 50)], None),
+    ("cinder_cellars", "burning_homes", "double",
+     [("E", 23), ("pit", 27, 4), ("block", 33, 3, 3), ("Y", 40), ("V", 49)], None),
+    ("drowned_cistern", "chain_ravine", "shock",
+     [("Y", 24), ("pit", 29, 3), ("block", 34, 3, 3), ("E", 41), ("V", 49)], None),
+    ("smugglers_tunnel", "old_barracks", "all",
+     [("E", 24), ("pit", 28, 3), ("block", 33, 3, 3), ("Y", 41), ("V", 49)], None),
+    ("fallen_trench", "summit_ledge", "all",
+     [("pit", 22, 4), ("E", 29), ("block", 33, 3, 3), ("Y", 40), ("E", 50)], "V"),
+    ("deserters_cave", "windward_pass", "all",
+     [("E", 23), ("block", 27, 4, 2), ("pit", 33, 4), ("Y", 40), ("V", 49)], None),
+    ("ossuary", "crypt", "all",
+     [("E", 23), ("pit", 27, 3), ("block", 32, 4, 2), ("Y", 40), ("E", 50)], None),
+    ("dungeon", "kings_quarters", "all",
+     [("Y", 24), ("pit", 29, 4), ("E", 36), ("block", 39, 3, 3), ("V", 49)], None),
+]
+
+
+def _surface(g, x):
+    """The top row of the solid run up from a column's bottom."""
+    y = len(g) - 1
+    while y > 0 and g[y - 1][x] == "#":
+        y -= 1
+    return y
+
+
+def _dig_spot(parent, px):
+    """Whether a gap at columns px..px+2 can go in the parent's floor: flat open ground for a
+    few tiles each side, nothing standing there, no other door near."""
+    g = parent.g
+    h = len(g)
+    s = _surface(g, px)
+    if s < 3 or s > h - 1:
+        return None
+    for x in range(px - 1, px + 6):
+        if _surface(g, x) != s or any(g[s - k][x] != "." for k in (1, 2, 3)):
+            return None
+    for y in range(max(0, s - 6), h):
+        for x in range(max(0, px - 9), min(parent.w, px + 12)):
+            c = g[y][x]
+            if c in "EUYVXB^=G" or "a" <= c <= "z":
+                return None
+    # Clear of the creatures EXTRA will put in the room later.
+    if any(abs(x - px - 1) < 10 and abs(y + RAISE.get(parent.name, 0) - s) < 6
+           for x, y, ch in EXTRA.get(parent.name, []) if ch != "V"):
+        return None
+    return s
+
+
+def _cellar_room(name, letter, gate, lower, flier):
+    w, h, f = CELLAR_W, CELLAR_H, CELLAR_FLOOR
+    r = Room(name, w, h)
+    r.floor(f)
+    r.fill(8, 0, 10, 0, letter)
+    # The shaft: ledges down from under the way in (and the climb back up).
+    r.box(7, 4, 11, 4)
+    for i, row in enumerate(range(7, f - 2, 3)):
+        x0 = 13 if i % 2 == 0 else 7
+        r.box(x0, row, x0 + 3, row)
+    # The wall between the shaft and the gallery, and the slab between gallery and hall.
+    r.box(18, 1, 19, 10)
+    r.box(18, 11, w - 13, 12)
+    # The far end: ledges up to the gallery.
+    for row, x0 in [(f - 3, w - 12), (f - 6, w - 6), (f - 9, w - 12)]:
+        r.box(x0, row, x0 + 3, row)
+    # The lower hall.
+    for feat in lower:
+        if feat[0] == "pit":
+            r.fill(feat[1], f, feat[1] + feat[2] - 1, f, "^")
+        elif feat[0] == "block":
+            r.box(feat[1], f - feat[3], feat[1] + feat[2] - 1, f - 1)
+        else:
+            r.put(feat[1], f - 1, feat[0])
+    r.put(22, f - 1, "?")
+    # The gallery, walked back from the far end to the cache.
+    if gate == "none":
+        for x0 in (27, 35):
+            r.fill(x0, 11, x0 + 2, 11, "^")
+    elif gate == "dash":
+        for x0 in (26, 34):
+            r.box(x0, 1, x0 + 3, 9)
+            r.fill(x0 - 1, 1, x0 - 1, 7, "^")
+            r.fill(x0 + 4, 1, x0 + 4, 7, "^")
+    elif gate == "double":
+        r.fill(25, 11, 30, 11, "^")
+        r.fill(33, 11, 38, 11, "^")
+    elif gate == "shock":
+        r.fill(23, 11, w - 15, 11, "^")
+        for x in (38, 32, 26):
+            r.put(x, 6, "*")
+    else:
+        r.box(37, 1, 39, 9)
+        r.fill(36, 1, 36, 7, "^")
+        r.fill(23, 11, 34, 11, "^")
+        for x in (30, 25):
+            r.put(x, 6, "*")
+    if flier:
+        r.put(31, 4, flier)
+    r.put(21, 10, "C")
+    return r
+
+
+def build_cellars():
+    pos = map_layout()
+    taken = [(x, y, x + ROOMS[n].w, y + ROOMS[n].h) for n, (x, y) in pos.items()]
+
+    def free(rect):
+        return not any(rect[0] < b[2] and b[0] < rect[2] and rect[1] < b[3] and b[1] < rect[3] for b in taken)
+
+    for name, parent_name, gate, lower, flier in CELLARS:
+        parent = ROOMS[parent_name]
+        used = {c for row in parent.g for c in row if "a" <= c <= "z"}
+        letter = next(c for c in "pqrstuvwxyzabcdefghijklmno" if c not in used)
+        ox, oy = pos[parent_name]
+        best = None
+        for flip in (False, True):
+            cx = CELLAR_W - 11 if flip else 8
+            for px in range(3, parent.w - 8):
+                rect = (ox + px - cx, oy + parent.h, ox + px - cx + CELLAR_W, oy + parent.h + CELLAR_H)
+                if not free(rect):
+                    continue
+                s = _dig_spot(parent, px)
+                if s is None:
+                    continue
+                score = abs(px + 1 - parent.w / 2)
+                if best is None or score < best[0]:
+                    best = (score, flip, px, s, rect)
+        assert best, "%s: nowhere under %s for it" % (name, parent_name)
+        _, flip, px, s, rect = best
+        parent.air(px, s, px + 2, parent.h - 1)
+        parent.fill(px, parent.h - 1, px + 2, parent.h - 1, letter)
+        r = _cellar_room(name, letter, gate, lower, flier)
+        if flip:
+            mirror(r)
+        LINKS[parent_name][letter] = (name, letter)
+        LINKS[name] = {letter: (parent_name, letter)}
+        taken.append(rect)
+        print("  cellar %s under %s at %d (door %s%s)" % (name, parent_name, px, letter, ", mirrored" if flip else ""))
 
 
 # Clay pots ("O", a few crowns each) on open floor in every room but the boss arenas, the
@@ -1525,6 +1685,7 @@ def gd_block():
 
 def main():
     build_upper_storeys()
+    build_cellars()
     place_extra()
     place_shrines()
     place_pots()
